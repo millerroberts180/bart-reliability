@@ -79,6 +79,9 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Downloaded and collected data
+data/raw/
+
 # IPython
 profile_default/
 ipython_config.py
