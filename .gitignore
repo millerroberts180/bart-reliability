@@ -82,6 +82,9 @@ target/
 # Downloaded and collected data
 data/raw/
 
+# Local AI assistant state
+.vibe-wise/
+
 # IPython
 profile_default/
 ipython_config.py
