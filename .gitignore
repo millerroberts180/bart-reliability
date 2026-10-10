@@ -81,6 +81,7 @@ target/
 
 # Downloaded and collected data
 data/raw/
+data/processed/
 
 # Local AI assistant state
 .vibe-wise/

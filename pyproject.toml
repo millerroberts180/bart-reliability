@@ -9,7 +9,9 @@ description = "Measure the accuracy of BART real-time arrival predictions."
 requires-python = ">=3.11"
 dependencies = [
     "gtfs-realtime-bindings>=1.0",
+    "pyarrow>=15",
     "requests>=2.31",
+    "tzdata>=2024.1",
 ]
 
 [project.optional-dependencies]
@@ -21,6 +23,7 @@ dev = [
 
 [project.scripts]
 bart-collect = "bart_reliability.collector.main:main"
+bart-transform = "bart_reliability.transform.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
