@@ -46,6 +46,9 @@ Query the warehouse with DuckDB, e.g.
 `SELECT * FROM rt_join_quality` or
 `SELECT * FROM rt_predictions_enriched WHERE include_in_primary_metrics`.
 
+To run the collector continuously on a server with systemd, see
+[docs/deployment.md](docs/deployment.md).
+
 Collector logs are JSON lines on stdout and in `logs/collector.log`. Malformed inputs
 found by the transformer are listed in `data/processed/trip_updates/_quarantine.jsonl`.
 

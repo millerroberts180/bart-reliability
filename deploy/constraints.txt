@@ -1,0 +1,13 @@
+# Exact dependency versions running on the production collector (Python 3.12, Ubuntu 24.04),
+# captured with `pip freeze` on 2026-10-10. Install with: pip install -c deploy/constraints.txt .
+certifi==2026.7.22
+charset-normalizer==3.5.2
+duckdb==1.5.6
+gtfs-realtime-bindings==3.0.0
+idna==3.20
+protobuf==7.36.2
+pyarrow==26.0.0
+pytz==2026.5
+requests==2.34.2
+tzdata==2026.5
+urllib3==2.8.0

@@ -1,0 +1,41 @@
+# systemd unit for the BART GTFS-Realtime collector.
+# Install: see docs/deployment.md. Assumes the repository at /opt/bart-reliability,
+# a virtual environment at /opt/bart-reliability/.venv, and a system user "bart".
+
+[Unit]
+Description=BART GTFS-Realtime collector
+Documentation=https://github.com/millerroberts180/bart-reliability/blob/main/docs/deployment.md
+Wants=network-online.target
+After=network-online.target
+# Never stop retrying: a long outage must not leave the collector permanently down.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=bart
+Group=bart
+WorkingDirectory=/opt/bart-reliability
+ExecStart=/opt/bart-reliability/.venv/bin/bart-collect --config config/collector.toml
+# Unbuffered so each JSON log line reaches the journal immediately.
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+UMask=0027
+
+# Hardening: read-only system and repository, writable data and log directories only.
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/bart-reliability/data /opt/bart-reliability/logs
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

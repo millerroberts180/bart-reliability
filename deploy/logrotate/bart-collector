@@ -1,0 +1,15 @@
+# logrotate config for the collector's JSON log. Install to /etc/logrotate.d/bart-collector.
+# copytruncate: the collector keeps its log file open and never reopens it, so the file
+# is copied and then truncated in place. No signal or restart is needed. Lines written
+# between the copy and the truncate can be lost from the file; the journal keeps them.
+/opt/bart-reliability/logs/collector.log {
+    su bart bart
+    daily
+    rotate 14
+    compress
+    missingok
+    notifempty
+    copytruncate
+    dateext
+    dateformat -%Y%m%d
+}
