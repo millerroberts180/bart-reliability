@@ -8,6 +8,7 @@ unreliable? See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full plan.
 ```text
 BART GTFS-RT feeds --bart-collect--> data/raw/gtfs_rt/<feed>/<date>/<HHMMSS>Z.pb
                    --bart-transform--> data/processed/trip_updates/date=…/hour=…/part.parquet
+static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
 ```
 
 - **Collector** (`src/bart_reliability/collector/`): polls trip updates and alerts every
@@ -17,6 +18,11 @@ BART GTFS-RT feeds --bart-collect--> data/raw/gtfs_rt/<feed>/<date>/<HHMMSS>Z.pb
   one row per stop-time update and writes hourly, zstd-compressed Parquet. Reruns are
   idempotent. Schema, deduplication key, and assumptions:
   [docs/trip_updates_schema.md](docs/trip_updates_schema.md).
+- **Warehouse** (`src/bart_reliability/warehouse/`): loads static GTFS from
+  `data/raw/gtfs_static/<date>/google_transit.zip` into typed DuckDB tables, creates
+  views over the Parquet, and joins predictions to scheduled stop times with
+  calendar-resolved service dates and join-quality metrics:
+  [docs/warehouse.md](docs/warehouse.md).
 
 ## Setup
 
@@ -33,7 +39,12 @@ Run from the repository root.
 .venv/bin/bart-collect            # poll forever (Ctrl+C to stop)
 .venv/bin/bart-collect --once     # one cycle
 .venv/bin/bart-transform          # raw snapshots -> Parquet (safe to rerun)
+.venv/bin/bart-build-warehouse    # static GTFS + Parquet -> DuckDB (safe to rerun)
 ```
+
+Query the warehouse with DuckDB, e.g.
+`SELECT * FROM rt_join_quality` or
+`SELECT * FROM rt_predictions_enriched WHERE include_in_primary_metrics`.
 
 Collector logs are JSON lines on stdout and in `logs/collector.log`. Malformed inputs
 found by the transformer are listed in `data/processed/trip_updates/_quarantine.jsonl`.
