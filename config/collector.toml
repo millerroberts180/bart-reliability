@@ -1,0 +1,22 @@
+# GTFS-Realtime collector settings.
+# Relative paths are resolved from the directory the collector is started in
+# (normally the repository root).
+
+interval_seconds = 60
+output_dir = "data/raw/gtfs_rt"
+log_file = "logs/collector.log"
+
+[retry]
+# Worst case per feed per cycle: 3 attempts x 2s timeout + 1s + 2s backoff = 9s.
+timeout_seconds = 2.0
+max_attempts = 3
+backoff_initial_seconds = 1.0
+backoff_max_seconds = 4.0
+
+[[feeds]]
+name = "trip_updates"
+url = "https://api.bart.gov/gtfsrt/tripupdate.aspx"
+
+[[feeds]]
+name = "alerts"
+url = "https://api.bart.gov/gtfsrt/alerts.aspx"
