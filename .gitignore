@@ -84,6 +84,9 @@ data/raw/
 data/processed/
 data/warehouse/
 
+# Collector logs, including rotated archives (collector.log-YYYYMMDD.gz)
+logs/
+
 # Local AI assistant state
 .vibe-wise/
 
