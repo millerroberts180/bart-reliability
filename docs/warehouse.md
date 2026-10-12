@@ -93,6 +93,10 @@ The build also creates the ETA revision dataset (`observed_arrival_proxy`,
 documented in [observed_arrival_proxy.md](observed_arrival_proxy.md). It fails with
 exit code 1 if any check in `eta_revision_quality_checks` fails.
 
+Service-alert tables and the point-in-time alert context for each revision example are
+documented in [service_alerts.md](service_alerts.md); `alert_quality_checks` failures also
+fail the build.
+
 The Parquet path is stored as an absolute path, so rebuild the warehouse after moving
 the repository.
 

@@ -18,7 +18,7 @@ deployment is described in [deployment.md](deployment.md): a 1 vCPU / 1 GB Ubunt
 
 **Success criterion** (from `PROJECT_SPEC.md`): at least 1,426 of 1,440 polling
 cycles (99%) complete, with no lost or corrupt data. Valid feeds with zero entities
-(e.g. no active alerts) count as successful.
+(e.g. no alerts in the feed) count as successful.
 
 ## Methodology
 
@@ -90,7 +90,7 @@ interval above). This was a known risk, documented in `deployment.md` before the
 | Size on disk (bytes, apparent) | 32,377,805 | 57,730 |
 | Size on disk (bytes, allocated) | 35,188,736 | 5,902,336 |
 
-Trip updates were never empty, even overnight. Alerts were empty (no active alerts)
+Trip updates were never empty, even overnight. Alerts were empty (no alerts in the feed)
 in 1,333 snapshots; these are valid feeds and count as successful.
 
 | Integrity check | Result |

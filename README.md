@@ -17,6 +17,7 @@ The 511 regional stop observations are not one: see
 ```text
 BART GTFS-RT feeds --bart-collect--> data/raw/gtfs_rt/<feed>/<date>/<HHMMSS>Z.pb
                    --bart-transform--> data/processed/trip_updates/date=…/hour=…/part.parquet
+                                       data/processed/alert_*/ (normalized alerts)
 static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
 ```
 
@@ -38,6 +39,13 @@ static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
   (`eta_revision_seconds`). Parameters live in `config/eta_revision.toml`;
   `bart-eta-sensitivity` tests how findings depend on them:
   [docs/observed_arrival_proxy.md](docs/observed_arrival_proxy.md).
+- **Service alerts** (`transform/alerts.py`, `warehouse/alerts.py`): normalized alert
+  versions, active periods, and informed entities; when each alert was **visible in the
+  feed**; and one alert-context row per ETA-revision example using only alerts published
+  by the prediction's publication time. A visible alert is not evidence of an operational
+  disruption (that needs a structured active period, which BART does not supply), and
+  planned/incident categories come from a manual annotation file
+  (`config/alert_annotations.csv`): [docs/service_alerts.md](docs/service_alerts.md).
 
 ## Setup
 
@@ -53,9 +61,10 @@ Run from the repository root.
 ```bash
 .venv/bin/bart-collect            # poll forever (Ctrl+C to stop)
 .venv/bin/bart-collect --once     # one cycle
-.venv/bin/bart-transform          # raw snapshots -> Parquet (safe to rerun)
+.venv/bin/bart-transform          # raw trip-update and alert snapshots -> Parquet (safe to rerun)
 .venv/bin/bart-build-warehouse    # static GTFS + Parquet -> DuckDB (safe to rerun)
 .venv/bin/bart-eta-sensitivity    # ETA revision parameter sensitivity (read-only)
+.venv/bin/bart-alert-sensitivity  # alert-state staleness sensitivity (read-only)
 ```
 
 Query the warehouse with DuckDB, e.g.

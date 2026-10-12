@@ -1,0 +1,12 @@
+# Manual alert-category annotations. NOT an automated classifier.
+# Each row records a human reading of one alert version's published text (keyed by alert_fingerprint).
+# planned_notice: text announces scheduled work or a recurring planned service change.
+# incident_like: text reports a current or recent unplanned delay with a specific cause.
+# The versions listed below were manually reviewed. New or changed alert versions remain 'unclassified' until reviewed.
+entity_id,alert_fingerprint,category,basis,reviewed_on
+BSA_1547,974d4628884a9e9b62747f39c621e023fcdce38c6257c1d33cdfc9f007159997,incident_like,"""There is a 20-minute delay ... due to a disabled train between Pleasant Hill and Walnut Creek.""",2026-10-11
+BSA_1549,b76105958ab2c475e56050043d4244428989e27a65da7b86519bfbcc529bae2b,incident_like,"""There is a 10-minute delay ... due to unscheduled track inspections.""",2026-10-11
+BSA_1550,e16b2d62ce2e2a4241b1db2dd59a6a634bf3dddd9294360d732bd5bfc1da62d1,incident_like,"""BART is recovering from an earlier problem. There is a 20-minute delay ... due to an earlier disabled train.""",2026-10-11
+BSA_560,83d99a7e5c31eba7bbc8d5af1d4b7c011bd5448331253cc9a9ccabae83182d71,planned_notice,"""Expect 30-minute delays starting at 9pm each night on Sunday-Thursday ... due to planned train control modernization construction work.""",2026-10-11
+BSA_1587,343eafb77f7d9ff0151caa9f41880558d520fd707e6bfc29bebcbc6523365e06,incident_like,"""BART is recovering from an earlier problem. There is a 10-minute delay ... due to an earlier medical emergency.""",2026-10-11
+BSA_1594,45c459e4bb9daf22d8699665213e4d4a22d459f340d3a16a713d14241dbfcbc0,incident_like,"""BART is recovering from an earlier problem. There is a 10-minute delay ... due to earlier police activity at Montgomery St.""",2026-10-11

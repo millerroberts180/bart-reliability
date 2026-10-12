@@ -13,6 +13,9 @@ data/processed/trip_update_snapshots/
   date=YYYY-MM-DD/hour=HH/part.parquet   # one row per processed snapshot (see below)
 ```
 
+Alert snapshots are written alongside (`alert_snapshots/`, `alert_observations/`,
+`alert_versions/`, ...); see [service_alerts.md](service_alerts.md).
+
 `--out-dir` changes the root, e.g. `data/processed/server_export_2026-10-12/` for a
 server export.
 

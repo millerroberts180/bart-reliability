@@ -15,7 +15,7 @@ def validate_feed(content: bytes) -> gtfs_realtime_pb2.FeedMessage:
 
     Parsing alone is not enough: empty bytes parse as an empty message, so we
     also require the header's required fields and a non-zero feed timestamp.
-    A feed with zero entities (e.g. no active alerts) is still valid.
+    A feed with zero entities (e.g. no alerts in the feed) is still valid.
     """
     if not content:
         raise ValidationError("empty response body")

@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 
 from bart_reliability.collector.logging_setup import configure_logging
+from bart_reliability.warehouse.alerts import DEFAULT_ANNOTATIONS_PATH, AlertAnnotationError
 from bart_reliability.warehouse.build import build_warehouse
 from bart_reliability.warehouse.eta_revision_config import (
     DEFAULT_CONFIG_PATH,
@@ -45,6 +46,12 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_CONFIG_PATH,
         help="ETA revision dataset parameters (TOML)",
     )
+    parser.add_argument(
+        "--alert-annotations",
+        type=Path,
+        default=DEFAULT_ANNOTATIONS_PATH,
+        help="manually reviewed alert categories (CSV)",
+    )
     args = parser.parse_args(argv)
 
     configure_logging(None)
@@ -55,9 +62,13 @@ def main(argv: list[str] | None = None) -> int:
             extra={"fields": {"gtfs_zip": str(gtfs_zip), "db": str(args.db)}},
         )
         eta_config = load_eta_revision_config(args.eta_revision_config)
-        result = build_warehouse(gtfs_zip, args.processed_dir, args.db, eta_config)
+        annotations = args.alert_annotations if args.alert_annotations.is_file() else None
+        result = build_warehouse(gtfs_zip, args.processed_dir, args.db, eta_config, annotations)
     except StaticGTFSError as e:
         logger.error("static_gtfs_invalid", extra={"fields": {"reason": str(e)}})
+        return 2
+    except AlertAnnotationError as e:
+        logger.error("alert_annotations_invalid", extra={"fields": {"reason": str(e)}})
         return 2
     except ETARevisionConfigError as e:
         logger.error("eta_revision_config_invalid", extra={"fields": {"reason": str(e)}})
@@ -79,9 +90,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     logger.info("join_quality", extra={"fields": result.quality})
     logger.info("eta_revision_dataset", extra={"fields": result.eta_revision})
+    logger.info("service_alerts", extra={"fields": result.alerts})
     failed = {k: v for k, v in result.eta_revision["quality_checks"].items() if v}
+    failed |= {f"alerts.{k}": v for k, v in result.alerts["quality_checks"].items() if v}
     if failed:
-        logger.error("eta_revision_checks_failed", extra={"fields": failed})
+        logger.error("quality_checks_failed", extra={"fields": failed})
         return 1
     return 0
 

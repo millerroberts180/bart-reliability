@@ -28,6 +28,7 @@ bart-collect = "bart_reliability.collector.main:main"
 bart-transform = "bart_reliability.transform.main:main"
 bart-build-warehouse = "bart_reliability.warehouse.main:main"
 bart-eta-sensitivity = "bart_reliability.warehouse.eta_revision_sensitivity:main"
+bart-alert-sensitivity = "bart_reliability.warehouse.alerts:staleness_main"
 bart-511-download = "bart_reliability.open511.download:main"
 bart-511-audit = "bart_reliability.open511.audit:main"
 

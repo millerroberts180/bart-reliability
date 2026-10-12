@@ -117,9 +117,9 @@ def run(raw_dir: Path, out_dir: Path) -> Summary:
     return summary
 
 
-def discover(raw_dir: Path) -> list[Path]:
-    """All trip-update snapshots, skipping the collector's hidden temp files."""
-    root = raw_dir / FEED_DIR
+def discover(raw_dir: Path, feed_dir: str = FEED_DIR) -> list[Path]:
+    """All snapshots of one feed, skipping the collector's hidden temp files."""
+    root = raw_dir / feed_dir
     if not root.is_dir():
         return []
     return sorted(p for p in root.rglob("*.pb") if not p.name.startswith("."))
