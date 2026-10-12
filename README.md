@@ -9,6 +9,8 @@ independent vehicle-location or actual-arrival feed, so revisions are measured a
 BART's own final stable published estimate (`observed_arrival_proxy`). That reference is
 circular, and it is never presented as an observed arrival. Evaluating physical accuracy
 would need an independent AVL or actual-arrival source, which BART does not publish.
+The 511 regional stop observations are not one: see
+[docs/511_arrival_feasibility.md](docs/511_arrival_feasibility.md).
 
 ## Pipeline so far
 

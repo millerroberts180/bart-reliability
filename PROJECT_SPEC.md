@@ -14,6 +14,8 @@ The original question asked how accurate BART’s predictions are against actual
 
 That reference comes from the same system that publishes the predictions, so comparing against it is circular: it measures how much an ETA is **revised** before the train reaches the stop, not how close the ETA was to the physical arrival. This project therefore studies ETA revision. It never reports the proxy as an observed arrival or the revision as arrival-accuracy error. Evaluating physical accuracy would require an independent AVL or actual-arrival source, which BART does not publish.
 
+The 511 regional feed's `stop_observations.txt` was evaluated as such a source and rejected. The evidence indicates its BART timestamps are BART’s final published estimates reconstructed from archived trip updates (the same circular construct), covering 16.1% of scheduled stop events. See `docs/511_arrival_feasibility.md`.
+
 ## Project objective
 
 Build a reproducible Python and SQL pipeline that collects BART’s real-time predictions, reconstructs each trip-stop’s ETA history against its final stable published estimate, measures how ETAs are revised as trains approach, and evaluates a model that predicts whether and by how much an ETA will be revised.
