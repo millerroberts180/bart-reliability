@@ -69,8 +69,9 @@ logrotate -d /etc/logrotate.d/bart-collector     # dry run: changes nothing
 systemctl list-timers logrotate.timer            # runs daily at 00:00 UTC
 ```
 
-After the first daily run, `ls -l logs/` should show `collector.log` (still mode 0640,
-owned by `bart`) and `collector.log-YYYYMMDD.gz`. To force a rotation for testing:
+On its first run logrotate only records the new log in its state file, so the first
+archive appears after the **second** daily run. Then `ls -l logs/` should show
+`collector.log` (still mode 0640, owned by `bart`) and `collector.log-YYYYMMDD.gz`. To force a rotation for testing:
 `logrotate -f /etc/logrotate.d/bart-collector`.
 
 ## Firewall
@@ -129,10 +130,14 @@ Run git as `bart`: as root, git refuses a repository owned by another user.
 ### Copy data off the server
 
 ```bash
-rsync -av <user>@<server>:/opt/bart-reliability/data/raw/gtfs_rt/ data/raw/gtfs_rt/
+rsync -av --exclude '.*' <user>@<server>:/opt/bart-reliability/data/raw/gtfs_rt/ \
+    data/raw/server_exports/<YYYY-MM-DD>/gtfs_rt/
 ```
 
-Filenames never collide, so repeated syncs only add new snapshots.
+`--exclude '.*'` skips a snapshot that is mid-write. Filenames never collide, so
+repeated syncs only add new snapshots. To verify a copy, compare
+`find . -name '*.pb' | wc -l` and `sha256sum` output on both sides. While the
+collector runs, list the files on the server first and compare exactly that list.
 
 ## Known limitations
 
@@ -147,8 +152,9 @@ Filenames never collide, so repeated syncs only add new snapshots.
 - **Single server:** if the server itself is down, intervals are missed. Restarts
   catch up on the fixed 60 s schedule; they never backfill.
 - **Automatic security updates.** Ubuntu's unattended upgrades run daily, and
-  `needrestart` may restart services that use an upgraded library (e.g. Python or
-  OpenSSL), costing at most an interval. To keep the collector from being restarted
+  `needrestart` restarts services that use an upgraded library. This happened once
+  during the 24-hour test (an OpenSSL update) and cost no interval; see
+  [collection_validation.md](collection_validation.md). To keep the collector from being restarted
   automatically, for example during a timed test:
   `echo '$nrconf{override_rc}{qr(^bart-collector\.service$)} = 0;' > /etc/needrestart/conf.d/bart-collector.conf`.
   Then restart it yourself after security updates.
