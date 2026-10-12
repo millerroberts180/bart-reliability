@@ -182,3 +182,35 @@ def test_cli_entry_point(dirs, capsys):
     complete = next(e for e in log_lines if e["event"] == "transform_complete")
     assert complete["rows_written"] == 1
     assert read_all(out).num_rows == 1
+
+
+def test_snapshot_manifest_includes_empty_feeds(dirs):
+    raw, out = dirs
+    save(raw, at(21, 58), feed_bytes(ts(at(21, 58)), {"T1": ["A", "B"]}))
+    save(raw, at(21, 59), feed_bytes(ts(at(21, 59)), {}))  # valid feed, no trips
+    run(raw, out)
+    run(raw, out)  # rerun must not duplicate manifest rows
+    manifest = ds.dataset(
+        out / "trip_update_snapshots", format="parquet", partitioning="hive"
+    ).to_table()
+    rows = sorted(
+        manifest.select(["source_file", "entity_count", "row_count"]).to_pylist(),
+        key=lambda r: r["source_file"],
+    )
+    assert rows == [
+        {"source_file": "trip_updates/2026-10-09/215800Z.pb", "entity_count": 1, "row_count": 2},
+        {"source_file": "trip_updates/2026-10-09/215900Z.pb", "entity_count": 0, "row_count": 0},
+    ]
+
+
+def test_snapshot_manifest_omits_duplicate_and_quarantined_files(dirs):
+    raw, out = dirs
+    stale = feed_bytes(ts(at(21, 58)), {"T1": ["A"]})
+    save(raw, at(21, 58), stale)
+    save(raw, at(21, 59), stale)
+    save(raw, at(22, 0), b"garbage")
+    run(raw, out)
+    manifest = ds.dataset(
+        out / "trip_update_snapshots", format="parquet", partitioning="hive"
+    ).to_table()
+    assert manifest.column("source_file").to_pylist() == ["trip_updates/2026-10-09/215800Z.pb"]

@@ -8,6 +8,11 @@ from pathlib import Path
 
 from bart_reliability.collector.logging_setup import configure_logging
 from bart_reliability.warehouse.build import build_warehouse
+from bart_reliability.warehouse.eta_revision_config import (
+    DEFAULT_CONFIG_PATH,
+    ETARevisionConfigError,
+    load_eta_revision_config,
+)
 from bart_reliability.warehouse.static_gtfs import StaticGTFSError
 
 logger = logging.getLogger(__name__)
@@ -34,6 +39,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--processed-dir", type=Path, default=DEFAULT_PROCESSED_DIR)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
+    parser.add_argument(
+        "--eta-revision-config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="ETA revision dataset parameters (TOML)",
+    )
     args = parser.parse_args(argv)
 
     configure_logging(None)
@@ -43,9 +54,13 @@ def main(argv: list[str] | None = None) -> int:
             "warehouse_build_started",
             extra={"fields": {"gtfs_zip": str(gtfs_zip), "db": str(args.db)}},
         )
-        result = build_warehouse(gtfs_zip, args.processed_dir, args.db)
+        eta_config = load_eta_revision_config(args.eta_revision_config)
+        result = build_warehouse(gtfs_zip, args.processed_dir, args.db, eta_config)
     except StaticGTFSError as e:
         logger.error("static_gtfs_invalid", extra={"fields": {"reason": str(e)}})
+        return 2
+    except ETARevisionConfigError as e:
+        logger.error("eta_revision_config_invalid", extra={"fields": {"reason": str(e)}})
         return 2
 
     for warning in result.static.warnings:
@@ -63,6 +78,11 @@ def main(argv: list[str] | None = None) -> int:
         },
     )
     logger.info("join_quality", extra={"fields": result.quality})
+    logger.info("eta_revision_dataset", extra={"fields": result.eta_revision})
+    failed = {k: v for k, v in result.eta_revision["quality_checks"].items() if v}
+    if failed:
+        logger.error("eta_revision_checks_failed", extra={"fields": failed})
+        return 1
     return 0
 
 

@@ -1,7 +1,14 @@
 # BART Reliability Lab
 
-How accurate are BART's real-time arrival predictions, and when do they become
-unreliable? See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full plan.
+How stable are BART's published arrival estimates (ETAs), and where and when are they
+most likely to be revised as a train approaches? See [PROJECT_SPEC.md](PROJECT_SPEC.md)
+for the full plan.
+
+This project measures **ETA revision**, not arrival accuracy. BART publishes no
+independent vehicle-location or actual-arrival feed, so revisions are measured against
+BART's own final stable published estimate (`observed_arrival_proxy`). That reference is
+circular, and it is never presented as an observed arrival. Evaluating physical accuracy
+would need an independent AVL or actual-arrival source, which BART does not publish.
 
 ## Pipeline so far
 
@@ -23,6 +30,12 @@ static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
   views over the Parquet, and joins predictions to scheduled stop times with
   calendar-resolved service dates and join-quality metrics:
   [docs/warehouse.md](docs/warehouse.md).
+- **ETA revision dataset** (`src/bart_reliability/warehouse/eta_revision.py`):
+  reconstructs each trip-stop's ETA history, its final stable published estimate
+  (`observed_arrival_proxy`), and 5/10/15-minute revision examples
+  (`eta_revision_seconds`). Parameters live in `config/eta_revision.toml`;
+  `bart-eta-sensitivity` tests how findings depend on them:
+  [docs/observed_arrival_proxy.md](docs/observed_arrival_proxy.md).
 
 ## Setup
 
@@ -40,6 +53,7 @@ Run from the repository root.
 .venv/bin/bart-collect --once     # one cycle
 .venv/bin/bart-transform          # raw snapshots -> Parquet (safe to rerun)
 .venv/bin/bart-build-warehouse    # static GTFS + Parquet -> DuckDB (safe to rerun)
+.venv/bin/bart-eta-sensitivity    # ETA revision parameter sensitivity (read-only)
 ```
 
 Query the warehouse with DuckDB, e.g.
