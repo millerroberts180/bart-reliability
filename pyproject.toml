@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bart-reliability"
 version = "0.1.0"
-description = "Measure the accuracy of BART real-time arrival predictions."
+description = "Measure how BART real-time arrival estimates are revised as trains approach."
 requires-python = ">=3.11"
 dependencies = [
     "duckdb>=1.1",
@@ -27,6 +27,7 @@ dev = [
 bart-collect = "bart_reliability.collector.main:main"
 bart-transform = "bart_reliability.transform.main:main"
 bart-build-warehouse = "bart_reliability.warehouse.main:main"
+bart-eta-sensitivity = "bart_reliability.warehouse.eta_revision_sensitivity:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

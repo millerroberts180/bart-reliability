@@ -44,6 +44,19 @@ SCHEMA = pa.schema(
 )
 
 
+# One row per processed snapshot, including valid feeds with no trips. Lets later steps
+# tell "the feed was observed and the trip was absent" from "no observation".
+SNAPSHOT_SCHEMA = pa.schema(
+    [
+        pa.field("feed_timestamp", pa.timestamp("s", tz="UTC"), nullable=False),
+        pa.field("collected_at", pa.timestamp("s", tz="UTC"), nullable=False),
+        pa.field("source_file", pa.string(), nullable=False),
+        pa.field("entity_count", pa.int32(), nullable=False),
+        pa.field("row_count", pa.int32(), nullable=False),
+    ]
+)
+
+
 def parse_collected_at(source_file: str) -> datetime:
     """Recover the UTC collection time from a snapshot path like .../2026-10-09/224227Z.pb."""
     match = _SNAPSHOT_NAME.search(PurePosixPath(source_file).as_posix())

@@ -9,7 +9,21 @@ Produced by `bart-transform` from raw GTFS-Realtime trip-update snapshots in
 data/processed/trip_updates/
   date=YYYY-MM-DD/hour=HH/part.parquet   # UTC collection date and hour, zstd-compressed
   _quarantine.jsonl                       # inputs that could not be processed
+data/processed/trip_update_snapshots/
+  date=YYYY-MM-DD/hour=HH/part.parquet   # one row per processed snapshot (see below)
 ```
+
+`--out-dir` changes the root, e.g. `data/processed/server_export_2026-10-12/` for a
+server export.
+
+### Snapshot manifest
+
+`trip_update_snapshots` has one row per snapshot used (after duplicate-feed removal,
+excluding quarantined files), **including valid feeds with no trips**:
+`feed_timestamp`, `collected_at` (UTC timestamps), `source_file`, `entity_count`,
+`row_count`. A snapshot that produced no rows therefore still shows the feed was
+observed. The observed-arrival proxy depends on this to tell "trip absent" from
+"no observation".
 
 The `date=`/`hour=` directories are Hive-style partitions, so DuckDB can read them with
 `read_parquet('data/processed/trip_updates/**/*.parquet', hive_partitioning = true)`.

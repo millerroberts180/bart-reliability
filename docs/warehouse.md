@@ -86,6 +86,12 @@ every run. Service dates come from `calendar.txt` and `calendar_dates.txt`, neve
 | `rt_predictions_enriched` | One row per real-time prediction, joined to static trips, routes, stops, and the scheduled stop time. Unmatched predictions stay in the view with a `match_status`. |
 | `rt_join_quality` | One row of match counts (see below). |
 | `rt_unmatched_summary` | Unmatched predictions grouped by status and trip, with stop IDs and time range. |
+| `rt_feed_snapshots` | The transformer's snapshot manifest (one row per snapshot, empty feeds included). |
+
+The build also creates the ETA revision dataset (`observed_arrival_proxy`,
+`eta_revision_examples`, and supporting views) from `config/eta_revision.toml`,
+documented in [observed_arrival_proxy.md](observed_arrival_proxy.md). It fails with
+exit code 1 if any check in `eta_revision_quality_checks` fails.
 
 The Parquet path is stored as an absolute path, so rebuild the warehouse after moving
 the repository.
@@ -130,7 +136,7 @@ departure respectively.
 | `match_candidate_count` | Scheduled occurrences of this trip at this stop |
 | `match_time_difference_seconds` | Prediction minus the chosen scheduled time (positive = later than scheduled) |
 | `is_ambiguous_match` | Matched with more than one candidate |
-| `include_in_primary_metrics` | Matched with exactly one candidate. **Ambiguous matches are excluded from primary accuracy metrics** until validation shows they are reliable. |
+| `include_in_primary_metrics` | Matched with exactly one candidate. **Ambiguous matches are excluded from primary metrics** until validation shows they are reliable. |
 | `service_date`, `service_date_source`, `service_date_offset_days` | Calendar-resolved service date, `'static_calendar'`, and its offset from `inferred_service_date` |
 | `trip_found`, `stop_found` | Whether the IDs exist in static GTFS |
 

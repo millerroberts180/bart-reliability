@@ -10,10 +10,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from bart_reliability.collector.validate import ValidationError, validate_feed
 from bart_reliability.transform.flatten import (
+    SNAPSHOT_SCHEMA,
     flatten_feed,
     parse_collected_at,
     rows_to_table,
@@ -22,6 +24,7 @@ from bart_reliability.transform.flatten import (
 logger = logging.getLogger(__name__)
 
 FEED_DIR = "trip_updates"
+SNAPSHOT_DIR = "trip_update_snapshots"
 QUARANTINE_FILE = "_quarantine.jsonl"
 PART_FILE = "part.parquet"
 
@@ -76,6 +79,7 @@ def run(raw_dir: Path, out_dir: Path) -> Summary:
 
     for (day, hour), hour_snaps in sorted(by_hour.items()):
         rows = []
+        manifest = []
         for snap in hour_snaps:
             # Re-read here so only one hour of rows is in memory at a time.
             try:
@@ -86,10 +90,23 @@ def run(raw_dir: Path, out_dir: Path) -> Summary:
                 continue
             result = flatten_feed(message, snap.collected_at, snap.source_file)
             rows.extend(result.rows)
+            manifest.append(
+                {
+                    "feed_timestamp": message.header.timestamp,
+                    "collected_at": int(snap.collected_at.timestamp()),
+                    "source_file": snap.source_file,
+                    "entity_count": len(message.entity),
+                    "row_count": len(result.rows),
+                }
+            )
             summary.rows_skipped_missing_key += result.stats.skipped_missing_key
             summary.rows_duplicate_in_file += result.stats.duplicates_in_file
         partition = out_dir / FEED_DIR / f"date={day}" / f"hour={hour}"
         _write_parquet_atomic(rows_to_table(rows), partition / PART_FILE)
+        snapshot_partition = out_dir / SNAPSHOT_DIR / f"date={day}" / f"hour={hour}"
+        _write_parquet_atomic(
+            pa.Table.from_pylist(manifest, schema=SNAPSHOT_SCHEMA), snapshot_partition / PART_FILE
+        )
         summary.rows_written += len(rows)
         summary.partitions_written += 1
 

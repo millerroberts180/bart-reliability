@@ -1,0 +1,25 @@
+# Parameters for the ETA revision dataset (observed_arrival_proxy and eta_revision_examples).
+# Documented in docs/observed_arrival_proxy.md, including a sensitivity analysis of each.
+
+# Longest acceptable gap between consecutive feed snapshots (normal: 60 s) anywhere from
+# a stop's first observation to the snapshot confirming it was passed. Longer gaps could
+# hide a stop disappearing and returning.
+max_collection_gap_s = 90
+
+# The final stable estimate is judged from the last `stability_window` estimates, which
+# must span no more than `stable_spread_s`. Tier A requires `tier_a_spread_s`.
+stability_window = 3
+stable_spread_s = 60
+tier_a_spread_s = 30
+
+# Tier A also requires the stop's last listing to fall within this window around the
+# final estimate (seconds, last listed minus final estimate).
+tier_a_persistence_s = [-60, 120]
+
+# Target horizons (seconds before the final stable estimate) and how far a published
+# estimate may be from a target to represent it.
+horizon_targets_s = [300, 600, 900]
+horizon_tolerance_s = 60
+
+# A trip's first stop is a layover/departure, not an approach, so it is excluded.
+exclude_origin_stops = true

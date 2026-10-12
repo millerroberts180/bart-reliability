@@ -1,15 +1,22 @@
 # BART Reliability Lab — Project Specification
 
 **Created:** October 9, 2026  
-**Status:** Initial specification
+**Revised:** October 12, 2026 (reframed around ETA revision; see "Why not arrival accuracy")\
+**Status:** Active specification
 
 ## Project question
 
-How accurate are BART’s published real-time arrival predictions, under what conditions do they become unreliable, and can a statistical correction model improve them?
+How stable are BART’s published arrival estimates (ETAs), and where and when are they most likely to be revised as a train approaches?
+
+## Why not arrival accuracy
+
+The original question asked how accurate BART’s predictions are against actual arrivals. BART does not publish an independent vehicle-location (AVL) or actual-arrival feed, so actual arrivals cannot be observed from public data. The closest available reference is BART’s own **final stable published estimate** for a stop, taken when the feed shows the train has moved past it (`observed_arrival_proxy`, see `docs/observed_arrival_proxy.md`).
+
+That reference comes from the same system that publishes the predictions, so comparing against it is circular: it measures how much an ETA is **revised** before the train reaches the stop, not how close the ETA was to the physical arrival. This project therefore studies ETA revision. It never reports the proxy as an observed arrival or the revision as arrival-accuracy error. Evaluating physical accuracy would require an independent AVL or actual-arrival source, which BART does not publish.
 
 ## Project objective
 
-Build a reproducible Python and SQL pipeline that collects BART’s real-time predictions, matches them with subsequently observed arrivals, measures prediction accuracy, and evaluates a residual-correction model.
+Build a reproducible Python and SQL pipeline that collects BART’s real-time predictions, reconstructs each trip-stop’s ETA history against its final stable published estimate, measures how ETAs are revised as trains approach, and evaluates a model that predicts whether and by how much an ETA will be revised.
 
 The project should demonstrate:
 
@@ -46,13 +53,13 @@ Raw protobuf snapshots → hourly Parquet files → DuckDB SQL tables
 
 ## Evaluation horizons
 
-Evaluate predictions made approximately:
+Measure ETA revision for estimates published approximately:
 
-- 5 minutes before arrival
-- 10 minutes before arrival
-- 15 minutes before arrival
+- 5 minutes before the final stable estimate
+- 10 minutes before the final stable estimate
+- 15 minutes before the final stable estimate
 
-When no prediction exists at the exact horizon, select the most recent eligible prediction within a documented tolerance window. The tolerance must be finalized before calculating results.
+Horizons are measured as time to the final stable estimate, not as the horizon BART published. When no estimate exists at the exact horizon, select the nearest eligible estimate within the documented tolerance (±60 seconds; `config/eta_revision.toml`). The final estimates that define the reference are never used as horizon estimates.
 
 ## Initial scope and exclusions
 
@@ -69,32 +76,33 @@ Excluded records must be counted and reported rather than silently deleted.
 
 ## Primary metrics
 
-Report the following for each evaluation horizon:
+`eta_revision_seconds` = final stable published estimate − estimate published at the horizon. Positive values mean the ETA later moved later; negative values mean it later moved earlier. Both describe movement relative to the final stable published estimate, not error against an observed arrival.
 
-- Mean absolute error
-- Median absolute error
-- 90th-percentile absolute error
-- Percentage of predictions within ±1 minute
-- Percentage of predictions within ±2 minutes
-- Mean signed error to identify systematically early or late predictions
-- Sample size and exclusion rate
+Report the following for each horizon:
+
+- Mean absolute ETA revision (`absolute_eta_revision_seconds`)
+- Median absolute ETA revision
+- 90th-percentile absolute ETA revision
+- Percentage of ETAs revised by at most ±1 minute
+- Percentage of ETAs revised by at most ±2 minutes
+- Mean signed ETA revision, to identify systematic revision later or earlier
+- Sample size, quality tier, and exclusion rate
 
 Break results down by station, direction, hour, weekday, prediction horizon, and service-alert status.
 
 ## Modeling plan
 
+Goal: predict **whether and by how much** a published ETA will be revised before the train reaches the stop:
+
+- a classification target (revised by more than ±60 seconds, and in which direction), and
+- a regression target (`eta_revision_seconds`).
+
 Begin with two references:
 
-1. BART’s published prediction
-2. A simple historical-error baseline
+1. No revision: assume the published ETA will not change
+2. A simple historical-revision baseline (e.g. mean revision by station, horizon, and hour)
 
-Then train a residual-correction model:
-
-```text
-Corrected prediction = BART prediction + predicted residual error
-```
-
-Potential features include station, direction, time of day, weekday, published minutes to arrival, recent prediction movement, previous-stop errors, and active alerts.
+Potential features include station, direction, time of day, weekday, time to the final estimate, recent ETA movement, revisions at upstream stops, and active alerts. Features must only use information available when the ETA was published.
 
 Split data chronologically:
 
@@ -102,7 +110,7 @@ Split data chronologically:
 - Later observations for validation
 - Most recent observations for final testing
 
-Do not use random splitting. The correction model will be considered useful only if it improves held-out performance or reveals meaningful reliability patterns. A result showing no improvement is acceptable if evaluated honestly.
+Do not use random splitting. The revision model will be considered useful only if it improves held-out performance over both references or reveals meaningful revision patterns. A result showing no improvement is acceptable if evaluated honestly. The model predicts revision of BART’s published ETAs; it makes no claim about physical arrival times.
 
 ## Initial success criterion
 
@@ -119,9 +127,9 @@ The collector must run continuously for 24 hours and:
 
 The finished project must:
 
-- Evaluate BART predictions on a chronological held-out test period
-- Compare BART against a historical baseline and correction model
-- Report accuracy at 5-, 10-, and 15-minute horizons
+- Evaluate ETA revision prediction on a chronological held-out test period
+- Compare a revision model against the no-revision and historical-revision baselines
+- Report ETA revision at 5-, 10-, and 15-minute horizons
 - Include rider-weighted reliability analysis
 - Provide reproducible Python and SQL code
 - Include automated tests and data-quality checks
@@ -136,4 +144,5 @@ The finished project must:
 - Streaming infrastructure such as Kafka or Spark
 - Deep-learning models
 - Reproducing BART’s internal prediction system
+- Claiming physical arrival accuracy without an independent AVL or actual-arrival source
 - Claiming causal effects from observational results

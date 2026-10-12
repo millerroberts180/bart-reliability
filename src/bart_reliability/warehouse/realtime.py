@@ -51,7 +51,41 @@ def create_realtime_view(con: duckdb.DuckDBPyConnection, processed_dir: Path) ->
             WHERE false
         """
     con.execute(f"CREATE VIEW rt_trip_updates AS {source}")
+    create_feed_snapshots_view(con, processed_dir)
     return len(files)
+
+
+def create_feed_snapshots_view(con: duckdb.DuckDBPyConnection, processed_dir: Path) -> str:
+    """Create rt_feed_snapshots: one row per processed snapshot, including empty feeds.
+
+    Reads the transformer's trip_update_snapshots manifest. Processed data written
+    before the manifest existed falls back to the snapshots that produced rows, which
+    cannot show empty feeds. Returns which source was used.
+    """
+    root = (processed_dir / "trip_update_snapshots").resolve()
+    if any(root.glob("date=*/hour=*/*.parquet")):
+        glob = (root / "**" / "*.parquet").as_posix().replace("'", "''")
+        source, kind = (
+            f"""
+            SELECT feed_timestamp, collected_at, source_file, entity_count, row_count,
+                   'manifest' AS snapshot_source
+            FROM read_parquet('{glob}', hive_partitioning = true,
+                              hive_types = {{'date': DATE, 'hour': INTEGER}})
+            """,
+            "manifest",
+        )
+    else:
+        source, kind = (
+            """
+            SELECT feed_timestamp, any_value(collected_at) AS collected_at,
+                   any_value(source_file) AS source_file, CAST(NULL AS INTEGER) AS entity_count,
+                   CAST(count(*) AS INTEGER) AS row_count, 'derived_from_rows' AS snapshot_source
+            FROM rt_trip_updates GROUP BY feed_timestamp
+            """,
+            "derived_from_rows",
+        )
+    con.execute(f"CREATE VIEW rt_feed_snapshots AS {source}")
+    return kind
 
 
 ENRICHED_VIEW_SQL = f"""
