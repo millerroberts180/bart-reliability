@@ -8,6 +8,12 @@ from pathlib import Path
 
 import duckdb
 
+from bart_reliability.warehouse.alerts import (
+    alert_report,
+    build_alert_tables,
+    create_alert_views,
+    load_alert_annotations,
+)
 from bart_reliability.warehouse.eta_revision import build_eta_revision_dataset, eta_revision_report
 from bart_reliability.warehouse.eta_revision_config import ETARevisionConfig
 from bart_reliability.warehouse.quality import create_quality_views, join_quality
@@ -22,6 +28,7 @@ class BuildResult:
     parquet_files: int
     quality: dict
     eta_revision: dict
+    alerts: dict
 
 
 def build_warehouse(
@@ -29,6 +36,7 @@ def build_warehouse(
     processed_dir: Path,
     db_path: Path,
     eta_revision_config: ETARevisionConfig | None = None,
+    alert_annotations: Path | None = None,
 ) -> BuildResult:
     """Load static GTFS and create the real-time views in a fresh database.
 
@@ -49,6 +57,10 @@ def build_warehouse(
         quality = join_quality(con)
         build_eta_revision_dataset(con, eta_revision_config)
         eta_revision = eta_revision_report(con)
+        create_alert_views(con, processed_dir)
+        load_alert_annotations(con, alert_annotations)
+        build_alert_tables(con)
+        alerts = alert_report(con)
         con.execute("CHECKPOINT")
     except BaseException:
         con.close()
@@ -56,7 +68,7 @@ def build_warehouse(
         raise
     con.close()
     os.replace(tmp, db_path)
-    return BuildResult(db_path, static, parquet_files, quality, eta_revision)
+    return BuildResult(db_path, static, parquet_files, quality, eta_revision, alerts)
 
 
 def _remove_db(path: Path) -> None:
