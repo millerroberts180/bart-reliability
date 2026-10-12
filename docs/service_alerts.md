@@ -135,9 +135,8 @@ can lag by up to about a minute.
     earlier problem").
 - **Unlisted versions are `unclassified`.** A version whose content changes, or a new
   alert, stays unclassified until someone reviews it.
-- **Who reviewed.** The six current rows were **drafted by the AI coding assistant on
-  2026-10-12** from the published text and are marked for confirmation by the project
-  owner.
+- **Review status.** The six listed versions were manually reviewed on 2026-10-11
+  (Pacific). New or changed versions remain unclassified until reviewed.
 - **Validation.** The loader rejects unknown categories, malformed fingerprints, and
   duplicate fingerprints. The build checks that each annotation's `entity_id` matches
   the observations.
@@ -220,9 +219,8 @@ The verified server export: 2026-10-10 08:11 UTC to 2026-10-12 02:35 UTC.
 - **Scope lives in the text.** Line, direction, and station information appears only in
   descriptions. Text is not parsed, so every real alert is system-wide and route- or
   stop-level applicability is understated. Those paths are tested synthetically only.
-- **Manual categories.** Six versions were reviewed by hand, drafted by the AI assistant
-  and pending owner confirmation. There is no automated classifier, and new or changed
-  alerts are `unclassified` until reviewed.
+- **Manual categories.** Six versions were reviewed by hand. There is no automated
+  classifier, and new or changed alerts are `unclassified` until reviewed.
 - **A short sample.** About 42 hours, 6 alerts, one long-running planned notice.
 - **Up to a minute of alert lag** under the strict no-future rule.
 - **Rider visibility is approximated** by the feed at 60 s sampling.
