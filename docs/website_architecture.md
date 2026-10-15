@@ -6,18 +6,30 @@ connected yet.
 
 The site, **ETA Reliability**, is the public explainer for the ETA-revision project ("How
 stable are BART's published arrival estimates?"). Its first slice lets a visitor pick a
-station, direction and train, and read one prediction in three steps:
+station, direction and train, and read one prediction. The result is built to be read at a
+glance, for example on a platform:
 
-1. **BART says now:** BART's current published clock time and the time remaining.
-2. **Expected change:** how much BART is expected to change that estimate, always in words
-   ("about 12 seconds later"), with an 80% likely range.
-3. **Likely final published ETA:** the strongest value, as a clock time and time remaining.
+1. **Compact identity:** station · destination, then the line (with its route-colour cue),
+   direction, car count, trip number and the "Simulated" tag, all at supporting size.
+2. **Likely final published ETA:** the largest element in the example, built for a glance.
+   It shows a very large clock time, always to the minute ("6:27 PM"). Underneath is the
+   time away rounded to whole minutes ("About 2 min away", or "Less than 1 min away"),
+   then the 80% likely range and "Model forecast of BART's last published ETA, not an
+   observed arrival."
+3. **Calculation, directly beneath:** three labelled rows that reproduce the relationship
+   without a paragraph:
 
-The arithmetic behind it is shown as a secondary line:
+   ```text
+   BART currently says          5:56 PM · 10 min 10 sec away
+   + Expected adjustment        About 2 min 20 sec later
+   = Likely final published ETA 5:58 PM · about 12 min 30 sec away
+   ```
 
-```text
-current published ETA + predicted revision = likely final published ETA
-```
+   (current published ETA + predicted revision = likely final published ETA). The
+   direction is always in words. The `+` and `=` are visual only; screen readers hear the
+   labels.
+4. **Detail, below:** adjustment range, ETA stability, the full caveat, service alerts,
+   feed freshness and the model timestamp. All of it stays visible, at smaller sizes.
 
 The likely final published ETA is a forecast of BART's last published estimate before the
 train reaches the stop. It is never an observed arrival (see `PROJECT_SPEC.md`, "Why not
@@ -102,11 +114,18 @@ Derived values are computed in exactly one place, `domain/eta.ts`:
   (`ALERT_SNAPSHOT_MAX_AGE_S` in `src/bart_reliability/warehouse/alerts.py`).
 
 - Display wording also lives there: `describeRevision` ("about 12 seconds later"),
-  `describeRevisionRange` ("10 seconds earlier to 35 seconds later"), `describeTimeAway`, and
-  `formatClock`. The two primary clocks (BART says now, likely final published ETA) always
-  show seconds, so a sub-minute revision never makes the two estimates look identical.
-  `formatClockMinute` (seconds dropped, not rounded) is used only for the stale-snapshot
-  wording.
+  `describeRevisionRange` ("10 seconds earlier to 35 seconds later"), `describeTimeAway`,
+  `formatClock` and `formatClockMinute` (seconds dropped, not rounded).
+- **Glance versus exact.** The large forecast is always minute precision, and its time away
+  is rounded to whole minutes by `describeAwayGlance`. The exact values sit in the
+  calculation directly underneath. There, `needsSeconds(current, final)` is true when the
+  two times differ but read the same to the minute, and then both calculation clocks show
+  seconds ("6:27:06 PM" and "6:27:18 PM"). A sub-minute adjustment is therefore never
+  hidden. The time-away values in the calculation are always exact ("2 min 22 sec").
+- The screen-reader summary gives the glance first, then the exact calculation, labelled as
+  such: "Likely final published ETA: 6:27 PM, about 2 min away. Exact calculation: BART
+  currently says 6:27:06 PM, 2 min 10 sec away; expected adjustment about 12 seconds later;
+  likely final published ETA 6:27:18 PM, about 2 min 22 sec away."
 - **Time remaining is counted from the feed snapshot**, not from the visitor's clock. It
   matches what BART published and does not count down while the page is open. The readout
   says so next to the snapshot time, and a stale snapshot gets a warning. Switching to the
@@ -303,12 +322,12 @@ These were chosen after studying one public editorial data story (for principles
 appearance) and reconciling the result with this project's accuracy and accessibility
 requirements.
 
-1. **Lead with the answer.** The result reads in a fixed order: what BART says now, the
-   expected change, then the likely final published ETA, which is the largest and heaviest
-   value. Uncertainty, stability, freshness, alerts and model metadata stay visible but
-   step down in size and contrast. The arithmetic is a secondary explanation, and each
-   operator is kept on the same line as its value so it can't be separated when the line
-   wraps.
+1. **Lead with the answer.** The likely final published ETA comes first and is the largest
+   value in the section: up to 92 px, against 17 px for the station heading and 15 px for
+   the calculation rows. Its clock is always minute precision and is sized to the card
+   (`cqi`), so the full time and AM/PM always fit on one line, down to 320 px. "About … away" sits directly under it, then the
+   calculation, then detail that steps down in size and contrast. Time, AM/PM and the
+   "away" phrase never wrap apart.
 2. **Disclose before claiming.** "Prototype using simulated data" sits beside the title,
    above the fold on desktop and mobile. It comes before any number is shown.
 3. **Three typographic voices, each with one job.** Schibsted Grotesk for headings and
@@ -318,12 +337,18 @@ requirements.
    single signal blue for interaction and focus. Three muted state colors mark stability and
    freshness, and each is always paired with a text label and a distinct shape (a flat,
    one-step or two-step ETA trace). Every text pairing is at least 5.0:1.
-5. **Rules, not cards.** Sections are separated by thin rules. The only framed surfaces are
+5. **Route colour as a cue, never as meaning.** The line's colour comes from BART's static
+   GTFS `route_color`, looked up from the line name in `domain/routeColors.ts`, so the
+   contracts are unchanged. It appears as a 6 px rail on the card's left edge, beside the
+   identity, forecast and calculation, and as a small swatch next to the line name. Both
+   are cased in ink, so even pale Yellow stays visible (casing 15:1 on the card). The line
+   name is always text, and the colour never signals forecast quality or stability.
+6. **Rules, not cards.** Sections are separated by thin rules. The only framed surfaces are
    the disclosure and the readout. There are no shadows, gradients or nested containers.
-6. **Show uncertainty as a range.** Each revision comes with its probability and an 80%
+7. **Show uncertainty as a range.** Each revision comes with its probability and an 80%
    range, and the copy says BART may revise the estimate. The interface never presents a
    single "true" time.
-7. **Stable layout across states.** Loading, failure, stale and empty states keep the
+8. **Stable layout across states.** Loading, failure, stale and empty states keep the
    readout's position and minimum height. Motion is limited to state feedback (hover, the
    probability fill) and is disabled under `prefers-reduced-motion`.
 
@@ -331,7 +356,9 @@ requirements.
 
 - Real ETA history from collected snapshots (the history chart runs on the mock only)
 - System findings, the exploration dashboard and filters
-- Methodology section and full footer
+- Methodology section and a fuller footer. The current footer holds only the
+  independence notice: "Independent project using BART open data. Not affiliated with or
+  endorsed by BART."
 - Live API, trained model and production data
 - Deployment workflow (GitHub Pages)
 - Dark color scheme

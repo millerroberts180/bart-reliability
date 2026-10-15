@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   assessFreshness,
+  describeAwayGlance,
   describeRevision,
   describeRevisionRange,
   describeTimeAway,
@@ -86,5 +87,22 @@ describe('plain-language revision copy', () => {
   it('describes time remaining, never a negative one', () => {
     expect(describeTimeAway(142)).toBe('2 min 22 sec away');
     expect(describeTimeAway(0)).toBe('due now');
+  });
+});
+
+describe('describeAwayGlance', () => {
+  it('rounds to whole minutes for the glanceable forecast', () => {
+    expect(describeAwayGlance(142)).toBe('About 2 min away'); // 2 min 22 sec
+    expect(describeAwayGlance(150)).toBe('About 3 min away'); // 2 min 30 sec rounds up
+    expect(describeAwayGlance(60)).toBe('About 1 min away');
+    expect(describeAwayGlance(89)).toBe('About 1 min away');
+    expect(describeAwayGlance(90)).toBe('About 2 min away');
+    expect(describeAwayGlance(865)).toBe('About 14 min away');
+  });
+
+  it('says less than a minute below one minute, and due at zero', () => {
+    expect(describeAwayGlance(59)).toBe('Less than 1 min away');
+    expect(describeAwayGlance(1)).toBe('Less than 1 min away');
+    expect(describeAwayGlance(0)).toBe('Due now');
   });
 });

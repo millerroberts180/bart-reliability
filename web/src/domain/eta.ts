@@ -102,6 +102,17 @@ export function describeRevisionRange(lowerSeconds: number, upperSeconds: number
   return 'no change';
 }
 
+/**
+ * Glanceable time remaining, rounded to whole minutes: "About 2 min away",
+ * "Less than 1 min away". The exact value stays in the calculation.
+ */
+export function describeAwayGlance(seconds: number): string {
+  const s = Math.round(seconds);
+  if (s <= 0) return 'Due now';
+  if (s < 60) return 'Less than 1 min away';
+  return `About ${Math.round(s / 60)} min away`;
+}
+
 /** "2 min 10 sec away"; a non-positive time reads as "due now". */
 export function describeTimeAway(seconds: number): string {
   return Math.round(seconds) <= 0 ? 'due now' : `${formatSpokenDuration(seconds)} away`;
@@ -137,6 +148,17 @@ const minuteFormat = new Intl.DateTimeFormat('en-US', {
 /** "5:42:10 PM" (Pacific). */
 export function formatClock(iso: string): string {
   return clockFormat.format(new Date(iso));
+}
+
+/**
+ * Whether two clock times need seconds to be told apart: true when they differ but
+ * read the same to the minute. It controls whether the exact calculation's clocks
+ * (BART's current ETA and the likely final published ETA) show seconds, so a
+ * sub-minute adjustment is never concealed by minute-only formatting. The large
+ * glanceable forecast is always minute precision and does not use it.
+ */
+export function needsSeconds(a: string, b: string): boolean {
+  return a !== b && formatClockMinute(a) === formatClockMinute(b);
 }
 
 /** "5:43 PM" (Pacific). Seconds are dropped, not rounded, as a station clock reads. */

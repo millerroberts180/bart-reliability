@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { Opening } from './components/Opening';
 import { PredictionExample } from './components/PredictionExample';
+import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
 import { createPredictionClient, resolveDataMode } from './data/createPredictionClient';
 import type { MockHistoryScenario, MockScenario } from './data/MockPredictionClient';
@@ -36,6 +37,7 @@ export function App({ client: injectedClient }: { client?: PredictionClient }) {
         <Opening />
         <PredictionExample />
       </main>
+      <SiteFooter />
       {DevStateSelector && DATA_MODE === 'mock' && !injectedClient && (
         <Suspense fallback={null}>
           <DevStateSelector

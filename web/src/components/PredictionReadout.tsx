@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import {
   addSeconds,
   describeRevision,
@@ -9,11 +10,13 @@ import {
   formatPercent,
   formatSpokenDuration,
   likelyFinalEtaSeconds,
-  MINUS,
+  describeAwayGlance,
+  needsSeconds,
   STABILITY_CUTOFFS,
   STABILITY_LABELS,
   STALE_AFTER_SECONDS,
 } from '../domain/eta';
+import { routeColor } from '../domain/routeColors';
 import type { AlertContext, TrainPrediction } from '../domain/types';
 import { useFreshness } from '../hooks/useFreshness';
 import type { ReceivedPredictions } from './PredictionExample';
@@ -75,8 +78,6 @@ export function PredictionReadout({ state, stationName, directionLabel }: Predic
   );
 }
 
-const STEP_LABELS = ['BART says now', 'Expected change to BART’s ETA', 'Likely final published ETA'] as const;
-
 function LoadingReadout() {
   // Mirrors the ready layout so nothing jumps when the prediction arrives.
   return (
@@ -87,11 +88,15 @@ function LoadingReadout() {
         </h3>
         <span className="readout__meta placeholder placeholder--short" />
       </div>
-      <div className="result" aria-hidden="true">
-        {STEP_LABELS.map((label, i) => (
-          <div key={label} className={`result__step${i === 2 ? ' result__step--final' : ''}`}>
-            <span className="result__label">{label}</span>
-            <span className="placeholder placeholder--value" />
+      <div className="forecast" aria-hidden="true">
+        <p className="forecast__label">Likely final published ETA</p>
+        <span className="placeholder placeholder--clock" />
+        <span className="placeholder placeholder--short" />
+      </div>
+      <div className="calc" aria-hidden="true">
+        {['BART currently says', 'Expected adjustment', 'Likely final published ETA'].map((label) => (
+          <div key={label} className="calc__row">
+            <span className="calc__label">{label}</span>
             <span className="placeholder placeholder--short" />
           </div>
         ))}
@@ -121,121 +126,150 @@ function ReadyReadout({
   const { lowerSeconds, upperSeconds, level } = train.revisionInterval;
   const coverage = `${Math.round(level * 100)}%`;
   const threshold = response.model.revisionThresholdSeconds;
+  // The large forecast is always minute precision. The calculation's two clocks add
+  // seconds only when the minute alone would hide the adjustment.
+  const seconds = needsSeconds(train.currentEtaAt, finalAt);
+  const nowLabel = freshness.stale ? `BART said at ${formatClockMinute(response.feedTimestamp)}` : 'BART currently says';
 
   return (
     <div className={freshness.stale ? 'readout__body is-stale' : 'readout__body'}>
-      <div className="readout__heading">
-        <h3 id="readout-title" className="readout__title">
-          {stationName} · {train.headsign} train
-        </h3>
-        <p className="readout__meta">
-          {response.model.simulated && <span className="sim-tag">Simulated</span>}
-          {train.lineName}
-          {train.carCount !== null && ` · ${train.carCount} cars`} · {directionLabel} · Trip {train.tripId}
-        </p>
-      </div>
-
-      {freshness.stale && (
-        <p className="notice notice--stale" role="status">
-          <strong>Stale data.</strong> This snapshot is from {formatClockMinute(response.feedTimestamp)},{' '}
-          {formatSpokenDuration(freshness.ageSeconds)} ago, past the {formatSpokenDuration(STALE_AFTER_SECONDS)}{' '}
-          freshness limit. Times away are counted from then, and BART may already have revised this estimate.
-        </p>
-      )}
-
-      <div className="result">
-        <div className="result__step" data-testid="step-now">
-          <span className="result__label">
-            {freshness.stale ? `BART said at ${formatClockMinute(response.feedTimestamp)}` : 'BART says now'}
-          </span>
-          <ClockTime iso={train.currentEtaAt} />
-          <span className="result__away">{capitalize(describeTimeAway(current))}</span>
+      {/* Train identity, the forecast and its calculation share one route rail. */}
+      <div className="result-block" style={{ '--route': routeColor(train.lineName) } as CSSProperties}>
+        <div className="readout__heading">
+          <h3 id="readout-title" className="readout__title">
+            {stationName} · {train.headsign} train
+          </h3>
+          <p className="readout__meta">
+            <span className="route-tag">
+              <span className="route-tag__swatch" aria-hidden="true" />
+              {train.lineName}
+            </span>
+            <span className="readout__meta-item">{directionLabel}</span>
+            {train.carCount !== null && <span className="readout__meta-item">{train.carCount} cars</span>}
+            <span className="readout__meta-item">Trip {train.tripId}</span>
+            {response.model.simulated && <span className="sim-tag">Simulated</span>}
+          </p>
         </div>
-        <div className="result__step" data-testid="step-change">
-          <span className="result__label">Expected change to BART’s ETA</span>
-          <span className="result__change">{capitalize(describeRevision(revision))}</span>
-          <span className="result__detail">
-            Likely range ({coverage}): {describeRevisionRange(lowerSeconds, upperSeconds)}
-          </span>
-        </div>
-        <div className="result__step result__step--final" data-testid="step-final">
-          <span className="result__label">Likely final published ETA</span>
-          <ClockTime iso={finalAt} />
-          <span className="result__away">{capitalize(describeAwayAbout(final))}</span>
-          <span className="result__detail">
-            Likely range ({coverage}): {formatSpokenDuration(likelyFinalEtaSeconds(current, lowerSeconds))} to{' '}
+
+        {freshness.stale && (
+          <p className="notice notice--stale" role="status">
+            <strong>Stale data.</strong> This snapshot is from {formatClockMinute(response.feedTimestamp)},{' '}
+            {formatSpokenDuration(freshness.ageSeconds)} ago, past the {formatSpokenDuration(STALE_AFTER_SECONDS)}{' '}
+            freshness limit. Times away are counted from then, and BART may already have revised this estimate.
+          </p>
+        )}
+
+        <div className="forecast" data-testid="forecast">
+          <p className="forecast__label">Likely final published ETA</p>
+          <p className="forecast__clock">
+            <ClockTime iso={finalAt} />
+          </p>
+          <p className="forecast__away">{describeAwayGlance(final)}</p>
+          <p className="forecast__range">
+            {coverage} likely range: {formatSpokenDuration(likelyFinalEtaSeconds(current, lowerSeconds))} to{' '}
             {describeTimeAway(likelyFinalEtaSeconds(current, upperSeconds))}
-          </span>
+          </p>
+          <p className="forecast__basis">Model forecast of BART’s last published ETA, not an observed arrival.</p>
         </div>
+
+        <dl className="calc" aria-label="How the forecast is calculated">
+          <div className="calc__row" data-testid="calc-now">
+            <dt>{nowLabel}</dt>
+            <dd>
+              <span className="nowrap">{formatClockFor(train.currentEtaAt, seconds)}</span>{' '}
+              <span className="nowrap">· {describeTimeAway(current)}</span>
+            </dd>
+          </div>
+          <div className="calc__row" data-testid="calc-adjust">
+            <dt>
+              <span className="calc__op" aria-hidden="true">
+                +
+              </span>
+              Expected adjustment
+            </dt>
+            <dd>{capitalize(describeRevision(revision))}</dd>
+          </div>
+          <div className="calc__row calc__row--total" data-testid="calc-final">
+            <dt>
+              <span className="calc__op" aria-hidden="true">
+                =
+              </span>
+              Likely final published ETA
+            </dt>
+            <dd>
+              <span className="nowrap">{formatClockFor(finalAt, seconds)}</span>{' '}
+              <span className="nowrap">· {describeAwayAbout(final)}</span>
+            </dd>
+          </div>
+        </dl>
       </div>
 
-      <p className="readout__caveat">
-        BART may revise this estimate. The likely final published ETA is the model’s forecast of the last ETA BART will
-        publish before the train reaches {stationName}. It is not an observed arrival time.
-      </p>
-
-      <p className="result__arithmetic">
-        <span className="result__arithmetic-label">How it adds up</span>{' '}
-        <span className="nowrap">{formatSpokenDuration(current)}</span> current published ETA{' '}
-        <span className="nowrap">
-          {revision < 0 ? MINUS : '+'} {formatSpokenDuration(revision)}
-        </span>{' '}
-        predicted revision <span className="nowrap">= {formatSpokenDuration(final)}</span> likely final published ETA
-      </p>
-
-      <div className={`stability tone-${train.stability}`}>
-        <p className="stability__class">
-          <span className="stability__label">ETA stability</span>
-          <StabilityMark stability={train.stability} />
-          {STABILITY_LABELS[train.stability]}
+      <div className="details">
+        <p className="details__item">
+          <span className="details__label">Adjustment range ({coverage})</span>{' '}
+          {capitalize(describeRevisionRange(lowerSeconds, upperSeconds))}
         </p>
-        <p className="stability__detail">
-          <span className="stability__percent">{formatPercent(train.revisionProbability)}</span> chance BART changes
-          this estimate by more than {threshold} seconds, earlier or later. Under 25%: likely to hold. 25% to 50%: may
-          be revised. 50% or more: likely to be revised.
+
+        <div className={`stability tone-${train.stability}`}>
+          <p className="stability__class">
+            <span className="stability__label">ETA stability</span>
+            <StabilityMark stability={train.stability} />
+            {STABILITY_LABELS[train.stability]}
+          </p>
+          <p className="stability__detail">
+            <span className="stability__percent">{formatPercent(train.revisionProbability)}</span> chance BART changes
+            this estimate by more than {threshold} seconds, earlier or later. Under 25%: likely to hold. 25% to 50%:
+            may be revised. 50% or more: likely to be revised.
+          </p>
+          <ProbabilityScale probability={train.revisionProbability} />
+        </div>
+
+        <p className="readout__caveat">
+          BART may revise this estimate. The likely final published ETA is the model’s forecast of the last ETA BART
+          will publish before the train reaches {stationName}. It is not an observed arrival time.
         </p>
-        <ProbabilityScale probability={train.revisionProbability} />
+
+        <dl className="facts">
+          <div className="facts__row">
+            <dt>Service alerts</dt>
+            <dd>
+              <AlertList alerts={response.alerts} />
+            </dd>
+          </div>
+          <div className="facts__row">
+            <dt>Feed snapshot</dt>
+            <dd>
+              <span className={`freshness ${freshness.stale ? 'freshness--stale' : 'freshness--current'}`}>
+                {freshness.stale ? 'Stale' : 'Current'}
+              </span>{' '}
+              {formatClock(response.feedTimestamp)} · {formatDuration(freshness.ageSeconds)} old. Times away are
+              counted from this snapshot.
+            </dd>
+          </div>
+          <div className="facts__row">
+            <dt>Model timestamp</dt>
+            <dd>
+              {formatClock(response.generatedAt)} · {response.model.modelVersion}
+            </dd>
+          </div>
+        </dl>
       </div>
-
-      <dl className="facts">
-        <div className="facts__row">
-          <dt>Service alerts</dt>
-          <dd>
-            <AlertList alerts={response.alerts} />
-          </dd>
-        </div>
-        <div className="facts__row">
-          <dt>Feed snapshot</dt>
-          <dd>
-            <span className={`freshness ${freshness.stale ? 'freshness--stale' : 'freshness--current'}`}>
-              {freshness.stale ? 'Stale' : 'Current'}
-            </span>{' '}
-            {formatClock(response.feedTimestamp)} · {formatDuration(freshness.ageSeconds)} old. Times away are
-            counted from this snapshot.
-          </dd>
-        </div>
-        <div className="facts__row">
-          <dt>Model timestamp</dt>
-          <dd>
-            {formatClock(response.generatedAt)} · {response.model.modelVersion}
-          </dd>
-        </div>
-      </dl>
     </div>
   );
 }
 
-/**
- * "10:14:22" with a smaller "PM". Seconds are always shown in the primary clocks so a
- * sub-minute revision never makes two different estimates look identical.
- */
+function formatClockFor(iso: string, seconds: boolean): string {
+  return seconds ? formatClock(iso) : formatClockMinute(iso);
+}
+
+/** "5:58" with a smaller "PM", always to the minute; the two never wrap apart. */
 function ClockTime({ iso }: { iso: string }) {
-  const text = formatClock(iso);
+  const text = formatClockMinute(iso);
   const split = text.lastIndexOf(' ');
   return (
-    <span className="result__clock">
+    <span className="clock">
       {text.slice(0, split)}
-      <span className="result__meridiem">{text.slice(split)}</span>
+      <span className="clock__meridiem">{text.slice(split)}</span>
     </span>
   );
 }
@@ -287,15 +321,21 @@ function AlertList({ alerts }: { alerts: AlertContext[] }) {
   );
 }
 
-/** Plain-language reading of the three values, announced to screen readers. */
+/**
+ * Screen-reader reading of the result: the glanceable forecast first, then the exact
+ * calculation. The glance values are labelled as rounded so they never conflict with
+ * the exact ones.
+ */
 export function describePrediction(train: TrainPrediction, stationName: string): string {
   const final = likelyFinalEtaSeconds(train.currentEtaSeconds, train.predictedRevisionSeconds);
   const finalAt = addSeconds(train.currentEtaAt, train.predictedRevisionSeconds);
+  const seconds = needsSeconds(train.currentEtaAt, finalAt);
   return (
     `${stationName}, ${train.headsign} train. ` +
-    `BART says ${formatClock(train.currentEtaAt)}, ${describeTimeAway(train.currentEtaSeconds)}. ` +
-    `Expected change: ${describeRevision(train.predictedRevisionSeconds)}. ` +
-    `Likely final published ETA: ${formatClock(finalAt)}, ${describeAwayAbout(final)}.`
+    `Likely final published ETA: ${formatClockMinute(finalAt)}, ${lowerFirst(describeAwayGlance(final))}. ` +
+    `Exact calculation: BART currently says ${formatClockFor(train.currentEtaAt, seconds)}, ` +
+    `${describeTimeAway(train.currentEtaSeconds)}; expected adjustment ${describeRevision(train.predictedRevisionSeconds)}; ` +
+    `likely final published ETA ${formatClockFor(finalAt, seconds)}, ${describeAwayAbout(final)}.`
   );
 }
 

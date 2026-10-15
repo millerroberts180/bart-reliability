@@ -29,7 +29,7 @@ describe('App', () => {
 
   it('never uses arrival-accuracy language', async () => {
     renderApp();
-    await screen.findByTestId('step-final');
+    await screen.findByTestId('forecast');
     expect(document.body.textContent).not.toMatch(/actual arrival|true arrival|arrival accuracy|more accurate than BART/i);
   });
 
@@ -46,6 +46,13 @@ describe('App', () => {
   it('no longer uses the former name as a heading', () => {
     renderApp();
     expect(screen.queryByRole('heading', { name: /Will this ETA hold/i })).not.toBeInTheDocument();
+  });
+
+  it('states independence from BART in the footer', () => {
+    renderApp();
+    expect(screen.getByRole('contentinfo')).toHaveTextContent(
+      'Independent project using BART open data. Not affiliated with or endorsed by BART.',
+    );
   });
 
   it('uses the site name in the header', () => {
