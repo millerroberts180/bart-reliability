@@ -37,6 +37,7 @@ bart-alert-sensitivity = "bart_reliability.warehouse.alerts:staleness_main"
 bart-511-download = "bart_reliability.open511.download:main"
 bart-511-audit = "bart_reliability.open511.audit:main"
 bart-eta-model = "bart_reliability.modeling.main:main"
+bart-eta-bundle = "bart_reliability.serving.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

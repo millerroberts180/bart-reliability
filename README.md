@@ -20,6 +20,7 @@ BART GTFS-RT feeds --bart-collect--> data/raw/gtfs_rt/<feed>/<date>/<HHMMSS>Z.pb
                                        data/processed/alert_*/ (normalized alerts)
 static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
 warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, models, metrics)
+warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle/ (inference bundle)
 ```
 
 - **Collector** (`src/bart_reliability/collector/`): polls trip updates and alerts every
@@ -55,6 +56,14 @@ warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, m
   revisions over 60 s, with structural leakage checks and a paired, trip-clustered
   bootstrap for test-day uncertainty. Settings live in `config/eta_model.toml`. Current results are
   provisional: [docs/modeling_plan.md](docs/modeling_plan.md).
+- **Inference bundle** (`src/bart_reliability/serving/`): the selected models exported with
+  verified metadata, one strict single-record entry point, exact parity with the
+  modeling pipeline, and a provisional horizon-aware revision interval. Inputs with a
+  category unseen in training return `fallback_required` (use BART's published ETA). It is rebuilt
+  with `bart-eta-bundle build`; settings live in `config/eta_model_bundle.toml` and the
+  committed metadata schema `config/eta_model_bundle.schema.json`:
+  [docs/model_serving.md](docs/model_serving.md). Local only: no API or website
+  connection yet.
 
 ## Setup
 
@@ -76,6 +85,8 @@ Run from the repository root.
 .venv/bin/bart-eta-sensitivity    # ETA revision parameter sensitivity (read-only)
 .venv/bin/bart-alert-sensitivity  # alert-state staleness sensitivity (read-only)
 .venv/bin/bart-eta-model          # features, baselines, models, metrics (warehouse read-only)
+.venv/bin/bart-eta-bundle build   # rebuild the inference bundle (runs bart-eta-model first)
+.venv/bin/bart-eta-bundle predict --record record.json   # one prediction from the bundle
 ```
 
 Query the warehouse with DuckDB, e.g.
