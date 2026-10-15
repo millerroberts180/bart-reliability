@@ -154,6 +154,19 @@ class ReplayEngine:
         self.con.execute(_STOP_POSITIONS_SQL)
         self._stations: list[dict] | None = None
 
+    def _cursor(self) -> duckdb.DuckDBPyConnection:
+        """A connection of its own for one call, used as `with self._cursor() as con:` so
+        it is closed however the call ends. FastAPI runs the endpoints on a thread pool,
+        and one DuckDB connection used by two threads at once mixes up their results. A
+        cursor shares the in-memory tables but not session settings."""
+        cur = self.con.cursor()
+        try:
+            cur.execute("SET TimeZone = 'UTC'")
+        except BaseException:
+            cur.close()
+            raise
+        return cur
+
     # -- data checks ----------------------------------------------------------------
 
     def problems(self, stale_after_s: int) -> list[str]:
@@ -188,21 +201,22 @@ class ReplayEngine:
         return self._stations
 
     def _load_stations(self) -> list[dict]:
-        rows = self.con.execute(
-            """
-            SELECT st.stop_id, st.stop_name, t.direction_id, list(DISTINCT t.trip_headsign
-                   ORDER BY t.trip_headsign) AS destinations
-            FROM static_stops st
-            JOIN static_stops platform ON platform.parent_station = st.stop_id
-            JOIN static_stop_times s ON s.stop_id = platform.stop_id
-            JOIN static_trips t ON t.trip_id = s.trip_id
-            JOIN static_service_days d ON d.service_id = t.service_id AND d.service_date = ?
-            WHERE st.location_type = 1 AND t.direction_id IS NOT NULL
-            GROUP BY st.stop_id, st.stop_name, t.direction_id
-            ORDER BY st.stop_name, st.stop_id, t.direction_id
-            """,
-            [self.service_date],
-        ).fetchall()
+        with self._cursor() as con:
+            rows = con.execute(
+                """
+                SELECT st.stop_id, st.stop_name, t.direction_id, list(DISTINCT t.trip_headsign
+                       ORDER BY t.trip_headsign) AS destinations
+                FROM static_stops st
+                JOIN static_stops platform ON platform.parent_station = st.stop_id
+                JOIN static_stop_times s ON s.stop_id = platform.stop_id
+                JOIN static_trips t ON t.trip_id = s.trip_id
+                JOIN static_service_days d ON d.service_id = t.service_id AND d.service_date = ?
+                WHERE st.location_type = 1 AND t.direction_id IS NOT NULL
+                GROUP BY st.stop_id, st.stop_name, t.direction_id
+                ORDER BY st.stop_name, st.stop_id, t.direction_id
+                """,
+                [self.service_date],
+            ).fetchall()
         stations: dict[str, dict] = {}
         for stop_id, name, direction, headsigns in rows:
             station = stations.setdefault(stop_id, {"id": stop_id, "name": name, "directions": []})
@@ -227,19 +241,20 @@ class ReplayEngine:
             "station": station_id,
             "direction": direction_id,
         }
-        cur = self.con.execute(_BOARD_SQL, params)
-        names = [d[0] for d in cur.description]
-        rows = [dict(zip(names, r, strict=True)) for r in cur.fetchall()]
-        unplaced = self.con.execute(
-            """
-            SELECT count(*) FROM asof_predictions p
-            JOIN static_stops st ON st.stop_id = p.stop_id
-            WHERE p.feed_timestamp = $feed AND p.collected_at = $collected
-              AND st.parent_station = $station AND p.direction_id IS NULL
-              AND epoch(p.predicted_arrival) - epoch(p.feed_timestamp) >= 0
-            """,
-            {"feed": s.feed_timestamp, "collected": s.collected_at, "station": station_id},
-        ).fetchone()[0]
+        with self._cursor() as con:
+            cur = con.execute(_BOARD_SQL, params)
+            names = [d[0] for d in cur.description]
+            rows = [dict(zip(names, r, strict=True)) for r in cur.fetchall()]
+            unplaced = con.execute(
+                """
+                SELECT count(*) FROM asof_predictions p
+                JOIN static_stops st ON st.stop_id = p.stop_id
+                WHERE p.feed_timestamp = $feed AND p.collected_at = $collected
+                  AND st.parent_station = $station AND p.direction_id IS NULL
+                  AND epoch(p.predicted_arrival) - epoch(p.feed_timestamp) >= 0
+                """,
+                {"feed": s.feed_timestamp, "collected": s.collected_at, "station": station_id},
+            ).fetchone()[0]
         return rows, int(unplaced)
 
     # -- alerts ---------------------------------------------------------------------
@@ -251,26 +266,27 @@ class ReplayEngine:
         snapshot (at most max_age_s old) that apply to the station or its routes."""
         if self.snapshot is None:
             return {"known": False, "snapshot": None, "age_seconds": None, "alerts": []}
-        a = self.con.execute(
-            "SELECT feed_timestamp, collected_at FROM asof_alert_snapshots "
-            "WHERE feed_timestamp <= ? ORDER BY feed_timestamp DESC, collected_at DESC LIMIT 1",
-            [self.snapshot.feed_timestamp],
-        ).fetchone()
-        if a is None:
-            return {"known": False, "snapshot": None, "age_seconds": None, "alerts": []}
-        age = int((self.snapshot.feed_timestamp - a[0]).total_seconds())
-        if age > max_age_s:
-            return {"known": False, "snapshot": a[0], "age_seconds": age, "alerts": []}
-        rows = self.con.execute(
-            _ALERTS_SQL,
-            {
-                "feed": a[0],
-                "collected": a[1],
-                "station": station_id,
-                "routes": route_ids or [""],
-                "trips": trip_ids or [""],
-            },
-        ).fetchall()
+        with self._cursor() as con:
+            a = con.execute(
+                "SELECT feed_timestamp, collected_at FROM asof_alert_snapshots "
+                "WHERE feed_timestamp <= ? ORDER BY feed_timestamp DESC, collected_at DESC LIMIT 1",
+                [self.snapshot.feed_timestamp],
+            ).fetchone()
+            if a is None:
+                return {"known": False, "snapshot": None, "age_seconds": None, "alerts": []}
+            age = int((self.snapshot.feed_timestamp - a[0]).total_seconds())
+            if age > max_age_s:
+                return {"known": False, "snapshot": a[0], "age_seconds": age, "alerts": []}
+            rows = con.execute(
+                _ALERTS_SQL,
+                {
+                    "feed": a[0],
+                    "collected": a[1],
+                    "station": station_id,
+                    "routes": route_ids or [""],
+                    "trips": trip_ids or [""],
+                },
+            ).fetchall()
         alerts = [
             {
                 "alert_id": entity_id,
@@ -291,18 +307,19 @@ class ReplayEngine:
         if key is None:
             return None
         service_date, trip_id, stop_sequence = key
-        rows = self.con.execute(
-            """
-            SELECT feed_timestamp, predicted_arrival,
-                   CAST(epoch(predicted_arrival) - epoch(feed_timestamp) AS INTEGER)
-            FROM asof_predictions
-            WHERE coalesce(service_date, inferred_service_date) = ?
-              AND trip_id = ? AND scheduled_stop_sequence = ?
-              AND predicted_arrival IS NOT NULL
-            ORDER BY collected_at, feed_timestamp
-            """,
-            [service_date, trip_id, stop_sequence],
-        ).fetchall()
+        with self._cursor() as con:
+            rows = con.execute(
+                """
+                SELECT feed_timestamp, predicted_arrival,
+                       CAST(epoch(predicted_arrival) - epoch(feed_timestamp) AS INTEGER)
+                FROM asof_predictions
+                WHERE coalesce(service_date, inferred_service_date) = ?
+                  AND trip_id = ? AND scheduled_stop_sequence = ?
+                  AND predicted_arrival IS NOT NULL
+                ORDER BY collected_at, feed_timestamp
+                """,
+                [service_date, trip_id, stop_sequence],
+            ).fetchall()
         if not rows:
             return None
         return [

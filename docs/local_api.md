@@ -51,6 +51,13 @@ whole collection, and anything collected after `as_of` are not in the database a
 query naming one fails. The tests check this, and they also check that holding a train
 **after** `as_of` changes nothing the API returns at `as_of`.
 
+**Concurrent requests.** FastAPI runs the endpoints on a thread pool, and a browser sends
+several requests at once, so queries overlap. One DuckDB connection must not be used by
+two threads at once, so each query opens its own cursor on the in-memory copies, sets
+UTC (a cursor does not inherit session settings) and closes it however the query ends.
+The tests run eight threads of mixed requests against one engine and check every answer,
+and check that every cursor is closed, including after a failed query.
+
 The **replay snapshot** is the latest trip-update snapshot at or before `as_of`. For
 every trip-stop it lists, the engine computes each model feature from that trip-stop's
 listings up to the snapshot, using the training definitions (modeling_plan.md). On 25

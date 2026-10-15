@@ -5,6 +5,8 @@ feeds) and the bundle from the real build command. Nothing touches the network.
 """
 
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import datetime, timedelta
 
@@ -24,7 +26,12 @@ import bart_reliability.api.app as api_app
 from bart_reliability.api.app import ApiState, create_app, train_prediction
 from bart_reliability.api.config import ApiConfigError, load_api_config
 from bart_reliability.api.main import main as serve_main
-from bart_reliability.api.replay import FEATURE_COLUMNS, ReplayEngine, allowed_sources
+from bart_reliability.api.replay import (
+    FEATURE_COLUMNS,
+    ReplayEngine,
+    allowed_sources,
+    prediction_id,
+)
 from bart_reliability.modeling.features import PROHIBITED_COLUMNS
 from bart_reliability.serving.bundle import build_bundle
 from bart_reliability.serving.config import load_bundle_config
@@ -449,6 +456,88 @@ def test_replay_features_equal_the_training_features(bundle, warehouse):
         assert row["population_reason"] is None
         checked += 1
     assert checked >= 10
+
+
+def test_concurrent_requests_get_their_own_answers(warehouse, bundle):
+    """FastAPI runs these endpoints on a thread pool and a browser sends several requests
+    at once, so concurrent queries must not read each other's results."""
+    engine = ReplayEngine(warehouse, AS_OF, 21600)
+    rows, _ = engine.board("A30", "0")
+    ids = [prediction_id(r["event_service_date"], r["trip_id"], r["stop_sequence"]) for r in rows]
+    calls = [("board", ("A30", "0")), ("board", ("A30", "1"))] + [("history", (i,)) for i in ids]
+    expected = {call: getattr(engine, call[0])(*call[1]) for call in calls}
+    barrier = threading.Barrier(8)
+
+    def run(worker: int) -> list[bool]:
+        barrier.wait()
+        out = []
+        for k in range(40):
+            name, args = calls[(worker + k) % len(calls)]
+            out.append(getattr(engine, name)(*args) == expected[(name, args)])
+        return out
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = [ok for batch in pool.map(run, range(8)) for ok in batch]
+    assert len(ids) >= 2 and all(results)
+
+
+class _RecordingConnection:
+    """Stands in for the engine's connection and keeps every cursor it hands out."""
+
+    def __init__(self, con):
+        self.con, self.opened, self.fail_setup = con, [], False
+
+    def cursor(self):
+        cur = self.con.cursor()
+        self.opened.append(cur)
+        return _FailingSetup(cur) if self.fail_setup else cur
+
+
+class _FailingSetup:
+    def __init__(self, cur):
+        self.cur = cur
+
+    def execute(self, *_):
+        raise duckdb.InvalidInputException("setup failed")
+
+    def close(self):
+        self.cur.close()
+
+
+def _closed(cur) -> bool:
+    try:
+        cur.execute("SELECT 1")
+    except duckdb.ConnectionException:
+        return True
+    return False
+
+
+def test_every_query_cursor_is_closed_even_when_the_query_fails(warehouse):
+    engine = ReplayEngine(warehouse, AS_OF, 21600)
+    rows, _ = engine.board("A30", "0")
+    pid = prediction_id(rows[0]["event_service_date"], rows[0]["trip_id"], rows[0]["stop_sequence"])
+    calls = (
+        lambda: engine.board("A30", "0"),
+        lambda: engine.history(pid),
+        lambda: engine.alerts("A30", [], [], 120),
+        engine._load_stations,
+    )
+    recorder = _RecordingConnection(engine.con)
+    engine.con = recorder
+    for call in calls:
+        call()
+    # Every query below now fails inside its `with` block.
+    for table in ("asof_predictions", "asof_alert_snapshots", "static_stops"):
+        recorder.con.execute(f"ALTER TABLE {table} RENAME TO {table}_gone")
+    for call in calls:
+        with pytest.raises(duckdb.CatalogException):
+            call()
+    # And a cursor whose session setup fails is closed before the error propagates.
+    recorder.fail_setup = True
+    with pytest.raises(duckdb.InvalidInputException):
+        engine.history(pid)
+    assert len(recorder.opened) == 2 * len(calls) + 1
+    assert all(_closed(cur) for cur in recorder.opened)
 
 
 def test_replay_is_deterministic(warehouse, bundle, client):
