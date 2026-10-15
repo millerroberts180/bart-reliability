@@ -21,6 +21,7 @@ BART GTFS-RT feeds --bart-collect--> data/raw/gtfs_rt/<feed>/<date>/<HHMMSS>Z.pb
 static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
 warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, models, metrics)
 warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle/ (inference bundle)
+warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historical replay, local only)
 ```
 
 - **Collector** (`src/bart_reliability/collector/`): polls trip updates and alerts every
@@ -62,8 +63,12 @@ warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle
   category unseen in training return `fallback_required` (use BART's published ETA). It is rebuilt
   with `bart-eta-bundle build`; settings live in `config/eta_model_bundle.toml` and the
   committed metadata schema `config/eta_model_bundle.schema.json`:
-  [docs/model_serving.md](docs/model_serving.md). Local only: no API or website
-  connection yet.
+  [docs/model_serving.md](docs/model_serving.md).
+- **Local prediction API** (`src/bart_reliability/api/`): FastAPI in historical-replay
+  mode, answering as of a configured past moment with features, history and alerts cut
+  off at that moment, through the website's `PredictionClient` contract. It binds to
+  127.0.0.1 with localhost-only CORS, and is not connected to the website yet:
+  [docs/local_api.md](docs/local_api.md).
 
 ## Setup
 
@@ -71,6 +76,7 @@ warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle
 python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/pip install -e '.[dev,model]'   # also pandas and scikit-learn, for bart-eta-model
+.venv/bin/pip install -e '.[dev,model,serve]'   # also FastAPI and uvicorn, for bart-serve-local
 ```
 
 ## Usage
@@ -87,6 +93,7 @@ Run from the repository root.
 .venv/bin/bart-eta-model          # features, baselines, models, metrics (warehouse read-only)
 .venv/bin/bart-eta-bundle build   # rebuild the inference bundle (runs bart-eta-model first)
 .venv/bin/bart-eta-bundle predict --record record.json   # one prediction from the bundle
+.venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # local replay API
 ```
 
 Query the warehouse with DuckDB, e.g.

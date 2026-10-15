@@ -121,9 +121,13 @@ def snapshot_times(day: date) -> list[datetime]:
     return out
 
 
-def static_overrides() -> dict:
+def static_overrides(with_stations: bool = False) -> dict:
+    """with_stations adds a parent-station row (location_type 1) for every platform, as in
+    BART's GTFS; the modeling tests leave it off so their warehouses stay unchanged."""
     stops = [["stop_id", "stop_name", "stop_lat", "stop_lon", "location_type", "parent_station"]]
     stops += [[s, s, "37.7", "-122.4", "0", s[:3]] for s in STOPS]
+    if with_stations:
+        stops += [[s[:3], f"Station {s[:3]}", "37.7", "-122.4", "1", ""] for s in STOPS]
     trips = [["route_id", "service_id", "trip_id", "trip_headsign", "direction_id"]]
     stop_times = [["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"]]
     for trip_id, (route_id, (h, m)) in TRIPS.items():
@@ -135,7 +139,7 @@ def static_overrides() -> dict:
     return {"stops.txt": stops, "trips.txt": trips, "stop_times.txt": stop_times}
 
 
-def build_synthetic_warehouse(root: Path, perturb=None) -> Path:
+def build_synthetic_warehouse(root: Path, perturb=None, with_stations: bool = False) -> Path:
     raw = root / "raw" / "gtfs_rt"
     for day in DAYS:
         for now in snapshot_times(day):
@@ -144,7 +148,10 @@ def build_synthetic_warehouse(root: Path, perturb=None) -> Path:
     processed = root / "processed"
     run_transform(raw, processed)
     run_alerts(raw, processed)
-    gtfs_zip = write_gtfs_zip(root / "gtfs" / "google_transit.zip", static_overrides())
+    # With stations (the API tests), the archive sits in a dated folder like real
+    # downloads, so its retrieval date (2026-10-01) predates every replay time.
+    folder = root / "gtfs" / ("2026-10-01" if with_stations else "")
+    gtfs_zip = write_gtfs_zip(folder / "google_transit.zip", static_overrides(with_stations))
     db = root / "warehouse" / "bart.duckdb"
     build_warehouse(gtfs_zip, processed, db)
     return db
