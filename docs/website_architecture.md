@@ -1,8 +1,10 @@
 # Website architecture (prototype)
 
-**Status:** Milestone 1 (frontend foundation and one prediction) and Milestone 2 (ETA
-history chart). Everything the site displays is simulated. No model, API or BART data is
-connected yet.
+**Status:** Milestone 1 (frontend foundation and one prediction), Milestone 2 (ETA
+history chart) and the local API integration. By default everything the site displays is
+simulated. Started with `VITE_DATA_MODE=http`, it reads the local historical-replay API
+(`docs/local_api.md`) instead and labels every value as a historical replay of recorded
+BART data. Nothing is live, and the site is not deployed with the API.
 
 The site, **ETA Reliability**, is the public explainer for the ETA-revision project ("How
 stable are BART's published arrival estimates?"). Its first slice lets a visitor pick a
@@ -70,20 +72,25 @@ web/
     ├── data/
     │   ├── PredictionClient.ts        interface + PredictionClientError
     │   ├── MockPredictionClient.ts    deterministic simulated client (+ tests)
-    │   ├── HttpPredictionClient.ts    placeholder for the future API
+    │   ├── HttpPredictionClient.ts    client for the local API (+ tests)
+    │   ├── apiDecode.ts               runtime validation of the API's JSON
     │   ├── createPredictionClient.ts  VITE_DATA_MODE → client
     │   ├── PredictionClientContext.tsx  provider + hook (client and clock)
     │   ├── clientKey.ts               per-client request keys
-    │   └── fixtures/simulated.ts      the only place simulated values live
+    │   └── fixtures/
+    │       ├── simulated.ts           the only place simulated values live
+    │       └── apiReplay.json         recorded local-API responses, for tests only
     ├── domain/
     │   ├── types.ts           data contracts
     │   ├── eta.ts             ETA arithmetic, stability classes, freshness, formatting (+ tests)
     │   └── history.ts         history analysis, gaps, revision count, summary wording (+ tests)
     ├── hooks/                 useRequest (abortable, keyed loading), useNow (clock tick),
-    │                          useFreshness, useElementWidth (chart sizing)
+    │                          useFreshness, useDataSource (provenance for the opening),
+    │                          useElementWidth (chart sizing)
     ├── dev/                   development-only state selector (excluded from builds)
     ├── styles/                tokens.css, base.css, app.css
-    └── test/setup.ts
+    ├── clientContract.test.tsx  the page's states with both clients
+    └── test/                  setup.ts, fakeApi.ts (fetch over the recorded responses)
 ```
 
 ## Data contracts
@@ -95,12 +102,12 @@ whole seconds.
 |---|---|
 | `Station` | `id` (GTFS stop id), `name`, `directions` |
 | `Direction` | `id` (GTFS `direction_id`), rider-facing `label`, `destinations` |
-| `TrainPrediction` | One trip-stop: `currentEtaSeconds` / `currentEtaAt` (BART's published ETA), `predictedRevisionSeconds` (positive = later), an 80% `revisionInterval`, `revisionProbability` (P(revision of more than the threshold, either way)), `stability` |
+| `TrainPrediction` | One trip-stop, either a `ForecastTrain` or an `EtaOnlyTrain`, told apart by `predictionStatus`. Both carry BART's published ETA (`currentEtaSeconds` / `currentEtaAt`). Only `predictionStatus: "ok"` adds model numbers: `predictedRevisionSeconds` (positive = later), `revisionProbability` (P(revision of more than the threshold, either way)), `stability`, and an 80% `revisionInterval` that is `null` when no range is supported. Every other status (`outside_model_horizon`, `outside_model_population`, `fallback_required`, `features_unavailable`) has all four set to `null` |
 | `PredictionHistoryPoint` | One published ETA at one feed snapshot (for the later history chart) |
 | `AlertContext` | An alert *visible in the feed* at prediction time: scope, category, header, `visibleSince`. Visibility is not evidence of a disruption (see `docs/service_alerts.md`) |
 | `ModelMetadata` | `modelVersion`, `trainedThrough`, `revisionThresholdSeconds`, `simulated` |
-| `PredictionResponse` | `feedTimestamp`, `generatedAt` (model timestamp), `trains`, `alerts`, `model` |
-| `HealthStatus` | API status and latest feed snapshot |
+| `PredictionResponse` | `dataProvenance` (`simulated` or `historical_replay`), `replay` (`{asOf}` exactly when replayed), `feedTimestamp`, `generatedAt` (model timestamp), `trains`, `unplacedTrainCount` (trains listed at the station with no known direction; 0 when simulated), `alerts`, `model` |
+| `HealthStatus` | API status, latest feed snapshot, and the same provenance fields |
 
 Derived values are computed in exactly one place, `domain/eta.ts`:
 
@@ -146,8 +153,10 @@ Components never import fixtures. They call the `PredictionClient` from context
 - stores times as **offsets** (ETA seconds, feed age, alert age) and turns them into
   timestamps using an injected clock. With the same scenario and clock, the response is
   identical, which keeps the tests deterministic, and the dev page still looks current;
-- takes a `scenario` (`live`, `loading`, `error`, `stale`, `empty`) so every interface
-  state can be reproduced. `loading` never resolves until aborted;
+- takes a `scenario` (`live`, `loading`, `error`, `stale`, `empty`, `no-interval`,
+  `eta-only`) so every interface state can be reproduced. `loading` never resolves until
+  aborted; `no-interval` drops every range and `eta-only` marks every train
+  `outside_model_horizon`, the two shapes the API returns for trains without full support;
 - takes a separate `historyScenario` (`normal`, `loading`, `error`, `single`, `none`,
   `gaps`) for the history states (see "ETA history" below);
 - honours `AbortSignal`. `useRequest` aborts the previous request whenever the selection
@@ -264,48 +273,110 @@ stale data are all reproducible from the dev panel's "History response" and "Moc
 response" groups. If the prediction itself fails or no trains are listed, the section
 explains that there is no history to show.
 
-### Deferred
+### Real history
 
-Real history from the collector's snapshots behind `GET /api/v1/predictions/{prediction_id}/history`
-is not implemented. The API, its pagination and any server-side gap detection are a later
-milestone.
+In HTTP mode the chart draws the API's history for the selected train: BART's published
+ETAs from recorded snapshots up to the replay time (`docs/local_api.md`). The dashed
+reference and its range appear only for a train with a forecast, and the range only when
+the forecast has one; the key says so otherwise. Pagination and server-side gap detection
+are not implemented.
 
-## Future API boundary
+## HTTP client (local API)
 
-`HttpPredictionClient` defines the boundary but makes no network requests: every method
-rejects with `PredictionClientError('not_implemented')`. Provisional endpoints, one per
-interface method:
+`HttpPredictionClient` implements the same `PredictionClient` interface over the local
+historical-replay API (`docs/local_api.md`), one endpoint per method:
 
 | Method | Endpoint |
 |---|---|
 | `listStations()` | `GET /api/v1/stations` |
-| `getPredictions(stationId, directionId)` | `GET /api/v1/predictions?station_id=...&direction_id=...` |
+| `getPredictions(stationId, directionId)` | `GET /api/v1/stations/{station_id}/predictions?direction_id=...` |
 | `getPredictionHistory(predictionId)` | `GET /api/v1/predictions/{prediction_id}/history` |
 | `getModelMetadata()` | `GET /api/v1/model/metadata` |
 | `getHealth()` | `GET /api/v1/health` |
 
-Responses are expected to match the TypeScript contracts above (camelCase JSON, or a mapping
-layer added in the client). Select the client with:
+- **Requests.** Path identifiers are URL-encoded, requests ask for JSON and never send
+  cookies (`credentials: "omit"`), and the page's `AbortSignal` is passed through, so a
+  superseded request is cancelled rather than overwriting a newer one.
+- **Validation.** `apiDecode.ts` checks every field the page uses before the page sees it.
+  A response whose `dataMode` is anything other than `historical_replay` is rejected, so
+  unlabelled data cannot be shown. A forecast needs a probability between 0 and 1 and a
+  range with lower ≤ upper; a train without a forecast must carry no model numbers at all.
+  A board for a different station or direction than requested is rejected too. Extra API
+  fields are ignored.
+- **Errors.** Failures become `PredictionClientError`, so the page shows the same error
+  states as with the mock. The API's own `error.clientCode` and message are used when
+  present (404 → `not_found`, 503 → `unavailable`); otherwise 404 → `not_found` and anything
+  else, an unreachable API or an invalid body → `unavailable`. With no address configured,
+  every call fails with `unavailable` before any request is made.
+- **Provenance.** Each response says where its data came from. With a replay, the readout
+  shows a "Historical replay" tag and a banner: "Historical replay, not live. Recorded BART
+  data as of Thu, Oct 15, 2026, 10:00 AM Pacific." The opening's disclosure becomes
+  "Historical replay of recorded BART data" once `/health` confirms the replay mode
+  ("Connecting to the prediction API" until then, "Prediction API unavailable" if it does
+  not answer). The words "simulated" and "live" are never used for replayed data, except
+  to say it is not live.
+- **Freshness in a replay** is judged at the replay's as-of time, not against the
+  visitor's clock, and it does not tick. A snapshot 37 s before the as-of time reads
+  "Current · 37 s old at the replay time"; one older than 120 s gets the stale warning,
+  worded "before the replay time".
+- **Trains without full support.** A train with `predictionStatus` other than `ok` shows
+  BART's published ETA only, as published, with one sentence saying why (for
+  `outside_model_horizon`: "The model only forecasts trains BART shows about 5, 10 or 15
+  minutes away."). The timetable marks it "BART ETA only". A forecast whose range is not
+  supported shows the forecast and says "No likely range is shown". No value is ever
+  simulated or invented in place of a missing one.
+- **Empty boards** say why when the response shows it: trains toward the chosen station
+  end their trips there (BART's feed almost never lists a train at its last stop), or
+  the feed lists trains at the station that match no scheduled trip and so have no
+  direction (`unplacedTrainCount`). Otherwise the page gives the general reasons: service
+  may have ended, the direction may not be running, or the feed may not include it.
+
+`web/src/clientContract.test.tsx` renders the whole page with the mock client and with the
+HTTP client over a fake `fetch` serving recorded API responses
+(`data/fixtures/apiReplay.json`, recorded at as-of 2026-10-15T17:00:00Z). The same checks
+cover a forecast with and without a range, a train with no forecast, loading, no trains, a
+stale snapshot, a failed request and its retry, missing history and a failed history request.
+They also check that changing the station, direction and train requests the matching
+data, and that the forecast and the history always describe the same train.
+
+### Selecting the client
 
 ```bash
-VITE_DATA_MODE=mock   # default; simulated fixtures
-VITE_DATA_MODE=http   # placeholder; every request fails with "not implemented"
-VITE_API_BASE_URL=    # API origin for http mode (unused for now)
+VITE_DATA_MODE=mock   # default; simulated fixtures (the dev server and every test)
+VITE_DATA_MODE=http   # the local API at VITE_API_BASE_URL
+VITE_API_BASE_URL=http://127.0.0.1:8000   # in web/.env.local (ignored by git)
 ```
 
-`VITE_*` values are compiled into the public bundle, so they must never hold secrets.
+The dev server stays on simulated data unless `VITE_DATA_MODE=http` is given for that run,
+so design work and the dev panel are unaffected by `.env.local`. Tests pin
+`VITE_DATA_MODE=mock` in `vite.config.ts` and inject any HTTP client they need, so they
+never depend on a developer's local settings or a running API. The API address is read
+only in HTTP mode, so a simulated build does not contain it. `VITE_*` values are compiled
+into the public bundle, so they must never hold secrets, and no server or production
+address is committed.
 
 ## Local development
 
 ```bash
 cd web
 npm install
-npm run dev      # prints http://localhost:5173/
+npm run dev      # prints http://localhost:5173/ (simulated data)
 npm run test     # Vitest, once
 npm run lint     # ESLint + tsc -b
 npm run build    # type-check + production build into web/dist/
 npm run preview  # serve the production build
 ```
+
+To run the site against the local historical-replay API, start two processes from the
+repository root, each in its own terminal:
+
+```bash
+.venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # API on http://127.0.0.1:8000
+cd web && VITE_DATA_MODE=http npm run dev                                 # site on http://localhost:5173/
+```
+
+The API answers as of its default replay time (2026-10-15T17:00:00Z, see
+`docs/local_api.md`), and the page shows that time in its replay banner.
 
 ## GitHub Pages base path
 
@@ -328,8 +399,9 @@ requirements.
    (`cqi`), so the full time and AM/PM always fit on one line, down to 320 px. "About … away" sits directly under it, then the
    calculation, then detail that steps down in size and contrast. Time, AM/PM and the
    "away" phrase never wrap apart.
-2. **Disclose before claiming.** "Prototype using simulated data" sits beside the title,
-   above the fold on desktop and mobile. It comes before any number is shown.
+2. **Disclose before claiming.** "Prototype using simulated data" (or, with the local
+   API, "Historical replay of recorded BART data" and its as-of time) sits beside the
+   title, above the fold on desktop and mobile. It comes before any number is shown.
 3. **Three typographic voices, each with one job.** Schibsted Grotesk for headings and
    controls, Source Serif 4 for prose, and JetBrains Mono for measurements, timestamps and
    labels. Mono is never decoration.
@@ -347,26 +419,31 @@ requirements.
    the disclosure and the readout. There are no shadows, gradients or nested containers.
 7. **Show uncertainty as a range.** Each revision comes with its probability and an 80%
    range, and the copy says BART may revise the estimate. The interface never presents a
-   single "true" time.
+   single "true" time. When no range is supported, the page says so in words rather than
+   drawing a substitute.
 8. **Stable layout across states.** Loading, failure, stale and empty states keep the
    readout's position and minimum height. Motion is limited to state feedback (hover, the
    probability fill) and is disabled under `prefers-reduced-motion`.
 
 ## Deferred to later milestones
 
-- Real ETA history from collected snapshots (the history chart runs on the mock only)
 - System findings, the exploration dashboard and filters
 - Methodology section and a fuller footer. The current footer holds only the
   independence notice: "Independent project using BART open data. Not affiliated with or
   endorsed by BART."
-- Live API, trained model and production data
+- A live (not replayed) API, and hosting the API anywhere but the developer's machine
 - Deployment workflow (GitHub Pages)
 - Dark color scheme
 
 ## Known limitations
 
-- All values are simulated. Line and destination pairings follow BART's public network
-  but are not checked against a specific timetable.
+- In the default mode all values are simulated. Line and destination pairings follow
+  BART's public network but are not checked against a specific timetable.
+- With the local API, most trains show BART's ETA only: the model serves only published-time
+  horizons of 5, 10 and 15 minutes (±60 s), so at a given moment only a few trains per
+  board have a forecast (for example 1 of 3 at Castro Valley toward Daly City at the
+  tested replay time). 9 of 100 boards are empty at the tested replay time, for the
+  reasons in `docs/local_api.md` ("Empty boards").
 - Stability cutoffs (0.25 / 0.5) and the 120 s freshness limit are provisional.
 - Freshness is re-evaluated every 15 s; the countdown does not tick every second.
 - Clock times are formatted in Pacific time regardless of the viewer's time zone.

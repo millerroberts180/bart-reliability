@@ -37,10 +37,15 @@ export function TrainTimetable({ state, trains, selectedId, onSelect }: TrainTim
               <span className="timetable__dest">
                 <span className="timetable__headsign">{withSlashBreaks(t.headsign)}</span>
                 <span className="timetable__line">{t.lineName}</span>
-                <span className={`timetable__stability tone-${t.stability}`}>
-                  <StabilityMark stability={t.stability} />
-                  {STABILITY_LABELS[t.stability]}
-                </span>
+                {t.stability ? (
+                  <span className={`timetable__stability tone-${t.stability}`}>
+                    <StabilityMark stability={t.stability} />
+                    {STABILITY_LABELS[t.stability]}
+                  </span>
+                ) : (
+                  // No model forecast: say so in words rather than leave the slot empty.
+                  <span className="timetable__stability tone-eta-only">BART ETA only</span>
+                )}
               </span>
             </label>
           ))}

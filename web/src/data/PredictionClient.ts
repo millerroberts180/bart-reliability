@@ -11,9 +11,15 @@ import type {
  * provisional endpoint of the future API (see docs/website_architecture.md).
  */
 export interface PredictionClient {
+  /**
+   * Where this client's data comes from, known before any request: "simulated"
+   * fixtures, or the prediction "api". Each API response also states its own mode
+   * (for example historical replay), and the page labels results from that.
+   */
+  readonly source: 'simulated' | 'api';
   /** GET /api/v1/stations */
   listStations(signal?: AbortSignal): Promise<Station[]>;
-  /** GET /api/v1/predictions?station_id=...&direction_id=... */
+  /** GET /api/v1/stations/{station_id}/predictions?direction_id=... */
   getPredictions(stationId: string, directionId: string, signal?: AbortSignal): Promise<PredictionResponse>;
   /** GET /api/v1/predictions/{prediction_id}/history */
   getPredictionHistory(predictionId: string, signal?: AbortSignal): Promise<PredictionHistoryPoint[]>;

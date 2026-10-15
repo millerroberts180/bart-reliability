@@ -165,3 +165,27 @@ export function needsSeconds(a: string, b: string): boolean {
 export function formatClockMinute(iso: string): string {
   return minuteFormat.format(new Date(iso));
 }
+
+const dateFormat = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Los_Angeles',
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+/** "Thu, Oct 15, 2026, 10:00 AM" (Pacific): the moment a historical replay answers as of. */
+export function formatMoment(iso: string): string {
+  return `${dateFormat.format(new Date(iso))}, ${formatClockMinute(iso)}`;
+}
+
+const dayFormat = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric' });
+
+/**
+ * "5:42:10 PM", or "Oct 13, 5:42:10 PM" when the time falls on another Pacific day
+ * than the reference, so an older time is never read as later the same day.
+ */
+export function formatClockSince(iso: string, referenceIso: string): string {
+  const day = dayFormat.format(new Date(iso));
+  return day === dayFormat.format(new Date(referenceIso)) ? formatClock(iso) : `${day}, ${formatClock(iso)}`;
+}

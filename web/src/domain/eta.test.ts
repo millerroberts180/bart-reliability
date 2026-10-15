@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   assessFreshness,
+  classifyStability,
   describeAwayGlance,
   describeRevision,
   describeRevisionRange,
   describeTimeAway,
-  formatSpokenDuration,
-  classifyStability,
+  formatClockSince,
   formatDuration,
+  formatMoment,
   formatSignedDuration,
+  formatSpokenDuration,
   likelyFinalEtaSeconds,
   STALE_AFTER_SECONDS,
 } from './eta';
@@ -104,5 +106,17 @@ describe('describeAwayGlance', () => {
     expect(describeAwayGlance(59)).toBe('Less than 1 min away');
     expect(describeAwayGlance(1)).toBe('Less than 1 min away');
     expect(describeAwayGlance(0)).toBe('Due now');
+  });
+});
+
+describe('dated clock times', () => {
+  it('names the replay moment with its date in Pacific time', () => {
+    expect(formatMoment('2026-10-15T17:00:00Z')).toBe('Thu, Oct 15, 2026, 10:00 AM');
+  });
+
+  it('adds the date only when a time falls on another Pacific day than the reference', () => {
+    // 02:56Z on Oct 14 is 7:56 PM on Oct 13 in Pacific time.
+    expect(formatClockSince('2026-10-14T02:56:22Z', '2026-10-15T16:59:23Z')).toBe('Oct 13, 7:56:22 PM');
+    expect(formatClockSince('2026-10-15T15:10:00Z', '2026-10-15T16:59:23Z')).toBe('8:10:00 AM');
   });
 });

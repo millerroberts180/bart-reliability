@@ -12,6 +12,8 @@ const LABELS: Record<MockScenario, string> = {
   error: 'Request failure',
   stale: 'Stale data',
   empty: 'No upcoming trains',
+  'no-interval': 'No likely range',
+  'eta-only': 'BART ETA only',
 };
 
 const HISTORY_LABELS: Record<MockHistoryScenario, string> = {

@@ -15,6 +15,9 @@ export default defineConfig(({ command, mode }) => {
     base,
     plugins: [react()],
     test: {
+      // Tests always start from simulated data, whatever a developer's .env.local says;
+      // a test that needs the HTTP client injects one.
+      env: { VITE_DATA_MODE: 'mock', VITE_API_BASE_URL: '' },
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
       css: false,

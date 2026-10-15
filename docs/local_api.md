@@ -4,7 +4,8 @@ A local-only HTTP API that serves the ETA revision models through the website's
 `PredictionClient` contract. It runs in **historical-replay mode**: it answers as if it
 were a configured past moment, using the ignored local warehouse and the exported model
 bundle ([model_serving.md](model_serving.md)). It never contacts BART and is never live.
-The frontend is not connected yet.
+The website reads it locally when started with `VITE_DATA_MODE=http`
+([website_architecture.md](website_architecture.md#http-client-local-api)).
 
 ## Start
 
@@ -195,19 +196,19 @@ work normally and carry no CORS headers.
 
 ## Contract differences
 
-The responses follow `web/src/domain/types.ts`. The differences below must be handled
-when the frontend is connected:
+The responses follow `web/src/domain/types.ts`. The website's types and
+`HttpPredictionClient` were updated for the differences that remained when the API was
+built:
 
 1. **Nullable model fields.** On `TrainPrediction`, `predictedRevisionSeconds`,
    `revisionInterval`, `revisionProbability` and `stability` are `null` whenever
    `predictionStatus` is not `ok`. `revisionInterval` is also `null` whenever the bundle
-   cannot support an honest range. The TypeScript types declare them non-null, so they
-   must become nullable, and the UI must show `fallbackEtaAt` for those trains.
+   cannot support an honest range. The website types these trains separately and shows
+   BART's published ETA for them (`currentEtaAt`, which equals `fallbackEtaAt`).
 2. **`HealthStatus.latestFeedTimestamp`** is `null` only when no warehouse is loaded.
-3. **Predictions path.** The client's placeholder uses
-   `GET /api/v1/predictions?station_id=…&direction_id=…`, while this API uses
-   `GET /api/v1/stations/{station_id}/predictions?direction_id=…`.
-   `HttpPredictionClient` must use the latter.
+3. **Predictions path.** The API uses
+   `GET /api/v1/stations/{station_id}/predictions?direction_id=…`, and so does
+   `HttpPredictionClient` (the earlier placeholder used `/api/v1/predictions?station_id=…`).
 4. **Arrays stay arrays.** `stations` and `history` return bare arrays, as the contract
    says. For them, the replay identification is in the headers.
 5. **Additions only otherwise.** Every other difference is an extra field, which a
@@ -226,6 +227,25 @@ when the frontend is connected:
   that cannot be known in advance.
 - **Unplaced trains.** Trains the feed lists without a schedule match have no direction.
   They are counted in `unplacedTrainCount`, not shown.
+- **Empty boards.** At the default `as_of`, 9 of the 100 station boards are empty. Each
+  was checked against the replay data, the raw trip updates and the opposite direction:
+  every row the feed lists at those stations is on the opposite board or counted as
+  unplaced, so no query or direction mapping drops trains.
+  - *Trains ending at the station* (Antioch, Dublin/Pleasanton, Millbrae and Richmond,
+    each toward itself). BART's feed almost never lists a train at the last stop of its
+    trip: Dublin-bound trains are last listed at West Dublin/Pleasanton, Richmond-bound
+    trains at El Cerrito del Norte. Across the whole collection, only 10 of 3,404 trips
+    were ever listed at their final stop.
+  - *Oakland International Airport*, both directions. The airport line (routes 19 and 20)
+    never appears in the collected feed, though the schedule has 370 trips a day.
+  - *Antioch toward San Francisco, and Pittsburg Center* both ways. The feed does list
+    trains here (5 at Antioch and 9 upcoming at Pittsburg Center at the default `as_of`),
+    but the Antioch extension's real-time trips use trip ids that are not in the static
+    GTFS and carry no route or direction. None of them matches a scheduled trip (83,812
+    rows in the collection), so they are unplaced. They would also be outside the model's
+    population.
+
+  The website's empty state names whichever of these reasons the response shows.
 - **Provisional.** The models and interval carry everything in
   [model_serving.md](model_serving.md#limitations).
 

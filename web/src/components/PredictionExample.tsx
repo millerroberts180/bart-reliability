@@ -1,4 +1,5 @@
 import { useCallback, useId, useState } from 'react';
+import { formatMoment } from '../domain/eta';
 import type { PredictionResponse, Station } from '../domain/types';
 import { usePredictionEnvironment } from '../data/PredictionClientContext';
 import { clientKey } from '../data/clientKey';
@@ -45,6 +46,7 @@ export function PredictionExample() {
   const { state: predictionsState, retry: retryPredictions } = useRequest(predictionsKey, loadPredictions);
 
   const trains = predictionsState.status === 'success' ? predictionsState.data.response.trains : [];
+  const replayAsOf = predictionsState.status === 'success' ? (predictionsState.data.response.replay?.asOf ?? null) : null;
   const train = trains.find((t) => t.predictionId === trainId) ?? trains[0];
 
   let readout: ReadoutState;
@@ -55,7 +57,11 @@ export function PredictionExample() {
   } else if (predictionsState.status === 'error') {
     readout = { kind: 'error', retry: retryPredictions };
   } else if (!train) {
-    readout = { kind: 'empty' };
+    readout = {
+      kind: 'empty',
+      unplacedTrainCount: predictionsState.data.response.unplacedTrainCount,
+      endsHere: direction.destinations.some((d) => sameName(d, station.name)),
+    };
   } else {
     readout = { kind: 'ready', received: predictionsState.data, train };
   }
@@ -75,7 +81,7 @@ export function PredictionExample() {
         </h2>
         <p>
           Choose a station, a direction and an upcoming train. The result shows what BART says now, how much the model
-          expects BART to change that estimate, and the likely final published ETA. All values are simulated.
+          expects BART to change that estimate, and the likely final published ETA. {sourceSentence(client.source, replayAsOf)}
         </p>
       </div>
 
@@ -140,4 +146,17 @@ export function PredictionExample() {
       <EtaHistory subject={history} stationName={station?.name ?? ''} />
     </section>
   );
+}
+
+/** Station names and destinations differ in spacing ("Dublin / Pleasanton", "Dublin/Pleasanton"). */
+function sameName(a: string, b: string): boolean {
+  const key = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+  return key(a) === key(b);
+}
+
+/** Says where the values come from; replay data is named as such and never as live. */
+function sourceSentence(source: 'simulated' | 'api', replayAsOf: string | null): string {
+  if (source === 'simulated') return 'All values are simulated.';
+  if (replayAsOf) return `Values are a historical replay of recorded BART data as of ${formatMoment(replayAsOf)}, not live.`;
+  return 'Values come from the prediction API and are labelled with how they were produced.';
 }

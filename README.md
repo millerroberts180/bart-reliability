@@ -67,7 +67,7 @@ warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historica
 - **Local prediction API** (`src/bart_reliability/api/`): FastAPI in historical-replay
   mode, answering as of a configured past moment with features, history and alerts cut
   off at that moment, through the website's `PredictionClient` contract. It binds to
-  127.0.0.1 with localhost-only CORS, and is not connected to the website yet:
+  127.0.0.1 with localhost-only CORS. The website can read it locally (below):
   [docs/local_api.md](docs/local_api.md).
 
 ## Setup
@@ -108,16 +108,33 @@ found by the transformer are listed in `data/processed/trip_updates/_quarantine.
 
 ## Website prototype
 
-`web/` holds a React + TypeScript prototype of the public site, "ETA Reliability". It
-runs entirely on simulated data. Stack, data contracts, the mock client and the future API
-boundary are described in [docs/website_architecture.md](docs/website_architecture.md).
+`web/` holds a React + TypeScript prototype of the public site, "ETA Reliability". By
+default it runs on simulated data. Stack, data contracts, the mock client and the HTTP
+client are described in [docs/website_architecture.md](docs/website_architecture.md).
 
 ```bash
 cd web
 npm install
-npm run dev      # http://localhost:5173/
+npm run dev      # http://localhost:5173/ (simulated data)
 npm run test && npm run lint && npm run build
 ```
+
+To run it against the local historical-replay API, set the API address once in the
+ignored `web/.env.local`:
+
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+then start two processes from the repository root, each in its own terminal:
+
+```bash
+.venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # API: http://127.0.0.1:8000
+cd web && VITE_DATA_MODE=http npm run dev                                 # site: http://localhost:5173/
+```
+
+Every value the site then shows is labelled as a historical replay of recorded BART data
+as of the API's replay time. Nothing is live.
 
 ## Checks
 

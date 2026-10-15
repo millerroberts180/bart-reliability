@@ -1,7 +1,7 @@
 import { useCallback, useId, type ReactNode } from 'react';
 import { addSeconds, formatClock, formatSpokenDuration } from '../domain/eta';
 import { analyzeHistory, describeChart, summarizeHistory } from '../domain/history';
-import type { TrainPrediction } from '../domain/types';
+import { hasForecast, type TrainPrediction } from '../domain/types';
 import { clientKey } from '../data/clientKey';
 import { usePredictionEnvironment } from '../data/PredictionClientContext';
 import { useFreshness } from '../hooks/useFreshness';
@@ -61,7 +61,7 @@ function ReadyHistory({
   const { client } = usePredictionEnvironment();
   const figureNameId = useId();
   const { response, receivedAt } = received;
-  const freshness = useFreshness(response.feedTimestamp, receivedAt);
+  const freshness = useFreshness(response.feedTimestamp, receivedAt, response.replay);
 
   const load = useCallback(
     (signal: AbortSignal) => client.getPredictionHistory(train.predictionId, signal),
@@ -87,14 +87,18 @@ function ReadyHistory({
 
   const analysis = analyzeHistory(state.data, response.feedTimestamp);
   const summary = summarizeHistory(analysis, { stale: freshness.stale });
-  const revision = train.predictedRevisionSeconds;
-  const { lowerSeconds, upperSeconds, level } = train.revisionInterval;
-  const final: FinalReference = {
-    at: addSeconds(train.currentEtaAt, revision),
-    lowerAt: addSeconds(train.currentEtaAt, lowerSeconds),
-    upperAt: addSeconds(train.currentEtaAt, upperSeconds),
-    coverage: `${Math.round(level * 100)}%`,
-  };
+  // Only a train with a model forecast gets the dashed reference, and only a supported
+  // range gets the bracket; nothing is drawn in their place otherwise.
+  const final: FinalReference | null = hasForecast(train)
+    ? {
+        at: addSeconds(train.currentEtaAt, train.predictedRevisionSeconds),
+        range: train.revisionInterval && {
+          lowerAt: addSeconds(train.currentEtaAt, train.revisionInterval.lowerSeconds),
+          upperAt: addSeconds(train.currentEtaAt, train.revisionInterval.upperSeconds),
+          coverage: `${Math.round(train.revisionInterval.level * 100)}%`,
+        },
+      }
+    : null;
 
   return (
     <div className="history__body">
@@ -107,7 +111,7 @@ function ReadyHistory({
       {freshness.stale && (
         <p className="history__note">
           These snapshots end at {formatClock(response.feedTimestamp)}, {formatSpokenDuration(freshness.ageSeconds)}{' '}
-          ago. BART may have changed this ETA since.
+          {response.replay ? 'before the replay time' : 'ago'}. BART may have changed this ETA since.
         </p>
       )}
 
@@ -128,13 +132,21 @@ function ReadyHistory({
                 later, down earlier, flat means it held.
               </span>
             </li>
-            <li className="legend__item">
-              <span className="legend__swatch legend__swatch--final" aria-hidden="true" />
-              <span>
-                <span className="visually-hidden">Dashed line: </span>Model’s likely final published ETA (
-                {formatClock(final.at)}), with its {final.coverage} range at the right. A forecast, not an observation.
-              </span>
-            </li>
+            {final ? (
+              <li className="legend__item">
+                <span className="legend__swatch legend__swatch--final" aria-hidden="true" />
+                <span>
+                  <span className="visually-hidden">Dashed line: </span>Model’s likely final published ETA (
+                  {formatClock(final.at)})
+                  {final.range ? `, with its ${final.range.coverage} range at the right` : '; no likely range is available'}.
+                  A forecast, not an observation.
+                </span>
+              </li>
+            ) : (
+              <li className="legend__item legend__item--note">
+                No model forecast for this train, so the chart shows BART’s published ETA only.
+              </li>
+            )}
             {analysis.gapCount > 0 && (
               <li className="legend__item">
                 <span className="legend__swatch legend__swatch--gap" aria-hidden="true" />

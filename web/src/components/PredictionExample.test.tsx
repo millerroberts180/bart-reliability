@@ -106,6 +106,7 @@ describe('PredictionExample', () => {
     const mock = new MockPredictionClient({ now: clock });
     // Test-only stub: the first train 40 s away, adjusted 12 s later (52 s in all).
     const nearby: PredictionClient = {
+      source: 'simulated',
       listStations: (signal) => mock.listStations(signal),
       getPredictionHistory: (id, signal) => mock.getPredictionHistory(id, signal),
       getModelMetadata: (signal) => mock.getModelMetadata(signal),
@@ -211,6 +212,7 @@ describe('PredictionExample', () => {
     const mock = new MockPredictionClient({ now: clock });
     let failures = 1;
     const flaky: PredictionClient = {
+      source: 'simulated',
       listStations: (signal) => mock.listStations(signal),
       getPredictionHistory: (id, signal) => mock.getPredictionHistory(id, signal),
       getModelMetadata: (signal) => mock.getModelMetadata(signal),

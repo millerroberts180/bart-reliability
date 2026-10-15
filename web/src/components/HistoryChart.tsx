@@ -6,15 +6,14 @@ import { useElementWidth } from '../hooks/useElementWidth';
 export interface FinalReference {
   /** Likely final published ETA (clock time). */
   at: string;
-  /** Its 80% range, as clock times. */
-  lowerAt: string;
-  upperAt: string;
-  coverage: string;
+  /** Its likely range as clock times; null when the model has no supported range. */
+  range: { lowerAt: string; upperAt: string; coverage: string } | null;
 }
 
 interface HistoryChartProps {
   analysis: HistoryAnalysis;
-  final: FinalReference;
+  /** The model's forecast, or null for a train without one (BART's ETA only). */
+  final: FinalReference | null;
   /** Accessible description of what is charted (station and train). */
   label: string;
 }
@@ -53,7 +52,8 @@ function ticks(start: number, end: number, step: number): number[] {
 /**
  * Step chart of BART's published arrival time at each feed snapshot. Up = BART
  * moved the ETA later, down = earlier, flat = it held. A break in the line is a
- * gap in the feed. The dashed line is the model's likely final published ETA.
+ * gap in the feed. The dashed line is the model's likely final published ETA, drawn
+ * only for a train with a model forecast.
  */
 export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
   const [containerRef, width] = useElementWidth<HTMLDivElement>(640);
@@ -81,7 +81,8 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
 
   // Published clock time, later at the top. Keep at least a 3-minute window so
   // seconds of drift don't look like large moves.
-  const values = [...observations.map((o) => ms(o.publishedEtaAt)), ms(final.at), ms(final.lowerAt), ms(final.upperAt)];
+  const reference = final ? [final.at, ...(final.range ? [final.range.lowerAt, final.range.upperAt] : [])] : [];
+  const values = [...observations.map((o) => ms(o.publishedEtaAt)), ...reference.map(ms)];
   let yMin = Math.min(...values) - Y_PADDING_MS;
   let yMax = Math.max(...values) + Y_PADDING_MS;
   if (yMax - yMin < 3 * MINUTE) {
@@ -110,12 +111,12 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
   });
 
   // End labels in the right gutter, pushed apart so they never overlap.
-  const finalY = y(ms(final.at));
+  const finalY = final ? y(ms(final.at)) : null;
   const latestY = y(ms(last.publishedEtaAt));
   let latestLabelY = latestY;
-  let finalLabelY = finalY;
+  let finalLabelY = finalY ?? latestY;
   const LABEL_GAP = 22; // label line height plus breathing room
-  if (Math.abs(latestLabelY - finalLabelY) < LABEL_GAP) {
+  if (finalY !== null && Math.abs(latestLabelY - finalLabelY) < LABEL_GAP) {
     const mid = (latestLabelY + finalLabelY) / 2;
     const finalAbove = finalY <= latestY;
     finalLabelY = mid + (finalAbove ? -1 : 1) * (LABEL_GAP / 2);
@@ -209,15 +210,23 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
           ))}
         </g>
 
-        {/* Model reference: likely final published ETA and its range */}
+        {/* Model reference: likely final published ETA and, when supported, its range */}
         <g aria-hidden="true">
-          <line className="history-chart__final" x1={margin.left} x2={gutterX} y1={finalY} y2={finalY} />
-          <line className="history-chart__range" x1={gutterX} x2={gutterX} y1={y(ms(final.upperAt))} y2={y(ms(final.lowerAt))} />
-          <line className="history-chart__range" x1={gutterX - 4} x2={gutterX + 4} y1={y(ms(final.upperAt))} y2={y(ms(final.upperAt))} />
-          <line className="history-chart__range" x1={gutterX - 4} x2={gutterX + 4} y1={y(ms(final.lowerAt))} y2={y(ms(final.lowerAt))} />
-          <text className="history-chart__end-label history-chart__end-label--final" x={labelX} y={finalLabelY} dy="0.32em">
-            {compact ? 'Final' : 'Likely final'}
-          </text>
+          {final && finalY !== null && (
+            <>
+              <line className="history-chart__final" x1={margin.left} x2={gutterX} y1={finalY} y2={finalY} />
+              {final.range && (
+                <>
+                  <line className="history-chart__range" x1={gutterX} x2={gutterX} y1={y(ms(final.range.upperAt))} y2={y(ms(final.range.lowerAt))} />
+                  <line className="history-chart__range" x1={gutterX - 4} x2={gutterX + 4} y1={y(ms(final.range.upperAt))} y2={y(ms(final.range.upperAt))} />
+                  <line className="history-chart__range" x1={gutterX - 4} x2={gutterX + 4} y1={y(ms(final.range.lowerAt))} y2={y(ms(final.range.lowerAt))} />
+                </>
+              )}
+              <text className="history-chart__end-label history-chart__end-label--final" x={labelX} y={finalLabelY} dy="0.32em">
+                {compact ? 'Final' : 'Likely final'}
+              </text>
+            </>
+          )}
           <text className="history-chart__end-label" x={labelX} y={latestLabelY} dy="0.32em">
             Latest
           </text>

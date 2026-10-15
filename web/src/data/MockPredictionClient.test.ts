@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { classifyStability } from '../domain/eta';
-import { HttpPredictionClient } from './HttpPredictionClient';
 import { SIMULATED_STATIONS, SIMULATED_TRAINS } from './fixtures/simulated';
+import { hasForecast } from '../domain/types';
 import { MockPredictionClient } from './MockPredictionClient';
 import { PredictionClientError } from './PredictionClient';
 
@@ -32,11 +32,38 @@ describe('MockPredictionClient', () => {
     const response = await new MockPredictionClient({ now: clock }).getPredictions('EMBR', '0');
     expect(Date.parse(response.feedTimestamp)).toBeLessThan(NOW.getTime());
     expect(response.model.simulated).toBe(true);
+    expect(response.dataProvenance).toBe('simulated');
+    expect(response.replay).toBeNull();
     for (const train of response.trains) {
       expect(Date.parse(train.currentEtaAt) - Date.parse(response.feedTimestamp)).toBe(train.currentEtaSeconds * 1000);
+      if (!hasForecast(train) || !train.revisionInterval) throw new Error('live fixtures all have a forecast and range');
       expect(train.stability).toBe(classifyStability(train.revisionProbability));
       expect(train.revisionInterval.lowerSeconds).toBeLessThanOrEqual(train.predictedRevisionSeconds);
       expect(train.revisionInterval.upperSeconds).toBeGreaterThanOrEqual(train.predictedRevisionSeconds);
+    }
+  });
+
+  it('serves forecasts without a range in the no-interval scenario', async () => {
+    const response = await new MockPredictionClient({ scenario: 'no-interval', now: clock }).getPredictions('EMBR', '0');
+    expect(response.trains.length).toBeGreaterThan(0);
+    for (const train of response.trains) {
+      expect(train.predictionStatus).toBe('ok');
+      expect(train.revisionInterval).toBeNull();
+      expect(train.predictedRevisionSeconds).not.toBeNull();
+    }
+  });
+
+  it('serves BART ETAs without model numbers in the eta-only scenario', async () => {
+    const response = await new MockPredictionClient({ scenario: 'eta-only', now: clock }).getPredictions('EMBR', '0');
+    expect(response.trains.length).toBeGreaterThan(0);
+    for (const train of response.trains) {
+      expect(train.predictionStatus).toBe('outside_model_horizon');
+      expect([train.predictedRevisionSeconds, train.revisionInterval, train.revisionProbability, train.stability]).toEqual([
+        null,
+        null,
+        null,
+        null,
+      ]);
     }
   });
 
@@ -114,15 +141,5 @@ describe('MockPredictionClient history', () => {
     await expect(
       new MockPredictionClient({ historyScenario: 'error' }).getPredictionHistory('EMBR:0:1782'),
     ).rejects.toMatchObject({ code: 'unavailable' });
-  });
-});
-
-describe('HttpPredictionClient placeholder', () => {
-  it('maps methods to the provisional endpoints without making requests', async () => {
-    const client = new HttpPredictionClient('https://api.example.test/');
-    expect(client.endpoint('/predictions', { station_id: 'EMBR', direction_id: '0' })).toBe(
-      'https://api.example.test/api/v1/predictions?station_id=EMBR&direction_id=0',
-    );
-    await expect(client.getPredictions('EMBR', '0')).rejects.toMatchObject({ code: 'not_implemented' });
   });
 });

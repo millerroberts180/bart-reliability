@@ -23,9 +23,17 @@ import { PredictionClientError, type PredictionClient } from './PredictionClient
  * Which response the mock gives for predictions. "live" is the normal case;
  * the others exist so every interface state can be reviewed and tested.
  */
-export type MockScenario = 'live' | 'loading' | 'error' | 'stale' | 'empty';
+export type MockScenario = 'live' | 'loading' | 'error' | 'stale' | 'empty' | 'no-interval' | 'eta-only';
 
-export const MOCK_SCENARIOS: readonly MockScenario[] = ['live', 'loading', 'error', 'stale', 'empty'];
+export const MOCK_SCENARIOS: readonly MockScenario[] = [
+  'live',
+  'loading',
+  'error',
+  'stale',
+  'empty',
+  'no-interval',
+  'eta-only',
+];
 
 /**
  * Which response the mock gives for ETA history. "normal" follows each train's
@@ -49,6 +57,7 @@ export interface MockPredictionClientOptions {
 
 /** Deterministic simulated data: same scenario and clock, same response. */
 export class MockPredictionClient implements PredictionClient {
+  readonly source = 'simulated' as const;
   readonly scenario: MockScenario;
   readonly historyScenario: MockHistoryScenario;
   private readonly now: () => Date;
@@ -92,17 +101,23 @@ export class MockPredictionClient implements PredictionClient {
     return this.respond(() => {
       const feedTimestamp = this.currentSnapshot();
       this.latestSnapshots.set(`${stationId}:${directionId}`, feedTimestamp);
-      const trains = this.scenario === 'empty' ? [] : fixture.map((t) => toPrediction(t, stationId, directionId, feedTimestamp));
+      const trains =
+        this.scenario === 'empty'
+          ? []
+          : fixture.map((t) => toPrediction(t, stationId, directionId, feedTimestamp, this.scenario));
       const alerts = (SIMULATED_ALERTS[stationId] ?? []).map(({ visibleForSeconds, ...alert }) => ({
         ...alert,
         visibleSince: addSeconds(feedTimestamp, -visibleForSeconds),
       }));
       return {
+        dataProvenance: 'simulated' as const,
+        replay: null,
         stationId,
         directionId,
         feedTimestamp,
         generatedAt: addSeconds(feedTimestamp, MODEL_LAG_SECONDS),
         trains,
+        unplacedTrainCount: 0,
         alerts,
         model: { ...SIMULATED_MODEL },
       };
@@ -149,7 +164,12 @@ export class MockPredictionClient implements PredictionClient {
 
   getHealth(signal?: AbortSignal): Promise<HealthStatus> {
     return this.respond(
-      () => ({ status: this.scenario === 'live' ? 'ok' : 'degraded', latestFeedTimestamp: this.currentSnapshot() }),
+      () => ({
+        status: this.scenario === 'live' ? 'ok' : 'degraded',
+        latestFeedTimestamp: this.currentSnapshot(),
+        dataProvenance: 'simulated',
+        replay: null,
+      }),
       signal,
     );
   }
@@ -190,8 +210,14 @@ export class MockPredictionClient implements PredictionClient {
   }
 }
 
-function toPrediction(t: SimulatedTrain, stationId: string, directionId: string, feedTimestamp: string): TrainPrediction {
-  return {
+function toPrediction(
+  t: SimulatedTrain,
+  stationId: string,
+  directionId: string,
+  feedTimestamp: string,
+  scenario: MockScenario,
+): TrainPrediction {
+  const base = {
     predictionId: `${stationId}:${directionId}:${t.tripId}`,
     tripId: t.tripId,
     lineName: t.lineName,
@@ -199,8 +225,26 @@ function toPrediction(t: SimulatedTrain, stationId: string, directionId: string,
     carCount: t.carCount,
     currentEtaSeconds: t.etaSeconds,
     currentEtaAt: addSeconds(feedTimestamp, t.etaSeconds),
+  };
+  if (scenario === 'eta-only') {
+    // Reviews how a train outside the model's support looks: BART's ETA only.
+    return {
+      ...base,
+      predictionStatus: 'outside_model_horizon',
+      statusReason: 'Simulated: outside the published-time horizons the model serves.',
+      predictedRevisionSeconds: null,
+      revisionInterval: null,
+      revisionProbability: null,
+      stability: null,
+    };
+  }
+  return {
+    ...base,
+    predictionStatus: 'ok',
+    statusReason: null,
     predictedRevisionSeconds: t.revisionSeconds,
-    revisionInterval: { lowerSeconds: t.interval[0], upperSeconds: t.interval[1], level: 0.8 },
+    revisionInterval:
+      scenario === 'no-interval' ? null : { lowerSeconds: t.interval[0], upperSeconds: t.interval[1], level: 0.8 },
     revisionProbability: t.probability,
     stability: classifyStability(t.probability),
   };

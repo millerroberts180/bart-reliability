@@ -32,7 +32,19 @@ export interface RevisionInterval {
   level: number;
 }
 
-export interface TrainPrediction {
+/**
+ * Why a train has, or lacks, a model forecast. Only "ok" carries model numbers; every
+ * other status means the model has not demonstrated support for this train, so only
+ * BART's published ETA may be shown (see docs/local_api.md).
+ */
+export type PredictionStatus =
+  | 'ok'
+  | 'outside_model_horizon'
+  | 'outside_model_population'
+  | 'fallback_required'
+  | 'features_unavailable';
+
+interface TrainBase {
   /** Stable identifier for this trip-stop prediction; keys the history endpoint. */
   predictionId: string;
   tripId: string;
@@ -45,15 +57,38 @@ export interface TrainPrediction {
   currentEtaSeconds: number;
   /** BART's current published arrival estimate as a clock time. */
   currentEtaAt: string;
+}
+
+/** A train the model supports: a forecast, with a range only when one can be supported. */
+export interface ForecastTrain extends TrainBase {
+  predictionStatus: 'ok';
+  statusReason: null;
   /** Predicted change BART will make to this ETA. Positive = later. */
   predictedRevisionSeconds: number;
-  revisionInterval: RevisionInterval;
+  /** null when no honest range is available; never replaced by an invented one. */
+  revisionInterval: RevisionInterval | null;
   /** Probability that BART revises this ETA by more than the threshold (either way). */
   revisionProbability: number;
   stability: StabilityClass;
 }
 
-/** One published ETA in a prediction's history (displayed in a later milestone). */
+/** A train outside the model's support: BART's published ETA only, no model numbers. */
+export interface EtaOnlyTrain extends TrainBase {
+  predictionStatus: Exclude<PredictionStatus, 'ok'>;
+  statusReason: string | null;
+  predictedRevisionSeconds: null;
+  revisionInterval: null;
+  revisionProbability: null;
+  stability: null;
+}
+
+export type TrainPrediction = ForecastTrain | EtaOnlyTrain;
+
+export function hasForecast(train: TrainPrediction): train is ForecastTrain {
+  return train.predictionStatus === 'ok';
+}
+
+/** One published ETA in a prediction's history. */
 export interface PredictionHistoryPoint {
   /** Feed snapshot time at which BART published this ETA. */
   feedTimestamp: string;
@@ -89,7 +124,21 @@ export interface ModelMetadata {
   simulated: boolean;
 }
 
+/**
+ * Where a response's data came from. "historical_replay" is recorded BART data
+ * answered as of a past moment; it must always be labelled and never called live.
+ */
+export type DataProvenance = 'simulated' | 'historical_replay';
+
+export interface ReplayInfo {
+  /** The past moment the replay answers as of; the reference clock for freshness. */
+  asOf: string;
+}
+
 export interface PredictionResponse {
+  dataProvenance: DataProvenance;
+  /** Present exactly when dataProvenance is "historical_replay". */
+  replay: ReplayInfo | null;
   stationId: string;
   directionId: string;
   /** BART feed snapshot the predictions were computed from. */
@@ -98,12 +147,19 @@ export interface PredictionResponse {
   generatedAt: string;
   /** Upcoming trains in published-ETA order; empty when none are scheduled. */
   trains: TrainPrediction[];
+  /**
+   * Trains the feed lists at this station that match no scheduled trip, so their
+   * direction is unknown and they are not in `trains`. Always 0 for simulated data.
+   */
+  unplacedTrainCount: number;
   alerts: AlertContext[];
   model: ModelMetadata;
 }
 
 export interface HealthStatus {
   status: 'ok' | 'degraded';
-  /** Latest feed snapshot available to the API. */
-  latestFeedTimestamp: string;
+  /** Latest feed snapshot available to the API; null only when none is loaded. */
+  latestFeedTimestamp: string | null;
+  dataProvenance: DataProvenance;
+  replay: ReplayInfo | null;
 }
