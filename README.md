@@ -106,6 +106,19 @@ To run the collector continuously on a server with systemd, see
 Collector logs are JSON lines on stdout and in `logs/collector.log`. Malformed inputs
 found by the transformer are listed in `data/processed/trip_updates/_quarantine.jsonl`.
 
+## Website prototype
+
+`web/` holds a React + TypeScript prototype of the public site, "ETA Reliability". It
+runs entirely on simulated data. Stack, data contracts, the mock client and the future API
+boundary are described in [docs/website_architecture.md](docs/website_architecture.md).
+
+```bash
+cd web
+npm install
+npm run dev      # http://localhost:5173/
+npm run test && npm run lint && npm run build
+```
+
 ## Checks
 
 ```bash
