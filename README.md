@@ -19,6 +19,7 @@ BART GTFS-RT feeds --bart-collect--> data/raw/gtfs_rt/<feed>/<date>/<HHMMSS>Z.pb
                    --bart-transform--> data/processed/trip_updates/date=…/hour=…/part.parquet
                                        data/processed/alert_*/ (normalized alerts)
 static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
+warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, models, metrics)
 ```
 
 - **Collector** (`src/bart_reliability/collector/`): polls trip updates and alerts every
@@ -46,12 +47,21 @@ static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
   disruption (that needs a structured active period, which BART does not supply), and
   planned/incident categories come from a manual annotation file
   (`config/alert_annotations.csv`): [docs/service_alerts.md](docs/service_alerts.md).
+- **ETA revision models** (`src/bart_reliability/modeling/`): point-in-time features in
+  DuckDB SQL; examples at 5/10/15-minute published-time horizons (what BART's ETA said
+  at the snapshot); a chronological service-date split; and no-revision and historical
+  baselines. The models are a robust linear (Huber) comparator and gradient-boosted
+  trees, selected on validation and never refitted on it. They predict the revision and
+  revisions over 60 s, with structural leakage checks and a paired, trip-clustered
+  bootstrap for test-day uncertainty. Settings live in `config/eta_model.toml`. Current results are
+  provisional: [docs/modeling_plan.md](docs/modeling_plan.md).
 
 ## Setup
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
+.venv/bin/pip install -e '.[dev,model]'   # also pandas and scikit-learn, for bart-eta-model
 ```
 
 ## Usage
@@ -65,6 +75,7 @@ Run from the repository root.
 .venv/bin/bart-build-warehouse    # static GTFS + Parquet -> DuckDB (safe to rerun)
 .venv/bin/bart-eta-sensitivity    # ETA revision parameter sensitivity (read-only)
 .venv/bin/bart-alert-sensitivity  # alert-state staleness sensitivity (read-only)
+.venv/bin/bart-eta-model          # features, baselines, models, metrics (warehouse read-only)
 ```
 
 Query the warehouse with DuckDB, e.g.

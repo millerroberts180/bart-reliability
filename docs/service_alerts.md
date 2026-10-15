@@ -116,6 +116,9 @@ fields**; alert text is never parsed.
    bounds are open, and **both bounds are inclusive**, a documented choice because the
    specification does not define inclusivity.
 
+The same join (`example_alert_context_statements`) also gives the modeling examples their
+point-in-time alert context ([modeling_plan.md](modeling_plan.md)).
+
 The alert feed is sometimes stamped one second after the trip-update feed of the same
 polling cycle. The strict rule then uses the previous cycle's snapshot, so alert state
 can lag by up to about a minute.
