@@ -11,6 +11,7 @@ import {
   FEED_AGE_SECONDS,
   MODEL_LAG_SECONDS,
   SIMULATED_ALERTS,
+  SIMULATED_HISTORY,
   SIMULATED_MODEL,
   SIMULATED_STATIONS,
   SIMULATED_TRAINS,
@@ -26,8 +27,20 @@ export type MockScenario = 'live' | 'loading' | 'error' | 'stale' | 'empty';
 
 export const MOCK_SCENARIOS: readonly MockScenario[] = ['live', 'loading', 'error', 'stale', 'empty'];
 
+/**
+ * Which response the mock gives for ETA history. "normal" follows each train's
+ * script; the others force a state for review and tests.
+ */
+export type MockHistoryScenario = 'normal' | 'loading' | 'error' | 'single' | 'none' | 'gaps';
+
+export const MOCK_HISTORY_SCENARIOS: readonly MockHistoryScenario[] = ['normal', 'loading', 'error', 'single', 'none', 'gaps'];
+
+/** Snapshots removed by the "gaps" history scenario (minutes before the latest). */
+const FORCED_GAP_MINUTES = [8, 7, 6];
+
 export interface MockPredictionClientOptions {
   scenario?: MockScenario;
+  historyScenario?: MockHistoryScenario;
   /** Clock used to place fixture offsets in time. */
   now?: () => Date;
   /** Simulated network delay. */
@@ -37,11 +50,23 @@ export interface MockPredictionClientOptions {
 /** Deterministic simulated data: same scenario and clock, same response. */
 export class MockPredictionClient implements PredictionClient {
   readonly scenario: MockScenario;
+  readonly historyScenario: MockHistoryScenario;
   private readonly now: () => Date;
   private readonly latencyMs: number;
+  /**
+   * Feed snapshot of the latest predictions response per station and direction, so
+   * history ends exactly at the snapshot the visitor is looking at.
+   */
+  private readonly latestSnapshots = new Map<string, string>();
 
-  constructor({ scenario = 'live', now = () => new Date(), latencyMs = 0 }: MockPredictionClientOptions = {}) {
+  constructor({
+    scenario = 'live',
+    historyScenario = 'normal',
+    now = () => new Date(),
+    latencyMs = 0,
+  }: MockPredictionClientOptions = {}) {
     this.scenario = scenario;
+    this.historyScenario = historyScenario;
     this.now = now;
     this.latencyMs = latencyMs;
   }
@@ -65,8 +90,8 @@ export class MockPredictionClient implements PredictionClient {
     }
 
     return this.respond(() => {
-      const feedAge = this.scenario === 'stale' ? FEED_AGE_SECONDS.stale : FEED_AGE_SECONDS.live;
-      const feedTimestamp = addSeconds(this.now().toISOString(), -feedAge);
+      const feedTimestamp = this.currentSnapshot();
+      this.latestSnapshots.set(`${stationId}:${directionId}`, feedTimestamp);
       const trains = this.scenario === 'empty' ? [] : fixture.map((t) => toPrediction(t, stationId, directionId, feedTimestamp));
       const alerts = (SIMULATED_ALERTS[stationId] ?? []).map(({ visibleForSeconds, ...alert }) => ({
         ...alert,
@@ -85,18 +110,33 @@ export class MockPredictionClient implements PredictionClient {
   }
 
   getPredictionHistory(predictionId: string, signal?: AbortSignal): Promise<PredictionHistoryPoint[]> {
+    if (this.historyScenario === 'loading') return this.never(signal);
+    if (this.historyScenario === 'error') {
+      return this.fail(new PredictionClientError('unavailable', 'The history service did not respond.'), signal);
+    }
+
     const [stationId, directionId, tripId] = predictionId.split(':');
     const train = SIMULATED_TRAINS[`${stationId}:${directionId}`]?.find((t) => t.tripId === tripId);
-    if (!train) {
+    const script = SIMULATED_HISTORY[predictionId];
+    if (!train || !script) {
       return this.fail(new PredictionClientError('not_found', `Unknown prediction ${predictionId}.`), signal);
     }
+
     return this.respond(() => {
-      const latest = addSeconds(this.now().toISOString(), -FEED_AGE_SECONDS.live);
-      // Five earlier snapshots, one per minute, drifting toward the current ETA.
-      return [5, 4, 3, 2, 1, 0].map((minutesAgo) => {
-        const feedTimestamp = addSeconds(latest, -minutesAgo * 60);
-        const drift = Math.round((train.revisionSeconds / 3) * (minutesAgo / 5));
-        const publishedEtaAt = addSeconds(latest, train.etaSeconds - drift);
+      const latest = this.latestSnapshots.get(`${stationId}:${directionId}`) ?? this.currentSnapshot();
+      const currentEtaAt = addSeconds(latest, train.etaSeconds);
+      const missing = new Set([...(script.missing ?? []), ...(this.historyScenario === 'gaps' ? FORCED_GAP_MINUTES : [])]);
+      let minutesAgo = Array.from({ length: script.snapshots }, (_, i) => script.snapshots - 1 - i).filter(
+        (m) => m === 0 || !missing.has(m),
+      );
+      if (this.historyScenario === 'single') minutesAgo = [0];
+      if (this.historyScenario === 'none') minutesAgo = [];
+
+      return minutesAgo.map((m) => {
+        const feedTimestamp = addSeconds(latest, -m * 60);
+        // Steps at or after this snapshot (minutesAgo < m) had not happened yet.
+        const pending = script.steps.filter(([stepMinutes]) => stepMinutes < m).reduce((sum, [, d]) => sum + d, 0);
+        const publishedEtaAt = addSeconds(currentEtaAt, -pending);
         const publishedEtaSeconds = Math.round((Date.parse(publishedEtaAt) - Date.parse(feedTimestamp)) / 1000);
         return { feedTimestamp, publishedEtaAt, publishedEtaSeconds };
       });
@@ -108,13 +148,16 @@ export class MockPredictionClient implements PredictionClient {
   }
 
   getHealth(signal?: AbortSignal): Promise<HealthStatus> {
-    return this.respond(() => {
-      const feedAge = this.scenario === 'stale' ? FEED_AGE_SECONDS.stale : FEED_AGE_SECONDS.live;
-      return {
-        status: this.scenario === 'live' ? 'ok' : 'degraded',
-        latestFeedTimestamp: addSeconds(this.now().toISOString(), -feedAge),
-      };
-    }, signal);
+    return this.respond(
+      () => ({ status: this.scenario === 'live' ? 'ok' : 'degraded', latestFeedTimestamp: this.currentSnapshot() }),
+      signal,
+    );
+  }
+
+  /** The newest feed snapshot for this scenario, placed against the clock. */
+  private currentSnapshot(): string {
+    const feedAge = this.scenario === 'stale' ? FEED_AGE_SECONDS.stale : FEED_AGE_SECONDS.live;
+    return addSeconds(this.now().toISOString(), -feedAge);
   }
 
   private respond<T>(build: () => T, signal?: AbortSignal): Promise<T> {

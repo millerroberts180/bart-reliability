@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { classifyStability } from '../domain/eta';
 import { HttpPredictionClient } from './HttpPredictionClient';
+import { SIMULATED_STATIONS, SIMULATED_TRAINS } from './fixtures/simulated';
 import { MockPredictionClient } from './MockPredictionClient';
 import { PredictionClientError } from './PredictionClient';
 
@@ -61,6 +62,58 @@ describe('MockPredictionClient', () => {
     const pending = new MockPredictionClient({ scenario: 'loading' }).getPredictions('EMBR', '0', controller.signal);
     controller.abort();
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+describe('MockPredictionClient history', () => {
+  const selectable = SIMULATED_STATIONS.flatMap((station) =>
+    station.directions.map((direction) => ({ stationId: station.id, directionId: direction.id })),
+  );
+
+  it('gives every selectable train a history that ends exactly at its prediction', async () => {
+    for (const scenario of ['live', 'stale'] as const) {
+      const client = new MockPredictionClient({ scenario, now: clock });
+      for (const { stationId, directionId } of selectable) {
+        const response = await client.getPredictions(stationId, directionId);
+        expect(response.trains).toHaveLength(SIMULATED_TRAINS[`${stationId}:${directionId}`]?.length ?? -1);
+        for (const train of response.trains) {
+          const points = await client.getPredictionHistory(train.predictionId);
+          const last = points[points.length - 1];
+          expect(last?.feedTimestamp).toBe(response.feedTimestamp);
+          expect(last?.publishedEtaAt).toBe(train.currentEtaAt);
+          for (const p of points) {
+            // No observation after the prediction's snapshot, and internally consistent seconds.
+            expect(Date.parse(p.feedTimestamp)).toBeLessThanOrEqual(Date.parse(response.feedTimestamp));
+            expect((Date.parse(p.publishedEtaAt) - Date.parse(p.feedTimestamp)) / 1000).toBe(p.publishedEtaSeconds);
+            expect(p.publishedEtaSeconds).toBeGreaterThan(0);
+          }
+        }
+      }
+    }
+  });
+
+  it('is deterministic and differs between trains', async () => {
+    const load = async (id: string) => {
+      const client = new MockPredictionClient({ now: clock });
+      await client.getPredictions('EMBR', '0');
+      return client.getPredictionHistory(id);
+    };
+    expect(await load('EMBR:0:1782')).toEqual(await load('EMBR:0:1782'));
+    expect(await load('EMBR:0:1782')).not.toEqual(await load('EMBR:0:2105'));
+  });
+
+  it('serves the forced history states', async () => {
+    const forHistory = async (historyScenario: 'single' | 'none' | 'gaps') => {
+      const client = new MockPredictionClient({ historyScenario, now: clock });
+      await client.getPredictions('EMBR', '0');
+      return client.getPredictionHistory('EMBR:0:1782');
+    };
+    expect(await forHistory('single')).toHaveLength(1);
+    expect(await forHistory('none')).toEqual([]);
+    expect(await forHistory('gaps')).toHaveLength(12);
+    await expect(
+      new MockPredictionClient({ historyScenario: 'error' }).getPredictionHistory('EMBR:0:1782'),
+    ).rejects.toMatchObject({ code: 'unavailable' });
   });
 });
 

@@ -128,3 +128,46 @@ export const FEED_AGE_SECONDS = { live: 34, stale: 580 } as const;
 
 /** The model runs a few seconds after each feed snapshot. */
 export const MODEL_LAG_SECONDS = 4;
+
+/**
+ * How BART's published ETA for each train evolved before the latest snapshot.
+ * Snapshots are one minute apart, counted back from the latest (minute 0).
+ * `steps`: [minutesAgo, seconds] — at that snapshot BART moved the ETA by that many
+ * seconds (positive = later) and it held until the next step. The latest snapshot's
+ * ETA always equals the train's current published ETA.
+ * `missing`: snapshots absent from the feed, which the chart shows as a gap.
+ */
+export interface SimulatedHistory {
+  snapshots: number;
+  steps: readonly (readonly [number, number])[];
+  missing?: readonly number[];
+}
+
+/** Keyed by `${stationId}:${directionId}:${tripId}`; every selectable train has an entry. */
+export const SIMULATED_HISTORY: Record<string, SimulatedHistory> = {
+  // Embarcadero, toward the East Bay
+  'EMBR:0:1561': { snapshots: 15, steps: [] }, // held steady
+  'EMBR:0:1782': { snapshots: 15, steps: [[11, 45], [7, 30], [3, 50]] }, // later, three revisions
+  'EMBR:0:1937': { snapshots: 15, steps: [[12, 40], [8, 90], [2, 35]], missing: [6, 5, 4] }, // later, with a gap
+  'EMBR:0:2105': { snapshots: 15, steps: [[10, -35], [5, -40]] }, // earlier, two revisions
+  // Embarcadero, toward Daly City, SFO and Millbrae
+  'EMBR:1:1544': { snapshots: 15, steps: [[6, 8], [2, -5]] }, // small drift only
+  'EMBR:1:1690': { snapshots: 15, steps: [[10, 45], [4, -45]] }, // revised, no net change
+  'EMBR:1:1823': { snapshots: 15, steps: [[13, 60], [6, 60]] }, // later
+  // MacArthur, toward Antioch and Richmond
+  'MCAR:0:1418': { snapshots: 15, steps: [] },
+  'MCAR:0:1563': { snapshots: 15, steps: [[9, 50], [3, 70]], missing: [7, 6] },
+  'MCAR:0:1784': { snapshots: 15, steps: [[8, -30]] }, // earlier, one revision
+  // MacArthur, toward San Francisco and Berryessa
+  'MCAR:1:1546': { snapshots: 15, steps: [[5, -20]] }, // small earlier drift
+  'MCAR:1:1421': { snapshots: 15, steps: [[12, 30], [7, 35], [2, 30]] },
+  'MCAR:1:1825': { snapshots: 15, steps: [[13, 90], [9, 60], [4, 75]] },
+  // Balboa Park, toward the East Bay
+  'BALB:0:1692': { snapshots: 15, steps: [[11, -40], [6, 40]] },
+  'BALB:0:2107': { snapshots: 15, steps: [[8, 100]] },
+  'BALB:0:1565': { snapshots: 1, steps: [] }, // just entered the feed
+  // Balboa Park, toward Daly City, SFO and Millbrae
+  'BALB:1:2109': { snapshots: 15, steps: [] },
+  'BALB:1:1548': { snapshots: 15, steps: [[10, 35], [3, 30]] },
+  'BALB:1:1827': { snapshots: 15, steps: [[12, 45], [5, 80]], missing: [9, 8] },
+};

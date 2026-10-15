@@ -3,7 +3,7 @@ import { Opening } from './components/Opening';
 import { PredictionExample } from './components/PredictionExample';
 import { SiteHeader } from './components/SiteHeader';
 import { createPredictionClient, resolveDataMode } from './data/createPredictionClient';
-import type { MockScenario } from './data/MockPredictionClient';
+import type { MockHistoryScenario, MockScenario } from './data/MockPredictionClient';
 import type { PredictionClient } from './data/PredictionClient';
 import { PredictionClientProvider } from './data/PredictionClientContext';
 
@@ -15,6 +15,7 @@ const SIMULATED_LATENCY_MS = 350;
 
 export function App({ client: injectedClient }: { client?: PredictionClient }) {
   const [scenario, setScenario] = useState<MockScenario>('live');
+  const [historyScenario, setHistoryScenario] = useState<MockHistoryScenario>('normal');
   const client = useMemo(
     () =>
       injectedClient ??
@@ -22,9 +23,10 @@ export function App({ client: injectedClient }: { client?: PredictionClient }) {
         mode: DATA_MODE,
         apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? '',
         scenario,
+        historyScenario,
         latencyMs: SIMULATED_LATENCY_MS,
       }),
-    [injectedClient, scenario],
+    [injectedClient, scenario, historyScenario],
   );
 
   return (
@@ -36,7 +38,12 @@ export function App({ client: injectedClient }: { client?: PredictionClient }) {
       </main>
       {DevStateSelector && DATA_MODE === 'mock' && !injectedClient && (
         <Suspense fallback={null}>
-          <DevStateSelector scenario={scenario} onChange={setScenario} />
+          <DevStateSelector
+            scenario={scenario}
+            historyScenario={historyScenario}
+            onChange={setScenario}
+            onHistoryChange={setHistoryScenario}
+          />
         </Suspense>
       )}
     </PredictionClientProvider>

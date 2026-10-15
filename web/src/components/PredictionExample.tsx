@@ -1,8 +1,10 @@
 import { useCallback, useId, useState } from 'react';
 import type { PredictionResponse, Station } from '../domain/types';
 import { usePredictionEnvironment } from '../data/PredictionClientContext';
+import { clientKey } from '../data/clientKey';
 import { useRequest } from '../hooks/useRequest';
 import { EXAMPLE_HEADING_ID } from './ExampleLink';
+import { EtaHistory, type HistorySubject } from './EtaHistory';
 import { PredictionReadout, type ReadoutState } from './PredictionReadout';
 import { TrainTimetable } from './TrainTimetable';
 
@@ -57,6 +59,13 @@ export function PredictionExample() {
   } else {
     readout = { kind: 'ready', received: predictionsState.data, train };
   }
+
+  const history: HistorySubject =
+    readout.kind === 'ready'
+      ? { kind: 'ready', received: readout.received, train: readout.train }
+      : readout.kind === 'loading'
+        ? { kind: 'waiting' }
+        : { kind: 'unavailable', reason: readout.kind };
 
   return (
     <section className="example" id="example" aria-labelledby={EXAMPLE_HEADING_ID}>
@@ -127,19 +136,8 @@ export function PredictionExample() {
 
         <PredictionReadout state={readout} stationName={station?.name ?? ''} directionLabel={direction?.label ?? ''} />
       </div>
+
+      <EtaHistory subject={history} stationName={station?.name ?? ''} />
     </section>
   );
-}
-
-// Distinguishes client instances (e.g. when the dev preview swaps scenarios)
-// so cached responses from a previous client are never reused.
-const clientIds = new WeakMap<object, number>();
-let nextClientId = 1;
-function clientKey(client: object): number {
-  let id = clientIds.get(client);
-  if (id === undefined) {
-    id = nextClientId++;
-    clientIds.set(client, id);
-  }
-  return id;
 }

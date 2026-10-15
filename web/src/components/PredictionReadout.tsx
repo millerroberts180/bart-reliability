@@ -1,6 +1,5 @@
 import {
   addSeconds,
-  assessFreshness,
   describeRevision,
   describeRevisionRange,
   describeTimeAway,
@@ -16,8 +15,7 @@ import {
   STALE_AFTER_SECONDS,
 } from '../domain/eta';
 import type { AlertContext, TrainPrediction } from '../domain/types';
-import { usePredictionEnvironment } from '../data/PredictionClientContext';
-import { useNow } from '../hooks/useNow';
+import { useFreshness } from '../hooks/useFreshness';
 import type { ReceivedPredictions } from './PredictionExample';
 import { StabilityMark } from './StabilityMark';
 
@@ -113,11 +111,8 @@ function ReadyReadout({
   stationName: string;
   directionLabel: string;
 }) {
-  const { now: clock } = usePredictionEnvironment();
-  const tick = useNow(clock);
   const { response, receivedAt } = received;
-  const now = tick > receivedAt ? tick : receivedAt;
-  const freshness = assessFreshness(response.feedTimestamp, now);
+  const freshness = useFreshness(response.feedTimestamp, receivedAt);
 
   const current = train.currentEtaSeconds;
   const revision = train.predictedRevisionSeconds;
