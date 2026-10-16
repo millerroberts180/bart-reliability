@@ -143,3 +143,36 @@ describe('MockPredictionClient history', () => {
     ).rejects.toMatchObject({ code: 'unavailable' });
   });
 });
+
+describe('MockPredictionClient full network', () => {
+  const client = () => new MockPredictionClient({ network: 'full', now: clock });
+
+  it('serves all 50 stations, terminals with a single direction', async () => {
+    const stations = await client().listStations();
+    expect(stations).toHaveLength(50);
+    expect(stations.find((s) => s.name === 'Antioch')?.directions).toHaveLength(1);
+    expect(stations.find((s) => s.id === 'EMBR')?.directions).toHaveLength(2);
+  });
+
+  it('lists 20 upcoming trains per station and direction, in time order, deterministically', async () => {
+    const a = await client().getPredictions('EMBR', '0');
+    const b = await client().getPredictions('EMBR', '0');
+    expect(a).toEqual(b);
+    expect(a.trains).toHaveLength(20);
+    const etas = a.trains.map((t) => t.currentEtaSeconds);
+    expect(etas).toEqual([...etas].sort((x, y) => x - y));
+    expect(new Set(a.trains.map((t) => t.predictionId)).size).toBe(20);
+  });
+
+  it('has history for generated trains, ending at their prediction', async () => {
+    const c = client();
+    const response = await c.getPredictions('ANTC', '1');
+    const train = response.trains[0];
+    const points = await c.getPredictionHistory(train?.predictionId ?? '');
+    expect(points.at(-1)?.publishedEtaAt).toBe(train?.currentEtaAt);
+  });
+
+  it('leaves the demo set as the default', async () => {
+    expect(await new MockPredictionClient().listStations()).toHaveLength(3);
+  });
+});

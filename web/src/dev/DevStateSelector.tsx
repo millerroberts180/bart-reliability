@@ -1,8 +1,10 @@
 import './dev-panel.css';
 import {
   MOCK_HISTORY_SCENARIOS,
+  MOCK_NETWORKS,
   MOCK_SCENARIOS,
   type MockHistoryScenario,
+  type MockNetwork,
   type MockScenario,
 } from '../data/MockPredictionClient';
 
@@ -25,17 +27,26 @@ const HISTORY_LABELS: Record<MockHistoryScenario, string> = {
   gaps: 'Gaps',
 };
 
+const NETWORK_LABELS: Record<MockNetwork, string> = {
+  demo: 'Demo (3 stations)',
+  full: 'Full network (50 stations, 20 trains)',
+};
+
 /** Development-only control for reviewing each interface state. Not shipped. */
 export default function DevStateSelector({
   scenario,
   historyScenario,
+  network,
   onChange,
   onHistoryChange,
+  onNetworkChange,
 }: {
   scenario: MockScenario;
   historyScenario: MockHistoryScenario;
+  network: MockNetwork;
   onChange: (scenario: MockScenario) => void;
   onHistoryChange: (scenario: MockHistoryScenario) => void;
+  onNetworkChange: (network: MockNetwork) => void;
 }) {
   return (
     <details className="dev-panel">
@@ -60,6 +71,15 @@ export default function DevStateSelector({
               onChange={() => onHistoryChange(s)}
             />
             {HISTORY_LABELS[s]}
+          </label>
+        ))}
+      </fieldset>
+      <fieldset>
+        <legend>Station set</legend>
+        {MOCK_NETWORKS.map((n) => (
+          <label key={n}>
+            <input type="radio" name="dev-network" checked={n === network} onChange={() => onNetworkChange(n)} />
+            {NETWORK_LABELS[n]}
           </label>
         ))}
       </fieldset>

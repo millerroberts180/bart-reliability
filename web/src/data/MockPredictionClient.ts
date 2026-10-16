@@ -43,12 +43,23 @@ export type MockHistoryScenario = 'normal' | 'loading' | 'error' | 'single' | 'n
 
 export const MOCK_HISTORY_SCENARIOS: readonly MockHistoryScenario[] = ['normal', 'loading', 'error', 'single', 'none', 'gaps'];
 
+/**
+ * Which station set the mock serves: the small hand-written demo (three stations) or
+ * the full 50-station network derived from BART's static GTFS, with 20 trains each.
+ */
+export type MockNetwork = 'demo' | 'full';
+
+export const MOCK_NETWORKS: readonly MockNetwork[] = ['demo', 'full'];
+
+type FullNetwork = typeof import('./fixtures/fullNetwork');
+
 /** Snapshots removed by the "gaps" history scenario (minutes before the latest). */
 const FORCED_GAP_MINUTES = [8, 7, 6];
 
 export interface MockPredictionClientOptions {
   scenario?: MockScenario;
   historyScenario?: MockHistoryScenario;
+  network?: MockNetwork;
   /** Clock used to place fixture offsets in time. */
   now?: () => Date;
   /** Simulated network delay. */
@@ -60,6 +71,9 @@ export class MockPredictionClient implements PredictionClient {
   readonly source = 'simulated' as const;
   readonly scenario: MockScenario;
   readonly historyScenario: MockHistoryScenario;
+  readonly network: MockNetwork;
+  private fullNetwork: FullNetwork | null = null;
+  private fullNetworkLoad: Promise<FullNetwork> | null = null;
   private readonly now: () => Date;
   private readonly latencyMs: number;
   /**
@@ -71,26 +85,34 @@ export class MockPredictionClient implements PredictionClient {
   constructor({
     scenario = 'live',
     historyScenario = 'normal',
+    network = 'demo',
     now = () => new Date(),
     latencyMs = 0,
   }: MockPredictionClientOptions = {}) {
     this.scenario = scenario;
     this.historyScenario = historyScenario;
+    this.network = network;
     this.now = now;
     this.latencyMs = latencyMs;
   }
 
   listStations(signal?: AbortSignal): Promise<Station[]> {
-    return this.respond(() => structuredClone(SIMULATED_STATIONS), signal);
+    if (this.network !== 'full') return this.respond(() => structuredClone(SIMULATED_STATIONS), signal);
+    return this.ready().then(() => this.respond(() => structuredClone(this.full().NETWORK_STATIONS), signal));
   }
 
   getPredictions(stationId: string, directionId: string, signal?: AbortSignal): Promise<PredictionResponse> {
+    if (this.network !== 'full') return this.predictionsFor(stationId, directionId, signal);
+    return this.ready().then(() => this.predictionsFor(stationId, directionId, signal));
+  }
+
+  private predictionsFor(stationId: string, directionId: string, signal?: AbortSignal): Promise<PredictionResponse> {
     if (this.scenario === 'loading') return this.never(signal);
     if (this.scenario === 'error') {
       return this.fail(new PredictionClientError('unavailable', 'The prediction service did not respond.'), signal);
     }
 
-    const fixture = SIMULATED_TRAINS[`${stationId}:${directionId}`];
+    const fixture = this.trainsFor(stationId, directionId);
     if (!fixture) {
       return this.fail(
         new PredictionClientError('not_found', `No direction ${directionId} at station ${stationId}.`),
@@ -125,14 +147,19 @@ export class MockPredictionClient implements PredictionClient {
   }
 
   getPredictionHistory(predictionId: string, signal?: AbortSignal): Promise<PredictionHistoryPoint[]> {
+    if (this.network !== 'full') return this.historyFor(predictionId, signal);
+    return this.ready().then(() => this.historyFor(predictionId, signal));
+  }
+
+  private historyFor(predictionId: string, signal?: AbortSignal): Promise<PredictionHistoryPoint[]> {
     if (this.historyScenario === 'loading') return this.never(signal);
     if (this.historyScenario === 'error') {
       return this.fail(new PredictionClientError('unavailable', 'The history service did not respond.'), signal);
     }
 
     const [stationId, directionId, tripId] = predictionId.split(':');
-    const train = SIMULATED_TRAINS[`${stationId}:${directionId}`]?.find((t) => t.tripId === tripId);
-    const script = SIMULATED_HISTORY[predictionId];
+    const train = this.trainsFor(stationId ?? '', directionId ?? '')?.find((t) => t.tripId === tripId);
+    const script = this.network === 'full' && train ? this.full().networkHistory(predictionId) : SIMULATED_HISTORY[predictionId];
     if (!train || !script) {
       return this.fail(new PredictionClientError('not_found', `Unknown prediction ${predictionId}.`), signal);
     }
@@ -174,6 +201,24 @@ export class MockPredictionClient implements PredictionClient {
     );
   }
 
+  /** Loads the full-network fixture on first use (the demo set never calls this). */
+  private ready(): Promise<void> {
+    if (this.fullNetwork) return Promise.resolve();
+    this.fullNetworkLoad ??= import('./fixtures/fullNetwork').then((module) => (this.fullNetwork = module));
+    return this.fullNetworkLoad.then(() => undefined);
+  }
+
+  private full(): FullNetwork {
+    if (!this.fullNetwork) throw new Error('The full-network fixture has not loaded.');
+    return this.fullNetwork;
+  }
+
+  private trainsFor(stationId: string, directionId: string): SimulatedTrain[] | undefined {
+    return this.network === 'full'
+      ? this.full().networkTrains(stationId, directionId)
+      : SIMULATED_TRAINS[`${stationId}:${directionId}`];
+  }
+
   /** The newest feed snapshot for this scenario, placed against the clock. */
   private currentSnapshot(): string {
     const feedAge = this.scenario === 'stale' ? FEED_AGE_SECONDS.stale : FEED_AGE_SECONDS.live;
@@ -205,6 +250,7 @@ export class MockPredictionClient implements PredictionClient {
   /** A request that stays pending until aborted, for reviewing the loading state. */
   private never<T>(signal?: AbortSignal): Promise<T> {
     return new Promise<T>((_, reject) => {
+      if (signal?.aborted) return reject(abortError()); // aborted while the fixture loaded
       signal?.addEventListener('abort', () => reject(abortError()));
     });
   }

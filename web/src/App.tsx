@@ -4,7 +4,7 @@ import { PredictionExample } from './components/PredictionExample';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
 import { createPredictionClient, resolveDataMode } from './data/createPredictionClient';
-import type { MockHistoryScenario, MockScenario } from './data/MockPredictionClient';
+import type { MockHistoryScenario, MockNetwork, MockScenario } from './data/MockPredictionClient';
 import type { PredictionClient } from './data/PredictionClient';
 import { PredictionClientProvider } from './data/PredictionClientContext';
 
@@ -19,6 +19,7 @@ const SIMULATED_LATENCY_MS = 350;
 export function App({ client: injectedClient }: { client?: PredictionClient }) {
   const [scenario, setScenario] = useState<MockScenario>('live');
   const [historyScenario, setHistoryScenario] = useState<MockHistoryScenario>('normal');
+  const [network, setNetwork] = useState<MockNetwork>('demo');
   const client = useMemo(
     () =>
       injectedClient ??
@@ -27,9 +28,10 @@ export function App({ client: injectedClient }: { client?: PredictionClient }) {
         apiBaseUrl: API_BASE_URL,
         scenario,
         historyScenario,
+        network,
         latencyMs: SIMULATED_LATENCY_MS,
       }),
-    [injectedClient, scenario, historyScenario],
+    [injectedClient, scenario, historyScenario, network],
   );
 
   return (
@@ -45,6 +47,8 @@ export function App({ client: injectedClient }: { client?: PredictionClient }) {
           <DevStateSelector
             scenario={scenario}
             historyScenario={historyScenario}
+            network={network}
+            onNetworkChange={setNetwork}
             onChange={setScenario}
             onHistoryChange={setHistoryScenario}
           />

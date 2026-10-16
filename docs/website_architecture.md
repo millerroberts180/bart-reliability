@@ -67,7 +67,7 @@ web/
     ├── main.tsx               fonts, global CSS, React root
     ├── App.tsx                chooses the PredictionClient, composes the page
     ├── components/            SiteHeader, Opening, ExampleLink, PredictionExample,
-    │                          TrainTimetable, PredictionReadout, StabilityMark,
+    │                          StationPicker, TrainTimetable, PredictionReadout, StabilityMark,
     │                          EtaHistory, HistoryChart, ObservationTable (+ tests)
     ├── data/
     │   ├── PredictionClient.ts        interface + PredictionClientError
@@ -78,15 +78,18 @@ web/
     │   ├── PredictionClientContext.tsx  provider + hook (client and clock)
     │   ├── clientKey.ts               per-client request keys
     │   └── fixtures/
-    │       ├── simulated.ts           the only place simulated values live
+    │       ├── simulated.ts           the three-station demo set and its scripted values
+    │       ├── network.ts             all 50 stations, generated from BART static GTFS (mock only)
+    │       ├── networkTrains.ts       simulated trains (20 per direction) for network.ts
     │       └── apiReplay.json         recorded local-API responses, for tests only
     ├── domain/
     │   ├── types.ts           data contracts
     │   ├── eta.ts             ETA arithmetic, stability classes, freshness, formatting (+ tests)
-    │   └── history.ts         history analysis, gaps, revision count, summary wording (+ tests)
+    │   ├── history.ts         history analysis, gaps, revision count, summary wording (+ tests)
+    │   └── stationSearch.ts   station search, aliases, alphabetical browse (+ tests)
     ├── hooks/                 useRequest (abortable, keyed loading), useNow (clock tick),
     │                          useFreshness, useDataSource (provenance for the opening),
-    │                          useElementWidth (chart sizing)
+    │                          useElementWidth (chart sizing), useRecentStations, useUrlSelection
     ├── dev/                   development-only state selector (excluded from builds)
     ├── styles/                tokens.css, base.css, app.css
     ├── clientContract.test.tsx  the page's states with both clients
@@ -167,6 +170,84 @@ In development only, a dashed strip after the page content ("Dev · preview stat
 switches the scenario ("Mock response") and the history scenario ("History response"). It sits in normal document flow, so it never covers content. It is loaded with a dynamic import that is guarded by
 `import.meta.env.DEV`, so it does not appear in production builds (verified by searching
 `dist/`).
+
+## Station and train selection
+
+Station is the primary choice, because predictions belong to the boarding station. The
+controls narrow step by step, so the page never shows every station and every train at
+once:
+
+1. **Where are you boarding?** When closed, a compact row shows the chosen station and a
+   **Change** button. Opening it turns the row into a searchable combobox
+   (`StationPicker.tsx`) with a panel anchored under the field:
+   - With no query, the panel shows **Recent** (up to three) or, before any choice,
+     **Suggested**: the current or default station. No location is guessed.
+   - Typing filters immediately, case-insensitively and ignoring accents
+     (`domain/stationSearch.ts`). Matches rank as: exact alias, name prefix, word prefix
+     ("oakland" finds "12th Street / Oakland City Center"), alias prefix, substring.
+     Results are limited to eight, with "Showing 8 of N" when there are more.
+   - Aliases are each station's BART ID (`EMBR`) plus a deliberately tiny list: `SFO` and
+     `OAK`. There is no speculative alias database.
+   - **Browse all N stations** lists every station alphabetically inside the scrolling
+     panel. The page height is unchanged; the panel is absolutely positioned.
+   - Choosing a station closes the panel and returns focus to **Change**.
+2. **Direction:** compact bordered radio choices. Terminal stations have one direction.
+3. **Upcoming trains:** the next four, in time order, then "Show N more trains" or "Show
+   fewer trains" (`TrainTimetable.tsx`, `INITIAL_TRAIN_LIMIT`). Collapsing never hides the
+   selected train: a later selection stays listed after the first four, under "Later
+   train you selected". No train is filtered out.
+
+**Keyboard and screen readers** follow the ARIA 1.2 combobox pattern:
+- Focus stays in the input. The input has `role="combobox"` and `aria-expanded`;
+  `aria-controls` points to the listbox, and `aria-activedescendant` to the active option.
+- Arrow Up and Arrow Down move through the options, Enter selects, and Escape closes with
+  focus returned to Change. Tab moves to "Browse all" and then out, closing the panel.
+- A polite live region announces the result count ("8 of 12 stations match 'st'.",
+  "No stations match …", "All 50 stations, alphabetical.") and the selection
+  ("MacArthur selected as your boarding station.").
+- The Change button's accessible name includes the current station.
+- The active option is outlined as well as tinted, so it never depends on colour alone.
+  Options and controls are at least 44 px tall.
+
+**Mobile:** at 320 and 390 px the panel spans the controls column under the always-visible
+search field. It is at most 60% of the viewport tall and scrolls internally. There is no
+horizontal overflow, nothing moves the page, and the panel scrolls without dragging the
+page behind it.
+
+**URL and recent stations** (`hooks/useUrlSelection.ts`, `hooks/useRecentStations.ts`):
+- The station and direction are kept in the query string, e.g.
+  `?station=EMBR&direction=0`, so a selection can be bookmarked or shared. There is no
+  routing library. The page reads the values once on load and keeps them current with
+  `history.replaceState`, which doesn't add a history entry for every choice. Other query
+  parameters are preserved.
+- IDs are matched case-insensitively. An unknown station falls back to the first station
+  the active client lists (Embarcadero in the demo set; the API's first station in HTTP
+  mode) with a visible note. An unknown direction falls back to the first one. Both are
+  corrected in the URL.
+- Up to three recent station IDs are stored in `localStorage` under
+  `eta-reliability.recent-stations`. Only IDs are kept; no predictions or trips. They
+  are never sent anywhere, and the page works when storage is blocked.
+
+**Station sets:** `MockPredictionClient({ network })` serves either the three-station demo
+(`'demo'`, the default) or the full network (`'full'`). The full network has all 50
+stations from BART's static GTFS (feed of 2026-10-08): real names, IDs, and the terminals
+and lines served in each direction on weekdays. Each direction has 20 simulated,
+deterministic trains. The dev panel's "Station set" group switches between them. The
+fixture was generated once by a script outside the repository; regenerate it if the static
+feed changes.
+
+The full network is mock and test data only. The mock loads it with a dynamic import, so
+every production build, including an HTTP-mode build, emits it as a separate chunk
+(`fullNetwork-*.js`, about 29 KB) that is never fetched. In HTTP mode the picker searches
+only the stations returned by `/api/v1/stations`, in the API's order. The small demo
+fixture (`simulated.ts`) is still part of the main bundle, as it was before the picker.
+
+While stations are still loading, a station in the URL is left as it is: the page doesn't
+judge it, rewrite it or request a default board. Only once the list has arrived and the ID
+has been checked does an unknown station produce the warning and a corrected URL.
+
+**Deferred:** "Use my location" (geolocation) is not implemented, and the site never
+requests location permission.
 
 ## ETA history (Milestone 2)
 
@@ -434,6 +515,7 @@ requirements.
 - A live (not replayed) API, and hosting the API anywhere but the developer's machine
 - Deployment workflow (GitHub Pages)
 - Dark color scheme
+- "Use my location" in the station picker (no geolocation is requested today)
 
 ## Known limitations
 

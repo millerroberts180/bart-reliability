@@ -1,12 +1,15 @@
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { formatMoment } from '../domain/eta';
 import type { PredictionResponse, Station } from '../domain/types';
 import { usePredictionEnvironment } from '../data/PredictionClientContext';
 import { clientKey } from '../data/clientKey';
+import { useRecentStations } from '../hooks/useRecentStations';
 import { useRequest } from '../hooks/useRequest';
+import { readUrlSelection, writeUrlSelection } from '../hooks/useUrlSelection';
 import { EXAMPLE_HEADING_ID } from './ExampleLink';
 import { EtaHistory, type HistorySubject } from './EtaHistory';
 import { PredictionReadout, type ReadoutState } from './PredictionReadout';
+import { StationPicker } from './StationPicker';
 import { TrainTimetable } from './TrainTimetable';
 
 export interface ReceivedPredictions {
@@ -15,9 +18,13 @@ export interface ReceivedPredictions {
   receivedAt: Date;
 }
 
+const sameId = (a: string, b: string | null) => b !== null && a.toLowerCase() === b.toLowerCase();
+
 export function PredictionExample() {
   const { client, now } = usePredictionEnvironment();
-  const stationSelectId = useId();
+  const { recentIds, remember } = useRecentStations();
+  // The URL seeds the first choice; after that the page owns it and keeps the URL in step.
+  const [initialUrl] = useState(readUrlSelection);
 
   const loadStations = useCallback((signal: AbortSignal) => client.listStations(signal), [client]);
   const { state: stationsState, retry: retryStations } = useRequest<Station[]>(
@@ -26,13 +33,23 @@ export function PredictionExample() {
   );
   const stations = stationsState.status === 'success' ? stationsState.data : [];
 
-  const [stationId, setStationId] = useState<string | null>(null);
-  const [directionId, setDirectionId] = useState<string | null>(null);
+  const [stationId, setStationId] = useState<string | null>(initialUrl.station);
+  const [directionId, setDirectionId] = useState<string | null>(initialUrl.direction);
   const [trainId, setTrainId] = useState<string | null>(null);
 
-  // Fall back to the first available option whenever a choice is unset or no longer exists.
-  const station = stations.find((s) => s.id === stationId) ?? stations[0];
-  const direction = station?.directions.find((d) => d.id === directionId) ?? station?.directions[0];
+  // Fall back safely whenever a choice is unset, unknown or no longer exists: to the
+  // first station the active client lists (the API's order in HTTP mode).
+  const station = stations.find((s) => sameId(s.id, stationId)) ?? stations[0];
+  const direction = station?.directions.find((d) => sameId(d.id, directionId)) ?? station?.directions[0];
+  const unknownUrlStation =
+    stations.length > 0 && initialUrl.station !== null && stationId === initialUrl.station && !stations.some((s) => sameId(s.id, stationId))
+      ? initialUrl.station
+      : null;
+
+  // Keep ?station=…&direction=… in step with what is shown, correcting invalid values.
+  useEffect(() => {
+    if (station && direction) writeUrlSelection({ station: station.id, direction: direction.id });
+  }, [station, direction]);
 
   const predictionsKey = station && direction ? `${clientKey(client)}:${station.id}:${direction.id}` : null;
   const loadPredictions = useCallback(
@@ -88,32 +105,27 @@ export function PredictionExample() {
       <div className="example__grid">
         <form className="controls" aria-label="Choose a train" onSubmit={(e) => e.preventDefault()}>
           <div className="field">
-            <label className="field__label" htmlFor={stationSelectId}>
-              Station
-            </label>
-            <select
-              id={stationSelectId}
-              className="select"
-              value={station?.id ?? ''}
-              disabled={stations.length === 0}
-              onChange={(e) => {
-                setStationId(e.target.value);
+            <StationPicker
+              stations={stations}
+              selected={station}
+              recentIds={recentIds}
+              onSelect={(s) => {
+                setStationId(s.id);
                 setDirectionId(null);
                 setTrainId(null);
+                remember(s.id);
               }}
-            >
-              {stations.length === 0 && <option value="">Loading stations…</option>}
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            />
+            {unknownUrlStation && station && (
+              <p className="field__note" role="status">
+                Station “{unknownUrlStation}” isn’t in the list, so {station.name} is shown instead.
+              </p>
+            )}
           </div>
 
           <fieldset className="field" disabled={!station}>
             <legend className="field__label">Direction</legend>
-            <div className="choice-list">
+            <div className="choice-list choice-list--compact">
               {(station?.directions ?? []).map((d) => (
                 <label key={d.id} className="choice">
                   <input
@@ -133,6 +145,7 @@ export function PredictionExample() {
           </fieldset>
 
           <TrainTimetable
+            key={`${station?.id ?? ''}:${direction?.id ?? ''}`}
             state={predictionsState.status === 'success' ? (trains.length ? 'ready' : 'empty') : predictionsState.status}
             trains={trains}
             selectedId={train?.predictionId ?? null}

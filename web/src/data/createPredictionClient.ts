@@ -1,5 +1,10 @@
 import { HttpPredictionClient } from './HttpPredictionClient';
-import { MockPredictionClient, type MockHistoryScenario, type MockScenario } from './MockPredictionClient';
+import {
+  MockPredictionClient,
+  type MockHistoryScenario,
+  type MockNetwork,
+  type MockScenario,
+} from './MockPredictionClient';
 import type { PredictionClient } from './PredictionClient';
 
 export type DataMode = 'mock' | 'http';
@@ -14,6 +19,7 @@ export interface ClientOptions {
   apiBaseUrl?: string;
   scenario?: MockScenario;
   historyScenario?: MockHistoryScenario;
+  network?: MockNetwork;
   now?: () => Date;
   latencyMs?: number;
 }
@@ -23,6 +29,7 @@ export function createPredictionClient({
   apiBaseUrl = '',
   scenario,
   historyScenario,
+  network,
   now,
   latencyMs,
 }: ClientOptions): PredictionClient {
@@ -30,6 +37,7 @@ export function createPredictionClient({
   return new MockPredictionClient({
     ...(scenario && { scenario }),
     ...(historyScenario && { historyScenario }),
+    ...(network && { network }),
     ...(now && { now }),
     ...(latencyMs !== undefined && { latencyMs }),
   });

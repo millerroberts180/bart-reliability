@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { MockPredictionClient, type MockScenario } from '../data/MockPredictionClient';
 import type { PredictionClient } from '../data/PredictionClient';
 import { PredictionClientProvider } from '../data/PredictionClientContext';
+import { chooseStation } from '../test/picker';
 import { PredictionExample } from './PredictionExample';
 
 // 17:00:00Z is 10:00 AM Pacific; the live fixture snapshot is 34 s earlier.
@@ -29,7 +30,7 @@ describe('PredictionExample', () => {
   it('labels every control', async () => {
     renderExample();
     await readoutHeading('Embarcadero · Antioch train');
-    expect(screen.getByRole('combobox', { name: 'Station' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change boarding station, currently Embarcadero' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Direction' })).toBeInTheDocument();
     const trains = screen.getByRole('group', { name: 'Upcoming trains' });
     expect(within(trains).getAllByRole('radio')).toHaveLength(4);
@@ -136,7 +137,7 @@ describe('PredictionExample', () => {
     const user = userEvent.setup();
     renderExample();
     await readoutHeading('Embarcadero · Antioch train');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Station' }), 'MacArthur');
+    await chooseStation(user, 'MacArthur');
     expect(await readoutHeading('MacArthur · Richmond train')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Toward Antioch and Richmond' })).toBeChecked();
     expect(screen.getByText(/elevator out of service/)).toBeInTheDocument();

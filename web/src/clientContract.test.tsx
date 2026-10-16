@@ -10,6 +10,7 @@ import { HttpPredictionClient } from './data/HttpPredictionClient';
 import { MockPredictionClient, type MockHistoryScenario, type MockScenario } from './data/MockPredictionClient';
 import type { PredictionClient } from './data/PredictionClient';
 import { API_BASE, API_RECORDING, createFakeApi, type FakeApi } from './test/fakeApi';
+import { chooseStation } from './test/picker';
 
 type ClientName = 'mock' | 'http';
 
@@ -62,7 +63,7 @@ const checkedTrain = () => within(trainGroup()).getAllByRole<HTMLInputElement>('
 const OPEN_FORECAST: Record<ClientName, (user: UserEvent) => Promise<void>> = {
   mock: async () => undefined,
   http: async (user) => {
-    await user.selectOptions(await screen.findByRole('combobox', { name: 'Station' }), 'Castro Valley');
+    await chooseStation(user, 'Castro Valley');
     await user.click(screen.getByRole('radio', { name: 'Toward Bay Fair and Daly City' }));
   },
 };
@@ -71,7 +72,7 @@ const OPEN_FORECAST: Record<ClientName, (user: UserEvent) => Promise<void>> = {
 const OPEN_ETA_ONLY: Record<ClientName, (user: UserEvent) => Promise<void>> = {
   mock: async () => undefined,
   http: async (user) => {
-    await user.selectOptions(await screen.findByRole('combobox', { name: 'Station' }), 'Castro Valley');
+    await chooseStation(user, 'Castro Valley');
   },
 };
 
@@ -311,7 +312,7 @@ describe.each(['mock', 'http'] as const)('selection with the %s client', (name) 
 
     await expectInStep(journey.first.heading, journey.first.request);
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Station' }), journey.station.name);
+    await chooseStation(user, journey.station.name);
     await expectInStep(journey.station.heading, journey.station.request);
 
     await user.click(screen.getByRole('radio', { name: journey.direction.label }));

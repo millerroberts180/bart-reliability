@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MockPredictionClient, type MockHistoryScenario, type MockScenario } from '../data/MockPredictionClient';
 import { PredictionClientProvider } from '../data/PredictionClientContext';
+import { chooseStation } from '../test/picker';
 import { PredictionExample } from './PredictionExample';
 
 // 17:00:00Z is 10:00 AM Pacific; the live snapshot is 9:59:26 AM, the stale one 9:50:20 AM.
@@ -49,7 +50,7 @@ describe('ETA history', () => {
     await user.click(screen.getByRole('radio', { name: 'Toward Daly City, SFO and Millbrae' }));
     await selectTrain(user, /Daly City/);
     expect(await screen.findByText(/changed this ETA twice by 30 seconds or more, but it ended where it started/)).toBeInTheDocument();
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Station' }), 'Balboa Park');
+    await chooseStation(user, 'Balboa Park');
     await selectTrain(user, /Antioch/);
     expect(await screen.findByText(/Only one snapshot so far/)).toBeInTheDocument();
   });
