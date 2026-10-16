@@ -1,0 +1,95 @@
+# ETA revision models: splits, features, baselines and the small model comparison.
+# Documented in docs/modeling_plan.md. Every key is required.
+# Published-time horizon targets and tolerance come from the warehouse build
+# (config/eta_revision.toml), recorded in its eta_revision_config table.
+
+seed = 20261015
+
+# Classification target: absolute_eta_revision_seconds > this value.
+large_revision_threshold_s = 60
+# Descriptive operating point for precision and recall: a large revision is "predicted"
+# at probability >= this value. Not optimized and not a deployment threshold; a production
+# threshold would be chosen on validation data using an explicit rider or product cost.
+decision_threshold = 0.5
+
+# Label-quality tiers of the observed-arrival proxy to model.
+quality_tiers = ["A"]
+
+# Generated files only; this directory is git-ignored and replaced on each run.
+output_dir = "data/models/eta_revision"
+
+[split]
+# Inclusive service-date ranges (Pacific), chronological and non-overlapping. Every
+# horizon of an event shares its service date, so an event never spans two splits.
+# Only complete service dates are used: 2026-10-09 is a late-night tail and 2026-10-15
+# was still being collected at the snapshot cutoff.
+train = ["2026-10-10", "2026-10-12"]
+validation = ["2026-10-13", "2026-10-13"]
+test = ["2026-10-14", "2026-10-14"]
+
+[features]
+# Selected from the point-in-time catalog in src/bart_reliability/modeling/features.py.
+numeric = [
+    "published_horizon_s",
+    "published_minus_scheduled_s",
+    "stop_position",
+    "stops_away",
+    "seconds_since_first_seen",
+    "eta_change_last_snapshot_s",
+    "eta_change_last_5min_s",
+    "eta_change_since_first_seen_s",
+    "prior_change_count",
+    "prior_abs_change_sum_s",
+]
+categorical = [
+    "published_horizon_bucket_s",
+    "route_short_name",
+    "stop_id",
+    "hour_local",
+    "service_day_type",
+]
+
+[historical_baseline]
+# Fallback order; a group with fewer than min_group_size training rows defers to the
+# next level. All training rows form the final level.
+levels = [
+    ["published_horizon_bucket_s", "route_short_name", "stop_id"],
+    ["published_horizon_bucket_s", "route_short_name"],
+    ["published_horizon_bucket_s"],
+]
+min_group_size = 30
+# Predeclared sensitivity settings, each fitted on training rows only with the same
+# fallback levels. Reported for robustness; they never change min_group_size.
+sensitivity_min_group_sizes = [15, 30, 60, 100]
+
+# Model candidates (small grids below) are fitted on training rows only. Across both
+# families, the regression model is selected by validation MAE and the classifier by
+# validation Brier score; neither is refitted on validation rows.
+
+[linear]
+# Linear comparators: HuberRegressor for revision seconds (robust to heavy tails; Huber
+# loss does not directly optimize MAE) and L2 LogisticRegression for large revisions.
+huber_alpha = [0.01, 1.0, 100.0]
+huber_epsilon = 1.35
+logistic_c = [0.01, 0.1, 1.0]
+max_iter = 2000
+
+[tree]
+# HistGradientBoosting regressor (absolute-error loss) and classifier. No early
+# stopping: it would split training rows at random.
+max_leaf_nodes = [15, 31]
+learning_rate = 0.05
+max_iter = 300
+min_samples_leaf = 50
+l2_regularization = 0.0
+
+[calibration]
+bins = 10
+
+[uncertainty]
+# Paired bootstrap on the test period, seeded by `seed`. Primary unit: the trip run
+# (service date + trip_id); a drawn trip brings all of its stop-arrival events and their
+# published-time horizons. Event-level resampling is reported as a sensitivity only.
+# Conditional on the test day: not day-to-day variability or future service days.
+replicates = 2000
+confidence_level = 0.95

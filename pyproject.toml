@@ -22,6 +22,11 @@ dev = [
     "responses>=0.25",
     "ruff>=0.6",
 ]
+# ETA revision models (bart-eta-model). Kept optional so the collector stays small.
+model = [
+    "pandas>=2.2",
+    "scikit-learn>=1.5",
+]
 
 [project.scripts]
 bart-collect = "bart_reliability.collector.main:main"
@@ -31,6 +36,7 @@ bart-eta-sensitivity = "bart_reliability.warehouse.eta_revision_sensitivity:main
 bart-alert-sensitivity = "bart_reliability.warehouse.alerts:staleness_main"
 bart-511-download = "bart_reliability.open511.download:main"
 bart-511-audit = "bart_reliability.open511.audit:main"
+bart-eta-model = "bart_reliability.modeling.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

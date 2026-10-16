@@ -187,16 +187,77 @@ def _statements(max_age_s: int) -> list[str]:
         LEFT JOIN alert_informed_entity_scope s USING (alert_fingerprint)
         GROUP BY ALL
         """,
-        # Point-in-time alert state for every revision example (one row each).
+        *example_alert_context_statements(max_age_s),
         f"""
-        CREATE TEMP TABLE _example_alert_snapshot AS
+        CREATE VIEW alert_quality_checks AS
+        SELECT 'context_one_row_per_example' AS check_name,
+               abs((SELECT count(*) FROM eta_revision_alert_context)
+                   - (SELECT count(*) FROM eta_revision_examples)) AS failures
+        UNION ALL SELECT 'context_key_unique',
+               (SELECT count(*) - count(DISTINCT (event_id, target_horizon_s))
+                  FROM eta_revision_alert_context)
+        UNION ALL SELECT 'no_future_alert_snapshot',
+               (SELECT count(*) FROM eta_revision_alert_context
+                 WHERE alert_snapshot_feed_timestamp > prediction_feed_timestamp)
+        UNION ALL SELECT 'bridge_snapshot_within_max_age',
+               (SELECT count(*) FROM eta_revision_example_alerts
+                 WHERE epoch(prediction_feed_timestamp) - epoch(alert_snapshot_feed_timestamp)
+                       > {max_age_s} OR alert_snapshot_feed_timestamp > prediction_feed_timestamp)
+        UNION ALL SELECT 'observed_alerts_have_versions',
+               (SELECT count(*) FROM rt_alert_observations o
+                 WHERE NOT EXISTS (SELECT 1 FROM alert_versions v
+                                   WHERE v.alert_fingerprint = o.alert_fingerprint))
+        UNION ALL SELECT 'period_counts_consistent',
+               (SELECT count(*) FROM alert_versions v
+                 WHERE v.active_period_count <> (SELECT count(*) FROM alert_active_periods p
+                                                 WHERE p.alert_fingerprint = v.alert_fingerprint))
+        UNION ALL SELECT 'entity_counts_consistent',
+               (SELECT count(*) FROM alert_versions v
+                 WHERE v.informed_entity_count <> (SELECT count(*) FROM alert_informed_entities e
+                                                   WHERE e.alert_fingerprint = v.alert_fingerprint))
+        UNION ALL SELECT 'disruption_requires_structured_period',
+               (SELECT count(*) FROM eta_revision_example_alerts
+                 WHERE operational_disruption_active IS NOT NULL
+                   AND NOT has_structured_active_period)
+        UNION ALL SELECT 'annotation_entity_matches_observations',
+               (SELECT count(*) FROM alert_annotations a
+                 WHERE EXISTS (SELECT 1 FROM rt_alert_observations o
+                               WHERE o.alert_fingerprint = a.alert_fingerprint)
+                   AND NOT EXISTS (SELECT 1 FROM rt_alert_observations o
+                                   WHERE o.alert_fingerprint = a.alert_fingerprint
+                                     AND o.entity_id = a.entity_id))
+        UNION ALL SELECT 'one_version_per_entity_per_snapshot',
+               (SELECT count(*) FROM (SELECT feed_timestamp, entity_id FROM rt_alert_observations
+                                      GROUP BY ALL HAVING count(*) > 1))
+        """,
+    ]
+
+
+def example_alert_context_statements(
+    max_age_s: int,
+    examples: str = "eta_revision_examples",
+    horizon: str = "target_horizon_s",
+    bridge: str = "eta_revision_example_alerts",
+    context: str = "eta_revision_alert_context",
+) -> list[str]:
+    """SQL creating point-in-time alert context for a table of prediction examples.
+
+    `examples` must have event_id, the `horizon` key column and prediction_feed_timestamp;
+    trip, route and stop come from observed_arrival_proxy. Creates `bridge` (one row per
+    example and applicable visible alert version) and `context` (one row per example).
+    """
+    snapshot = f"_{context}_snapshot"
+    return [
+        # Point-in-time alert state for every example (one row each).
+        f"""
+        CREATE TEMP TABLE {snapshot} AS
         WITH ex AS (
-            SELECT h.event_id, h.target_horizon_s, h.prediction_feed_timestamp,
+            SELECT h.event_id, h.{horizon}, h.prediction_feed_timestamp,
                    p.trip_id, p.route_id, p.direction_id, p.stop_id, s.parent_station,
                    coalesce(r.agency_id, (SELECT min(agency_id) FROM static_agency))
                        AS agency_id,
                    r.route_type
-            FROM eta_revision_examples h
+            FROM {examples} h
             JOIN observed_arrival_proxy p USING (event_id)
             LEFT JOIN static_stops s ON s.stop_id = p.stop_id
             LEFT JOIN static_routes r ON r.route_id = p.route_id
@@ -213,17 +274,17 @@ def _statements(max_age_s: int) -> list[str]:
           ON ex.prediction_feed_timestamp >= t.feed_timestamp
         """,
         # One row per (example, applicable visible alert version). One-to-many by design.
-        """
-        CREATE TABLE eta_revision_example_alerts AS
+        f"""
+        CREATE TABLE {bridge} AS
         WITH visible AS (
             SELECT x.*, o.entity_id, o.alert_fingerprint
-            FROM _example_alert_snapshot x
+            FROM {snapshot} x
             JOIN rt_alert_observations o
               ON o.feed_timestamp = x.alert_snapshot_feed_timestamp
             WHERE x.alert_feed_status = 'observed'
         ),
         applicable AS (
-            SELECT v.event_id, v.target_horizon_s, v.prediction_feed_timestamp,
+            SELECT v.event_id, v.{horizon}, v.prediction_feed_timestamp,
                    v.alert_snapshot_feed_timestamp, v.entity_id, v.alert_fingerprint,
                    arg_min(ie.scope, ie.scope_rank) AS matched_scope
             FROM visible v
@@ -239,7 +300,7 @@ def _statements(max_age_s: int) -> list[str]:
             GROUP BY ALL
         ),
         periods AS (
-            SELECT a.event_id, a.target_horizon_s, a.alert_fingerprint,
+            SELECT a.event_id, a.{horizon}, a.alert_fingerprint,
                    bool_or((ap.active_start IS NULL
                             OR ap.active_start <= a.prediction_feed_timestamp)
                            AND (ap.active_end IS NULL
@@ -260,15 +321,15 @@ def _statements(max_age_s: int) -> list[str]:
                coalesce(ann.category, 'unclassified') AS alert_category
         FROM applicable a
         JOIN alert_versions ver USING (alert_fingerprint)
-        LEFT JOIN periods p USING (event_id, target_horizon_s, alert_fingerprint)
+        LEFT JOIN periods p USING (event_id, {horizon}, alert_fingerprint)
         LEFT JOIN alert_annotations ann USING (alert_fingerprint)
-        ORDER BY a.event_id, a.target_horizon_s, a.entity_id
+        ORDER BY a.event_id, a.{horizon}, a.entity_id
         """,
-        # Exactly one row per eta_revision_examples row.
-        """
-        CREATE TABLE eta_revision_alert_context AS
+        # Exactly one row per example.
+        f"""
+        CREATE TABLE {context} AS
         WITH agg AS (
-            SELECT event_id, target_horizon_s,
+            SELECT event_id, {horizon},
                    count(*) AS applicable_visible_alert_count,
                    count(*) FILTER (WHERE alert_category = 'planned_notice')
                        AS applicable_visible_planned_count,
@@ -296,9 +357,9 @@ def _statements(max_age_s: int) -> list[str]:
                        AS visible_causes,
                    list(DISTINCT effect ORDER BY effect) FILTER (WHERE effect IS NOT NULL)
                        AS visible_effects
-            FROM eta_revision_example_alerts GROUP BY 1, 2
+            FROM {bridge} GROUP BY 1, 2
         )
-        SELECT x.event_id, x.target_horizon_s, x.prediction_feed_timestamp,
+        SELECT x.event_id, x.{horizon}, x.prediction_feed_timestamp,
                x.alert_snapshot_feed_timestamp, x.alert_snapshot_age_s, x.alert_feed_status,
                x.alert_feed_status = 'observed' AS alert_state_known,
                CASE WHEN x.alert_feed_status = 'observed'
@@ -353,53 +414,11 @@ def _statements(max_age_s: int) -> list[str]:
                coalesce(a.applicable_visible_alert_ids, []) AS applicable_visible_alert_ids,
                coalesce(a.visible_causes, []) AS visible_causes,
                coalesce(a.visible_effects, []) AS visible_effects
-        FROM _example_alert_snapshot x
-        LEFT JOIN agg a USING (event_id, target_horizon_s)
-        ORDER BY x.event_id, x.target_horizon_s
+        FROM {snapshot} x
+        LEFT JOIN agg a USING (event_id, {horizon})
+        ORDER BY x.event_id, x.{horizon}
         """,
-        "DROP TABLE _example_alert_snapshot",
-        f"""
-        CREATE VIEW alert_quality_checks AS
-        SELECT 'context_one_row_per_example' AS check_name,
-               abs((SELECT count(*) FROM eta_revision_alert_context)
-                   - (SELECT count(*) FROM eta_revision_examples)) AS failures
-        UNION ALL SELECT 'context_key_unique',
-               (SELECT count(*) - count(DISTINCT (event_id, target_horizon_s))
-                  FROM eta_revision_alert_context)
-        UNION ALL SELECT 'no_future_alert_snapshot',
-               (SELECT count(*) FROM eta_revision_alert_context
-                 WHERE alert_snapshot_feed_timestamp > prediction_feed_timestamp)
-        UNION ALL SELECT 'bridge_snapshot_within_max_age',
-               (SELECT count(*) FROM eta_revision_example_alerts
-                 WHERE epoch(prediction_feed_timestamp) - epoch(alert_snapshot_feed_timestamp)
-                       > {max_age_s} OR alert_snapshot_feed_timestamp > prediction_feed_timestamp)
-        UNION ALL SELECT 'observed_alerts_have_versions',
-               (SELECT count(*) FROM rt_alert_observations o
-                 WHERE NOT EXISTS (SELECT 1 FROM alert_versions v
-                                   WHERE v.alert_fingerprint = o.alert_fingerprint))
-        UNION ALL SELECT 'period_counts_consistent',
-               (SELECT count(*) FROM alert_versions v
-                 WHERE v.active_period_count <> (SELECT count(*) FROM alert_active_periods p
-                                                 WHERE p.alert_fingerprint = v.alert_fingerprint))
-        UNION ALL SELECT 'entity_counts_consistent',
-               (SELECT count(*) FROM alert_versions v
-                 WHERE v.informed_entity_count <> (SELECT count(*) FROM alert_informed_entities e
-                                                   WHERE e.alert_fingerprint = v.alert_fingerprint))
-        UNION ALL SELECT 'disruption_requires_structured_period',
-               (SELECT count(*) FROM eta_revision_example_alerts
-                 WHERE operational_disruption_active IS NOT NULL
-                   AND NOT has_structured_active_period)
-        UNION ALL SELECT 'annotation_entity_matches_observations',
-               (SELECT count(*) FROM alert_annotations a
-                 WHERE EXISTS (SELECT 1 FROM rt_alert_observations o
-                               WHERE o.alert_fingerprint = a.alert_fingerprint)
-                   AND NOT EXISTS (SELECT 1 FROM rt_alert_observations o
-                                   WHERE o.alert_fingerprint = a.alert_fingerprint
-                                     AND o.entity_id = a.entity_id))
-        UNION ALL SELECT 'one_version_per_entity_per_snapshot',
-               (SELECT count(*) FROM (SELECT feed_timestamp, entity_id FROM rt_alert_observations
-                                      GROUP BY ALL HAVING count(*) > 1))
-        """,
+        f"DROP TABLE {snapshot}",
     ]
 
 
