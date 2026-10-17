@@ -1,6 +1,6 @@
-import { useCallback, useId, type ReactNode } from 'react';
+import { useCallback, useId, useState, type ReactNode } from 'react';
 import { addSeconds, formatClock, formatSpokenDuration } from '../domain/eta';
-import { analyzeHistory, describeChart, summarizeHistory } from '../domain/history';
+import { analyzeHistory, describeChart, isFlat, summarizeHistory, type HistoryAnalysis } from '../domain/history';
 import { hasForecast, type TrainPrediction } from '../domain/types';
 import { clientKey } from '../data/clientKey';
 import { usePredictionEnvironment } from '../data/PredictionClientContext';
@@ -60,6 +60,8 @@ function ReadyHistory({
 }) {
   const { client } = usePredictionEnvironment();
   const figureNameId = useId();
+  const chartId = useId();
+  const [showFlatChart, setShowFlatChart] = useState(false);
   const { response, receivedAt } = received;
   const freshness = useFreshness(response.feedTimestamp, receivedAt, response.replay);
 
@@ -86,7 +88,10 @@ function ReadyHistory({
   }
 
   const analysis = analyzeHistory(state.data, response.feedTimestamp);
-  const summary = summarizeHistory(analysis, { stale: freshness.stale });
+  // A replay is named by its snapshot time, never as "the last N minutes".
+  const summary = summarizeHistory(analysis, { anchored: freshness.stale || response.replay !== null });
+  // Nothing changed at all: a calm one-line view, with the full chart one press away.
+  const flat = isFlat(analysis);
   // Only a train with a model forecast gets the dashed reference, and only a supported
   // range gets the bracket; nothing is drawn in their place otherwise.
   const final: FinalReference | null = hasForecast(train)
@@ -115,14 +120,32 @@ function ReadyHistory({
         </p>
       )}
 
+      {flat && <FlatHistory analysis={analysis} />}
+      {flat && (
+        <button
+          type="button"
+          className="link-button history__chart-toggle"
+          aria-expanded={showFlatChart}
+          aria-controls={chartId}
+          onClick={() => setShowFlatChart((v) => !v)}
+        >
+          {showFlatChart ? 'Hide the full chart' : 'Show the full chart'}
+        </button>
+      )}
+
       {analysis.observations.length === 0 ? (
         <div className="history__frame" />
       ) : (
-        <figure className="history__figure" aria-labelledby={figureNameId}>
+        <figure className="history__figure" id={chartId} aria-labelledby={figureNameId} hidden={flat && !showFlatChart}>
           <span id={figureNameId} className="visually-hidden">
             {describeChart(analysis, subjectLine)}
           </span>
-          <HistoryChart analysis={analysis} final={final} label={`How BART’s ETA changed: ${subjectLine}`} />
+          <HistoryChart
+            analysis={analysis}
+            final={final}
+            label={`Snapshots of ${subjectLine}`}
+            describedBy={figureNameId}
+          />
           {/* A key, not a caption: these entries define marks and say nothing about this train's data. */}
           <ul className="history__legend" aria-label="Chart key">
             <li className="legend__item">
@@ -160,6 +183,26 @@ function ReadyHistory({
       )}
 
       {analysis.observations.length > 0 && <ObservationTable analysis={analysis} />}
+    </div>
+  );
+}
+
+/** A history in which BART never changed the ETA, said in one line over a quiet rule. */
+function FlatHistory({ analysis }: { analysis: HistoryAnalysis }) {
+  const { observations } = analysis;
+  const first = observations[0];
+  const last = observations[observations.length - 1];
+  if (!first || !last) return null;
+  return (
+    <div className="history__flat" data-testid="history-flat">
+      <div className="history__flat-rule" aria-hidden="true">
+        <span className="history__flat-line" />
+        <span className="history__flat-dot" />
+      </div>
+      <p className="history__flat-text">
+        Held at <strong>{formatClock(last.publishedEtaAt)}</strong> in all {observations.length} snapshots, from{' '}
+        {formatClock(first.feedTimestamp)} to {formatClock(last.feedTimestamp)}.
+      </p>
     </div>
   );
 }

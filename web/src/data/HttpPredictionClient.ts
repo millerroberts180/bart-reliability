@@ -48,13 +48,13 @@ export class HttpPredictionClient implements PredictionClient {
     return this.get(this.endpoint('/stations'), decodeStations, signal);
   }
 
-  async getPredictions(stationId: string, directionId: string, signal?: AbortSignal): Promise<PredictionResponse> {
+  async getPredictions(stationId: string, boardingGroupId: string, signal?: AbortSignal): Promise<PredictionResponse> {
     const url = this.endpoint(`/stations/${encodeURIComponent(stationId)}/predictions`, {
-      direction_id: directionId,
+      boarding_group: boardingGroupId,
     });
     const response = await this.get(url, decodePredictionResponse, signal);
-    if (response.stationId !== stationId || response.directionId !== directionId) {
-      throw new PredictionClientError('unavailable', 'The API answered for a different station or direction.');
+    if (response.stationId !== stationId || response.boardingGroupId !== boardingGroupId) {
+      throw new PredictionClientError('unavailable', 'The API answered for a different station or boarding group.');
     }
     return response;
   }

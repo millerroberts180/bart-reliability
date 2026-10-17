@@ -19,8 +19,8 @@ export interface PredictionClient {
   readonly source: 'simulated' | 'api';
   /** GET /api/v1/stations */
   listStations(signal?: AbortSignal): Promise<Station[]>;
-  /** GET /api/v1/stations/{station_id}/predictions?direction_id=... */
-  getPredictions(stationId: string, directionId: string, signal?: AbortSignal): Promise<PredictionResponse>;
+  /** GET /api/v1/stations/{station_id}/predictions?boarding_group=... (docs/boarding_groups.md) */
+  getPredictions(stationId: string, boardingGroupId: string, signal?: AbortSignal): Promise<PredictionResponse>;
   /** GET /api/v1/predictions/{prediction_id}/history */
   getPredictionHistory(predictionId: string, signal?: AbortSignal): Promise<PredictionHistoryPoint[]>;
   /** GET /api/v1/model/metadata */

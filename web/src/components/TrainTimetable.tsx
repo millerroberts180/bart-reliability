@@ -1,12 +1,14 @@
 import { Fragment, useId, useState } from 'react';
-import { formatDuration, STABILITY_LABELS } from '../domain/eta';
-import type { TrainPrediction } from '../domain/types';
+import { addSeconds, formatClockMinute, formatDuration, STABILITY_LABELS } from '../domain/eta';
+import { hasForecast, type TrainPrediction } from '../domain/types';
 import { StabilityMark } from './StabilityMark';
 
 interface TrainTimetableProps {
   state: 'loading' | 'error' | 'empty' | 'ready';
   trains: TrainPrediction[];
   selectedId: string | null;
+  /** The boarding group's one platform; when null, each train shows its own. */
+  groupPlatform: string | null;
   onSelect: (predictionId: string) => void;
 }
 
@@ -16,11 +18,13 @@ const PLACEHOLDER_ROWS = 3;
 export const INITIAL_TRAIN_LIMIT = 4;
 
 /**
- * Upcoming trains set like a printed timetable; each row is a radio choice. Only the
- * next four are listed at first, in time order. Collapsing never hides the selected
- * train: if it is later in the list, it stays listed after the first four.
+ * Upcoming trains set like a printed timetable; each row is a radio choice. Each row
+ * leads with BART's ETA as a clock time, with the time away beneath it, and a train
+ * with a model forecast also shows its likely final published ETA. Only the next four
+ * are listed at first, in time order. Collapsing never hides the selected train: if it
+ * is later in the list, it stays listed after the first four.
  */
-export function TrainTimetable({ state, trains, selectedId, onSelect }: TrainTimetableProps) {
+export function TrainTimetable({ state, trains, selectedId, groupPlatform, onSelect }: TrainTimetableProps) {
   const rowsId = useId();
   const [expanded, setExpanded] = useState(false);
   const selectedIndex = trains.findIndex((t) => t.predictionId === selectedId);
@@ -51,14 +55,29 @@ export function TrainTimetable({ state, trains, selectedId, onSelect }: TrainTim
                   checked={t.predictionId === selectedId}
                   onChange={() => onSelect(t.predictionId)}
                 />
-                <span className="timetable__eta">{formatDuration(t.currentEtaSeconds)}</span>
+                <span className="timetable__time">
+                  <span className="timetable__clock">{formatClockMinute(t.currentEtaAt)}</span>
+                  <span className="visually-hidden">,</span>{' '}
+                  <span className="timetable__eta">{formatDuration(t.currentEtaSeconds)}</span>
+                </span>{' '}
                 <span className="timetable__dest">
-                  <span className="timetable__headsign">{withSlashBreaks(t.headsign)}</span>
-                  <span className="timetable__line">{t.lineName}</span>
-                  {t.stability ? (
-                    <span className={`timetable__stability tone-${t.stability}`}>
-                      <StabilityMark stability={t.stability} />
-                      {STABILITY_LABELS[t.stability]}
+                  <span className="timetable__headsign">{withSlashBreaks(t.headsign)}</span>{' '}
+                  <span className="timetable__line">
+                    {t.lineName}
+                    {!groupPlatform && t.platform && ` · Platform ${t.platform}`}
+                  </span>{' '}
+                  {hasForecast(t) ? (
+                    <span className={`timetable__forecast tone-${t.stability}`}>
+                      <span className="timetable__final">
+                        Likely final{' '}
+                        <span className="nowrap">
+                          {formatClockMinute(addSeconds(t.currentEtaAt, t.predictedRevisionSeconds))}
+                        </span>
+                      </span>{' '}
+                      <span className="timetable__stability">
+                        <StabilityMark stability={t.stability} />
+                        {STABILITY_LABELS[t.stability]}
+                      </span>
                     </span>
                   ) : (
                     // No model forecast: say so in words rather than leave the slot empty.
@@ -94,7 +113,8 @@ export function TrainTimetable({ state, trains, selectedId, onSelect }: TrainTim
         </div>
       )}
 
-      {state === 'empty' && <p className="timetable__message">No trains listed in this snapshot.</p>}
+      {/* The result explains an empty list in full; the list itself stays terse. */}
+      {state === 'empty' && <p className="timetable__message timetable__message--empty">None listed</p>}
       {state === 'error' && <p className="timetable__message">Train list unavailable.</p>}
     </fieldset>
   );

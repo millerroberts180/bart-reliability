@@ -10,7 +10,12 @@ import { PredictionExample } from './PredictionExample';
 const NOW = new Date('2026-10-13T17:00:00Z');
 const clock = () => NOW;
 
+// Most tests here read the scripted East Bay trains at Embarcadero, so they start there
+// by URL, as a shared link would. The default group (platform 1) is tested on its own.
+const EAST_BAY = '?station=EMBR&boarding=to-WOAK';
+
 function renderExample({ scenario, historyScenario }: { scenario?: MockScenario; historyScenario?: MockHistoryScenario } = {}) {
+  window.history.replaceState(null, '', `/${EAST_BAY}`);
   const client = new MockPredictionClient({ now: clock, ...(scenario && { scenario }), ...(historyScenario && { historyScenario }) });
   render(
     <PredictionClientProvider client={client} now={clock}>
@@ -35,7 +40,7 @@ describe('ETA history', () => {
     await screen.findByText(/moved this ETA 2 min 5 sec later across three changes of 30 seconds or more/);
     expect(history()).toHaveTextContent('Embarcadero · Richmond train');
     expect(screen.getByRole('heading', { level: 3, name: 'Embarcadero · Richmond train' })).toBeInTheDocument();
-    expect(within(history()).getByRole('group', { name: /Embarcadero · Richmond train/ })).toBeInTheDocument();
+    expect(within(history()).getByRole('slider', { name: 'Snapshots of Embarcadero · Richmond train' })).toBeInTheDocument();
 
     await selectTrain(user, /Dublin\/Pleasanton/);
     expect(
@@ -47,42 +52,104 @@ describe('ETA history', () => {
     const user = userEvent.setup();
     renderExample();
     await summary();
-    await user.click(screen.getByRole('radio', { name: 'Toward Daly City, SFO and Millbrae' }));
+    await user.click(screen.getByRole('radio', { name: /^Toward Daly City, SFO and Millbrae/ }));
     await selectTrain(user, /Daly City/);
     expect(await screen.findByText(/changed this ETA twice by 30 seconds or more, but it ended where it started/)).toBeInTheDocument();
     await chooseStation(user, 'Balboa Park');
+    await user.click(screen.getByRole('radio', { name: 'Toward the East Bay, Platform 2' }));
     await selectTrain(user, /Antioch/);
     expect(await screen.findByText(/Only one snapshot so far/)).toBeInTheDocument();
   });
 
-  it('exposes every observation’s values to keyboard and screen-reader users', async () => {
+  it('marks only revisions, gaps and the latest snapshot, not every unchanged minute', async () => {
+    const user = userEvent.setup();
+    renderExample();
+    await summary();
+    await selectTrain(user, /Richmond/);
+    await screen.findByText(/across three changes of 30 seconds or more/);
+    const marks = [...history().querySelectorAll('.history-chart__point')];
+    // 15 snapshots; BART revised the ETA at three of them.
+    expect(marks.map((m) => m.getAttribute('class')?.replace('history-chart__point ', ''))).toEqual([
+      'history-chart__point--revision',
+      'history-chart__point--revision',
+      'history-chart__point--revision',
+      'history-chart__point--latest is-active',
+    ]);
+    // The step line and the model's reference stay.
+    expect(history().querySelectorAll('.history-chart__line')).toHaveLength(1);
+    expect(history().querySelector('.history-chart__final')).not.toBeNull();
+  });
+
+  it('exposes one chart description and one changing active observation, not every point', async () => {
     const user = userEvent.setup();
     renderExample();
     await summary();
     await selectTrain(user, /Richmond/);
     await screen.findByText(/across three changes of 30 seconds or more/);
 
-    const points = within(history()).getAllByRole('img');
-    expect(points).toHaveLength(15);
-    const latest = points.at(-1) as HTMLElement;
-    expect(latest).toHaveAccessibleName(
+    // No point is its own image for virtual navigation; the chart is one slider.
+    expect(within(history()).queryAllByRole('img')).toHaveLength(0);
+    const sliders = within(history()).getAllByRole('slider');
+    expect(sliders).toHaveLength(1);
+    const chart = sliders[0] as HTMLElement;
+    expect(chart).toHaveAccessibleName('Snapshots of Embarcadero · Richmond train');
+    expect(chart).toHaveAccessibleDescription(
+      'Chart of BART’s published ETA for Embarcadero · Richmond train: 15 snapshots from 9:45:26 AM to 9:59:26 AM.',
+    );
+    expect(chart).toHaveAttribute('tabindex', '0');
+    expect(chart).toHaveAttribute('aria-valuemax', '15');
+    expect(chart).toHaveAttribute('aria-valuenow', '15');
+    expect(chart).toHaveAttribute(
+      'aria-valuetext',
       'Latest snapshot 9:59:26 AM: BART published 10:05:36 AM, 6 min 10 sec away, unchanged from the previous snapshot.',
     );
-    // One tab stop for the whole chart; arrow keys move between snapshots.
-    expect(points.filter((p) => p.getAttribute('tabindex') === '0')).toEqual([latest]);
-    latest.focus();
-    await user.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}');
-    expect(points[11]).toHaveFocus();
+
+    // Arrow keys move through every snapshot, including unmarked ones.
+    chart.focus();
+    await user.keyboard('{ArrowLeft}{ArrowDown}{ArrowLeft}');
+    expect(chart).toHaveAttribute('aria-valuenow', '12');
+    expect(chart).toHaveAttribute(
+      'aria-valuetext',
+      'Snapshot 9:56:26 AM: BART published 10:05:36 AM, 9 min 10 sec away, 50 seconds later than the previous snapshot.',
+    );
     expect(screen.getByTestId('history-inspect')).toHaveTextContent(
       'Snapshot 9:56:26 AM BART published 10:05:36 AM, 9 min 10 sec away, 50 seconds later than the previous snapshot.',
     );
+    await user.keyboard('{ArrowUp}{ArrowRight}');
+    expect(chart).toHaveAttribute('aria-valuenow', '14');
     await user.keyboard('{Home}');
-    expect(points[0]).toHaveFocus();
+    expect(chart).toHaveAttribute('aria-valuenow', '1');
+    await user.keyboard('{ArrowLeft}'); // stays at the first snapshot
+    expect(chart).toHaveAttribute('aria-valuenow', '1');
+    await user.keyboard('{End}');
+    expect(chart).toHaveAttribute('aria-valuenow', '15');
+    expect(chart).toHaveFocus();
 
     const table = within(history()).getByRole('table');
     const rows = within(table).getAllByRole('row');
     expect(rows).toHaveLength(16); // header + 15 observations
     expect(rows[12]).toHaveTextContent('9:56:26 AM10:05:36 AM9 min 10 sec50 seconds later than the previous snapshot');
+  });
+
+  it('shows a completely flat history calmly, with the full chart and table one press away', async () => {
+    const user = userEvent.setup();
+    renderExample();
+    expect(await summary()).toHaveTextContent('held steady');
+    expect(screen.getByTestId('history-flat')).toHaveTextContent(
+      'Held at 10:01:36 AM in all 15 snapshots, from 9:45:26 AM to 9:59:26 AM.',
+    );
+    expect(within(history()).queryByRole('figure')).not.toBeInTheDocument();
+    const toggle = within(history()).getByRole('button', { name: 'Show the full chart' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(history()).getByText('Show all 15 observations')).toBeInTheDocument();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAccessibleName('Hide the full chart');
+    expect(within(history()).getByRole('figure')).toBeInTheDocument();
+    expect(within(history()).getByRole('slider')).toHaveAttribute('aria-valuemax', '15');
+    // Flat means one mark only: the latest snapshot.
+    expect(history().querySelectorAll('.history-chart__point')).toHaveLength(1);
   });
 
   it('describes a gap without counting it as a change, in the summary and the table', async () => {
@@ -94,7 +161,7 @@ describe('ETA history', () => {
     expect(within(history()).getByText(/No snapshots for 4 min \(gap in the feed\)/)).toBeInTheDocument();
   });
 
-  it('reports the difference across a gap as unknown changes in the inspection line, point name and table', async () => {
+  it('reports the difference across a gap as unknown changes in the inspection line, chart value and table', async () => {
     const user = userEvent.setup();
     renderExample({ historyScenario: 'gaps' });
     await summary();
@@ -110,12 +177,20 @@ describe('ETA history', () => {
     const afterGap =
       'BART published 10:04:46 AM, 10 min 20 sec away, 30 seconds later than the previous available snapshot, ' +
       'across a 4 min gap in the feed; changes during the gap are unknown.';
-    const points = within(history()).getAllByRole('img');
-    expect(points[6]).toHaveAccessibleName(`Snapshot 9:54:26 AM: ${afterGap}`);
+    const chart = within(history()).getByRole('slider');
+    // Both sides of the gap are marked, as are the two observed revisions and the latest.
+    expect([...history().querySelectorAll('.history-chart__point')].map((m) => m.classList[1])).toEqual([
+      'history-chart__point--revision',
+      'history-chart__point--gap',
+      'history-chart__point--gap',
+      'history-chart__point--revision',
+      'history-chart__point--latest',
+    ]);
 
-    (points.at(-1) as HTMLElement).focus();
+    chart.focus();
     await user.keyboard('{Home}{ArrowRight>6/}');
-    expect(points[6]).toHaveFocus();
+    expect(chart).toHaveAttribute('aria-valuenow', '7');
+    expect(chart).toHaveAttribute('aria-valuetext', `Snapshot 9:54:26 AM: ${afterGap}`);
     expect(screen.getByTestId('history-inspect')).toHaveTextContent(`Snapshot 9:54:26 AM ${afterGap}`);
 
     const row = within(within(history()).getByRole('table'))

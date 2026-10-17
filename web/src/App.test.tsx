@@ -24,7 +24,27 @@ describe('App', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'ETA Reliability' })).toBeInTheDocument();
     expect(screen.getByText('How stable are BART’s published arrival estimates?')).toBeInTheDocument();
     expect(screen.getByText(/studies how BART changes its published arrival estimates/)).toBeInTheDocument();
-    expect(screen.getByText('It does not predict when a train physically arrives.')).toBeInTheDocument();
+    // Said once in the short opening and again in the full question.
+    const opening = screen.getByRole('region', { name: 'ETA Reliability' });
+    expect(within(opening).getByText('It does not predict when a train physically arrives.')).toBeInTheDocument();
+    const question = screen.getByRole('region', { name: 'The question' });
+    expect(within(question).getByText('It does not predict when a train physically arrives.')).toBeInTheDocument();
+  });
+
+  it('puts the forecast before the full explanation, without removing it', () => {
+    renderApp();
+    const opening = screen.getByRole('region', { name: 'ETA Reliability' });
+    const example = screen.getByRole('region', { name: 'Try an ETA forecast' });
+    const question = screen.getByRole('region', { name: 'The question' });
+    const follows = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(opening, example) && follows(example, question)).toBe(true);
+    // The opening stays short: a lede, one statement and the disclosure, no long prose.
+    expect(within(opening).getAllByRole('paragraph').length).toBeLessThanOrEqual(5);
+    expect(within(opening).queryByText(/six minutes away/)).not.toBeInTheDocument();
+    expect(within(question).getByText(/six minutes away/)).toBeInTheDocument();
+    const nav = screen.getByRole('navigation', { name: 'Primary' });
+    expect(within(nav).getByRole('link', { name: 'The question' })).toHaveAttribute('href', '#question');
+    expect(question).toHaveAttribute('id', 'question');
   });
 
   it('never uses arrival-accuracy language', async () => {

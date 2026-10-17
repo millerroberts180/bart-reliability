@@ -92,6 +92,15 @@ export function analyzeHistory(points: PredictionHistoryPoint[], latestFeedTimes
   };
 }
 
+/**
+ * True when BART published the same ETA at every snapshot, with no gap in which a change
+ * could have gone unseen. Such a history needs no chart to be understood.
+ */
+export function isFlat(analysis: HistoryAnalysis): boolean {
+  const { observations, gapCount, revisionCount, smallChangeCount, netChangeSeconds } = analysis;
+  return observations.length > 1 && gapCount === 0 && revisionCount === 0 && smallChangeCount === 0 && netChangeSeconds === 0;
+}
+
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 const count = (n: number) => NUMBER_WORDS[n] ?? String(n);
 
@@ -108,12 +117,16 @@ function timesPhrase(n: number): string {
 }
 
 export interface SummaryContext {
-  /** True when the latest snapshot is stale; the window is then anchored to its time. */
-  stale: boolean;
+  /**
+   * True when the window must be named by its snapshot time ("In the 14 minutes before the
+   * 9:50:20 AM snapshot") rather than as "the last 14 minutes": a stale snapshot, or any
+   * historical replay, where "the last" would read as live.
+   */
+  anchored: boolean;
 }
 
 /** One plain-language sentence (two with gaps) describing how BART changed this ETA. */
-export function summarizeHistory(analysis: HistoryAnalysis, { stale }: SummaryContext): string {
+export function summarizeHistory(analysis: HistoryAnalysis, { anchored }: SummaryContext): string {
   const { observations, spanSeconds, netChangeSeconds: net, revisionCount, gapCount } = analysis;
   const first = observations[0];
   const last = observations[observations.length - 1];
@@ -122,9 +135,9 @@ export function summarizeHistory(analysis: HistoryAnalysis, { stale }: SummaryCo
     return `Only one snapshot so far: BART first published this ETA at ${formatClock(first.feedTimestamp)}, so there is no change to show yet.`;
   }
 
-  if (gapCount > 0) return summarizeWithGaps(analysis, { stale });
+  if (gapCount > 0) return summarizeWithGaps(analysis, { anchored });
 
-  const window = stale
+  const window = anchored
     ? `In the ${spanPhrase(spanSeconds)} before the ${formatClock(last.feedTimestamp)} snapshot`
     : `Over the last ${spanPhrase(spanSeconds)}`;
   const direction = net > 0 ? 'later' : 'earlier';
@@ -152,10 +165,10 @@ export function summarizeHistory(analysis: HistoryAnalysis, { stale }: SummaryCo
  * known. The first sentence reports endpoint movement; the second reports observed
  * changes and says that changes during the gaps are unknown.
  */
-function summarizeWithGaps(analysis: HistoryAnalysis, { stale }: SummaryContext): string {
+function summarizeWithGaps(analysis: HistoryAnalysis, { anchored }: SummaryContext): string {
   const { observations, netChangeSeconds: net, revisionCount, smallChangeCount, gapCount } = analysis;
   const last = observations[observations.length - 1];
-  const span = stale && last
+  const span = anchored && last
     ? `From the first available snapshot to the ${formatClock(last.feedTimestamp)} snapshot`
     : 'From the first to the latest available snapshot';
   const endpoint =
@@ -200,8 +213,8 @@ export function describeChangeFromPrevious(o: HistoryObservation): string {
 }
 
 /**
- * Everything known about one observation, in words. Used for each chart point's
- * accessible name and for the visible inspection line.
+ * Everything known about one observation, in words. Used for the chart's value (the
+ * snapshot being inspected) and for the visible inspection line.
  */
 export function describeObservation(
   o: HistoryObservation,

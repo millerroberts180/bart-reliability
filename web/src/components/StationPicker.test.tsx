@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MockPredictionClient, type MockNetwork } from '../data/MockPredictionClient';
@@ -118,6 +118,32 @@ describe('StationPicker', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     expect(await changeButton()).toHaveFocus();
     expect(await changeButton()).toHaveAccessibleName('Change boarding station, currently 12th Street / Oakland City Center');
+  });
+
+  it('returns focus to Change when a click on empty space closes the panel', async () => {
+    const user = userEvent.setup();
+    renderExample();
+    await openPicker(user);
+    expect(combobox()).toHaveFocus();
+    await user.click(screen.getByText(/^Choose where you’re boarding/)); // plain text, not a control
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    // Focus is never left on the document.
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Change boarding station/ })).toHaveFocus());
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  it('leaves focus on another control the click chose', async () => {
+    const user = userEvent.setup();
+    renderExample();
+    await openPicker(user);
+    const radio = screen.getAllByRole('radio', { name: /^Toward/ })[1] as HTMLElement;
+    await user.click(radio);
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(radio).toHaveFocus();
+    expect(radio).toBeChecked();
+    // Still there after the picker's focus check has run.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(radio).toHaveFocus();
   });
 
   it('lets Tab continue past the panel and closes it', async () => {

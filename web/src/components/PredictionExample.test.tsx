@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MockPredictionClient, type MockScenario } from '../data/MockPredictionClient';
@@ -11,7 +11,12 @@ import { PredictionExample } from './PredictionExample';
 const NOW = new Date('2026-10-13T17:00:00Z');
 const clock = () => NOW;
 
-function renderExample(client: PredictionClient = new MockPredictionClient({ now: clock })) {
+// Most tests here read the scripted East Bay trains at Embarcadero, so they start there
+// by URL, as a shared link would. The default group (platform 1) is tested on its own.
+const EAST_BAY = '?station=EMBR&boarding=to-WOAK';
+
+function renderExample(client: PredictionClient = new MockPredictionClient({ now: clock }), search = EAST_BAY) {
+  window.history.replaceState(null, '', `/${search}`);
   render(
     <PredictionClientProvider client={client} now={clock}>
       <PredictionExample />
@@ -27,16 +32,25 @@ const calc = (id: 'now' | 'adjust' | 'final') => screen.getByTestId(`calc-${id}`
 const follows = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
 describe('PredictionExample', () => {
+  it('selects the platform 1 group first by default, in the API’s order', async () => {
+    renderExample(undefined, '');
+    expect(await readoutHeading('Embarcadero · SF Airport train')).toBeInTheDocument();
+    const ways = within(screen.getByRole('group', { name: 'Which way are you going?' })).getAllByRole('radio');
+    expect(ways.map((r) => (r as HTMLInputElement).value)).toEqual(['to-MONT', 'to-WOAK']);
+    expect(ways[0]).toBeChecked();
+    expect(ways[0]).toHaveAccessibleName('Toward Daly City, SFO and Millbrae, Platform 1');
+  });
+
   it('labels every control', async () => {
     renderExample();
     await readoutHeading('Embarcadero · Antioch train');
     expect(screen.getByRole('button', { name: 'Change boarding station, currently Embarcadero' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Direction' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Which way are you going?' })).toBeInTheDocument();
     const trains = screen.getByRole('group', { name: 'Upcoming trains' });
     expect(within(trains).getAllByRole('radio')).toHaveLength(4);
   });
 
-  it('leads with the likely final published ETA, then the calculation beneath it', async () => {
+  it('leads with the likely final published ETA, then a summary, then the calculation on request', async () => {
     renderExample();
     const heading = await readoutHeading('Embarcadero · Antioch train');
     // Snapshot 9:59:26 AM; BART's ETA is 130 s later, the model expects 12 s later.
@@ -48,13 +62,26 @@ describe('PredictionExample', () => {
     expect(calc('adjust')).toHaveTextContent('Expected adjustmentAbout 12 seconds later');
     expect(calc('final')).toHaveTextContent('Likely final published ETA10:01:48 AM · about 2 min 22 sec away');
 
-    // Reading order: compact identity, forecast, calculation, then supporting detail.
+    // Visible at a glance: BART's ETA, the adjustment and stability, rounded like the forecast.
+    expect(screen.getByTestId('summary-said')).toHaveTextContent('BART currently says10:01 AM · about 2 min away');
+    expect(screen.getByTestId('summary-adjust')).toHaveTextContent('Expected adjustmentAbout 12 seconds later');
+    expect(screen.getByTestId('summary-stability')).toHaveTextContent(
+      'ETA stabilityLikely to hold · 8% chance BART changes this estimate by more than 60 seconds',
+    );
+    // The exact arithmetic is one press away, in a clearly labelled section.
+    const calculation = screen.getByTestId('calculation');
+    expect(calculation.tagName).toBe('DETAILS');
+    expect(calculation).not.toHaveAttribute('open');
+    expect(within(calculation).getByText('How the forecast is calculated').tagName).toBe('SUMMARY');
+    expect(calculation).toContainElement(calc('now'));
+
+    // Reading order: compact identity, forecast, summary, then the calculation.
     expect(follows(heading, forecast())).toBe(true);
-    expect(follows(forecast(), calc('now'))).toBe(true);
+    expect(follows(forecast(), screen.getByTestId('summary-said'))).toBe(true);
+    expect(follows(screen.getByTestId('summary-stability'), calc('now'))).toBe(true);
     expect(follows(calc('now'), calc('adjust'))).toBe(true);
     expect(follows(calc('adjust'), calc('final'))).toBe(true);
     const panel = readout('Embarcadero · Antioch train');
-    expect(follows(calc('final'), within(panel).getByText('Likely to hold'))).toBe(true);
 
     expect(within(panel).getByText(/It is not an observed arrival time/)).toBeInTheDocument();
     expect(within(panel).getByText('Simulated')).toBeInTheDocument();
@@ -147,7 +174,7 @@ describe('PredictionExample', () => {
     const user = userEvent.setup();
     renderExample();
     await readoutHeading('Embarcadero · Antioch train');
-    await user.click(screen.getByRole('radio', { name: 'Toward Daly City, SFO and Millbrae' }));
+    await user.click(screen.getByRole('radio', { name: 'Toward Daly City, SFO and Millbrae, Platform 1' }));
     expect(await readoutHeading('Embarcadero · SF Airport train')).toBeInTheDocument();
   });
 
@@ -164,7 +191,7 @@ describe('PredictionExample', () => {
     const panel = readout('Embarcadero · Richmond train');
     expect(within(panel).getByText(/Adjustment range/).parentElement).toHaveTextContent('20 seconds to 2 min 30 sec later');
     expect(within(panel).getByText('May be revised')).toBeInTheDocument();
-    expect(within(panel).getByText('41%')).toBeInTheDocument();
+    expect(screen.getByTestId('summary-stability')).toHaveTextContent('May be revised · 41% chance');
     expect(within(panel).getByText('Red line')).toBeInTheDocument();
   });
 
@@ -233,6 +260,70 @@ describe('PredictionExample', () => {
     renderExample(scenario('empty'));
     expect(await readoutHeading('No upcoming trains')).toBeInTheDocument();
     expect(screen.getByText(/lists no trains toward the East Bay from Embarcadero/)).toBeInTheDocument();
-    expect(screen.getByText('No trains listed in this snapshot.')).toBeInTheDocument();
+    // One detailed explanation; the list itself stays terse.
+    expect(within(screen.getByRole('group', { name: 'Upcoming trains' })).getByText('None listed')).toBeInTheDocument();
+    // On screen, only the heading and its explanation say so (the other is the spoken announcement).
+    const visible = screen.getAllByText(/no (upcoming )?trains/i).filter((el) => !el.closest('.visually-hidden'));
+    expect(visible.map((el) => el.tagName)).toEqual(['H3', 'P']);
+  });
+
+  it('keeps the model details in a labelled section, with version and training date', async () => {
+    renderExample();
+    await readoutHeading('Embarcadero · Antioch train');
+    const details = screen.getByTestId('data-details');
+    expect(details.tagName).toBe('DETAILS');
+    expect(within(details).getByText('Data and model details').tagName).toBe('SUMMARY');
+    expect(details).toHaveTextContent('Forecast generated9:59:30 AM');
+    expect(details).toHaveTextContent('Version simulated-0.1, trained on data through Sun, Oct 11, 2026, 12:00 AM Pacific');
+    expect(details).toHaveTextContent('Trip1561');
+    // Not mixed into the commuter-facing result above it.
+    expect(screen.getByTestId('forecast')).not.toHaveTextContent(/simulated-0\.1|Trip/);
+    // Alerts stay visible: they can matter to a rider.
+    expect(within(details).queryByText(/Service alerts/)).not.toBeInTheDocument();
+  });
+});
+
+describe('a train without a model forecast', () => {
+  const horizon = () => scenario('model-horizon');
+  const trainRadios = () => within(screen.getByRole('group', { name: 'Upcoming trains' })).getAllByRole('radio');
+
+  it('keeps the earliest train selected and offers the next model forecast explicitly', async () => {
+    const user = userEvent.setup();
+    renderExample(horizon());
+    await readoutHeading('Embarcadero · Antioch train');
+    // Never moved to a later train for the visitor.
+    expect(trainRadios()[0]).toBeChecked();
+    expect(screen.getByTestId('forecast')).toHaveTextContent(/^BART’s published ETA/);
+
+    const view = screen.getByRole('button', { name: 'View the next model forecast' });
+    expect(view).toHaveAccessibleDescription('Berryessa/North San José train, BART ETA 10:09 AM');
+    await user.click(view);
+    const heading = await readoutHeading('Embarcadero · Berryessa/North San José train');
+    expect(trainRadios()[2]).toBeChecked();
+    expect(screen.getByTestId('forecast')).toHaveTextContent(/^Likely final published ETA/);
+    expect(screen.queryByRole('button', { name: /model forecast/ })).not.toBeInTheDocument();
+    // The button is gone, so focus moves to the result it opened.
+    await waitFor(() => expect(heading).toHaveFocus());
+  });
+
+  it('offers an earlier forecast when none comes later', async () => {
+    const user = userEvent.setup();
+    renderExample(horizon());
+    await chooseStation(user, 'Balboa Park');
+    await readoutHeading(/^Balboa Park · /);
+    await user.click(screen.getByRole('radio', { name: 'Toward the East Bay, Platform 2' }));
+    await readoutHeading('Balboa Park · Berryessa/North San José train');
+    await user.click(trainRadios()[2] as HTMLElement); // 820 s: no forecast, and none after it
+    await readoutHeading('Balboa Park · Antioch train');
+    await user.click(screen.getByRole('button', { name: 'View an earlier model forecast' }));
+    expect(await readoutHeading('Balboa Park · Berryessa/North San José train')).toBeInTheDocument();
+    expect(trainRadios()[0]).toBeChecked();
+  });
+
+  it('offers nothing when no train has a forecast', async () => {
+    renderExample(scenario('eta-only'));
+    await readoutHeading('Embarcadero · Antioch train');
+    expect(screen.getByTestId('no-forecast')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /model forecast/ })).not.toBeInTheDocument();
   });
 });

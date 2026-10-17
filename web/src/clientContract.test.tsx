@@ -28,8 +28,8 @@ function recording(client: PredictionClient, api?: FakeApi): Recorded {
   const recorded: PredictionClient = {
     source: client.source,
     listStations: (signal) => (calls.push('listStations'), client.listStations(signal)),
-    getPredictions: (stationId, directionId, signal) => (
-      calls.push(`getPredictions ${stationId} ${directionId}`), client.getPredictions(stationId, directionId, signal)
+    getPredictions: (stationId, groupId, signal) => (
+      calls.push(`getPredictions ${stationId} ${groupId}`), client.getPredictions(stationId, groupId, signal)
     ),
     getPredictionHistory: (id, signal) => (calls.push(`getPredictionHistory ${id}`), client.getPredictionHistory(id, signal)),
     getModelMetadata: (signal) => (calls.push('getModelMetadata'), client.getModelMetadata(signal)),
@@ -50,21 +50,29 @@ function http(configure: (api: FakeApi) => void = () => undefined): Recorded {
   return recording(new HttpPredictionClient(API_BASE, { fetch: api.fetch }), api);
 }
 
-const BOARD = (station: string, direction: string) => `/api/v1/stations/${station}/predictions?direction_id=${direction}`;
-const recordedBoard = (station: string, direction: string) =>
-  structuredClone(API_RECORDING.responses[BOARD(station, direction)]) as { feedTimestamp: string; trains: Record<string, unknown>[] };
+const BOARD = (station: string, group: string) => `/api/v1/stations/${station}/predictions?boarding_group=${group}`;
+const recordedBoard = (station: string, group: string) =>
+  structuredClone(API_RECORDING.responses[BOARD(station, group)]) as { feedTimestamp: string; trains: Record<string, unknown>[] };
 
 const readoutHeading = () => screen.findByRole('heading', { level: 3, name: /·|Prediction|No upcoming|Loading/ });
 const history = () => screen.getByRole('region', { name: 'How this ETA has changed' });
 const trainGroup = () => screen.getByRole('group', { name: 'Upcoming trains' });
 const checkedTrain = () => within(trainGroup()).getAllByRole<HTMLInputElement>('radio').find((r) => r.checked)?.value;
 
+/** A history with no change at all is shown compactly; open its full chart to read the key. */
+async function chartKey(user: UserEvent) {
+  await within(history()).findByTestId('history-summary');
+  const toggle = within(history()).queryByRole('button', { name: 'Show the full chart' });
+  if (toggle) await user.click(toggle);
+  return within(history()).getByRole('list', { name: 'Chart key' });
+}
+
 /** How to reach a train with a forecast and its range from a fresh page. */
 const OPEN_FORECAST: Record<ClientName, (user: UserEvent) => Promise<void>> = {
   mock: async () => undefined,
   http: async (user) => {
     await chooseStation(user, 'Castro Valley');
-    await user.click(screen.getByRole('radio', { name: 'Toward Bay Fair and Daly City' }));
+    await user.click(screen.getByRole('radio', { name: 'Toward Bay Fair and Daly City, Platform 2' }));
   },
 };
 
@@ -88,13 +96,13 @@ const STATES: StateCase[] = [
     state: 'a forecast with its likely range',
     setup: { mock: () => mock(), http: () => http() },
     open: OPEN_FORECAST,
-    check: async () => {
+    check: async (user) => {
       const forecast = await screen.findByTestId('forecast');
       expect(forecast).toHaveTextContent(/^Likely final published ETA.*80% likely range: /);
       expect(screen.getByTestId('calc-adjust')).toHaveTextContent(/^\+?Expected adjustment/);
       expect(screen.getByTestId('calc-final')).toBeInTheDocument();
-      expect(screen.getByText(/chance BART changes this estimate by more than 60 seconds/)).toBeInTheDocument();
-      const key = await within(history()).findByRole('list', { name: 'Chart key' });
+      expect(screen.getByTestId('summary-stability')).toHaveTextContent(/chance BART changes this estimate by more than 60 seconds/);
+      const key = await chartKey(user);
       expect(key).toHaveTextContent(/Model’s likely final published ETA .*, with its 80% range at the right/);
     },
   },
@@ -104,19 +112,19 @@ const STATES: StateCase[] = [
       mock: () => mock('no-interval'),
       http: () =>
         http((api) => {
-          const board = recordedBoard('CAST', '1');
+          const board = recordedBoard('CAST', 'to-BAYF');
           for (const t of board.trains) if (t.predictionStatus === 'ok') t.revisionInterval = null;
-          api.respond(BOARD('CAST', '1'), { body: board });
+          api.respond(BOARD('CAST', 'to-BAYF'), { body: board });
         }),
     },
     open: OPEN_FORECAST,
-    check: async () => {
+    check: async (user) => {
       expect(await screen.findByTestId('no-range')).toHaveTextContent(
         'No likely range is shown: the model’s range isn’t supported for this data.',
       );
       expect(screen.getByTestId('forecast')).not.toHaveTextContent(/likely range:/);
       expect(screen.getByText('Adjustment range').parentElement).toHaveTextContent('Not available for this forecast.');
-      const key = await within(history()).findByRole('list', { name: 'Chart key' });
+      const key = await chartKey(user);
       expect(key).toHaveTextContent('; no likely range is available.');
     },
   },
@@ -128,7 +136,7 @@ const STATES: StateCase[] = [
       const forecast = await screen.findByTestId('forecast');
       expect(forecast).toHaveTextContent(/^BART’s published ETA/);
       expect(screen.getByTestId('no-forecast')).toHaveTextContent(
-        'No model forecast right now. The model only forecasts trains BART shows about 5, 10 or 15 minutes away.',
+        'No model forecast for this train. The model only forecasts trains BART shows about 5, 10 or 15 minutes away.',
       );
       // Nothing model-derived is drawn or stated for this train.
       expect(screen.queryByTestId('calc-adjust')).not.toBeInTheDocument();
@@ -154,11 +162,11 @@ const STATES: StateCase[] = [
   },
   {
     state: 'no trains listed',
-    // The recorded replay has no trains at Antioch, the first station, in either direction.
+    // The recorded replay has no trains leaving Antioch, the first station.
     setup: { mock: () => mock('empty'), http: () => http() },
     check: async () => {
       expect(await screen.findByRole('heading', { level: 3, name: 'No upcoming trains' })).toBeInTheDocument();
-      expect(screen.getByText('No trains listed in this snapshot.')).toBeInTheDocument();
+      expect(within(trainGroup()).getByText('None listed')).toBeInTheDocument();
       expect(within(history()).getByText('No train is selected, so there is no history to show.')).toBeInTheDocument();
     },
   },
@@ -169,9 +177,9 @@ const STATES: StateCase[] = [
       http: () =>
         http((api) => {
           // 9 min 40 s before the replay time, as in the simulated stale scenario.
-          const board = recordedBoard('CAST', '1');
+          const board = recordedBoard('CAST', 'to-BAYF');
           board.feedTimestamp = '2026-10-15T16:50:20Z';
-          api.respond(BOARD('CAST', '1'), { body: board });
+          api.respond(BOARD('CAST', 'to-BAYF'), { body: board });
         }),
     },
     open: OPEN_FORECAST,
@@ -192,19 +200,19 @@ const STATES: StateCase[] = [
         recorded.client = {
           ...inner,
           source: inner.source,
-          getPredictions: (s, d, signal) =>
-            failures-- > 0 ? Promise.reject(new Error('offline')) : inner.getPredictions(s, d, signal),
+          getPredictions: (s, g, signal) =>
+            failures-- > 0 ? Promise.reject(new Error('offline')) : inner.getPredictions(s, g, signal),
         };
         return recorded;
       },
       http: () =>
         http((api) => {
           let failures = 1;
-          api.respond(BOARD('ANTC', '0'), () =>
+          api.respond(BOARD('ANTC', 'to-PCTR'), () =>
             Promise.resolve(
               failures-- > 0
                 ? Response.json({ error: { code: 'feed_unavailable', clientCode: 'unavailable', message: 'x' } }, { status: 503 })
-                : Response.json(API_RECORDING.responses[BOARD('ANTC', '0')]),
+                : Response.json(API_RECORDING.responses[BOARD('ANTC', 'to-PCTR')]),
             ),
           );
         }),
@@ -269,22 +277,26 @@ const JOURNEYS: Record<
   {
     first: { request: string; heading: string };
     station: { name: string; request: string; heading: string };
-    direction: { label: string; request: string; heading: string };
+    boarding: { label: RegExp; request: string; heading: string };
     train: { radio: RegExp; heading: string };
   }
 > = {
   mock: {
-    first: { request: 'getPredictions EMBR 0', heading: 'Embarcadero · Antioch train' },
-    station: { name: 'MacArthur', request: 'getPredictions MCAR 0', heading: 'MacArthur · Richmond train' },
-    direction: { label: 'Toward San Francisco and Berryessa', request: 'getPredictions MCAR 1', heading: 'MacArthur · SF Airport train' },
+    first: { request: 'getPredictions EMBR to-MONT', heading: 'Embarcadero · SF Airport train' },
+    station: { name: 'MacArthur', request: 'getPredictions MCAR to-ASHB-ROCK', heading: 'MacArthur · Richmond train' },
+    boarding: {
+      label: /^Toward San Francisco and Berryessa$/,
+      request: 'getPredictions MCAR to-19TH',
+      heading: 'MacArthur · SF Airport train',
+    },
     train: { radio: /Millbrae/, heading: 'MacArthur · Millbrae train' },
   },
   http: {
-    first: { request: 'getPredictions ANTC 0', heading: 'No upcoming trains' },
-    station: { name: 'Downtown Berkeley', request: 'getPredictions DBRK 0', heading: 'Downtown Berkeley · Richmond train' },
-    direction: {
-      label: 'Toward Berryessa/North San Jose and Millbrae',
-      request: 'getPredictions DBRK 1',
+    first: { request: 'getPredictions ANTC to-PCTR', heading: 'No upcoming trains' },
+    station: { name: 'Downtown Berkeley', request: 'getPredictions DBRK to-NBRK', heading: 'Downtown Berkeley · Richmond train' },
+    boarding: {
+      label: /^Toward Berryessa\/North San Jose and Millbrae, Platform 2$/,
+      request: 'getPredictions DBRK to-ASHB',
       heading: 'Downtown Berkeley · Millbrae train',
     },
     train: { radio: /Berryessa/, heading: 'Downtown Berkeley · Berryessa/North San Jose train' },
@@ -292,7 +304,7 @@ const JOURNEYS: Record<
 };
 
 describe.each(['mock', 'http'] as const)('selection with the %s client', (name) => {
-  it('requests the chosen station, direction and train, and moves the forecast and history together', async () => {
+  it('requests the chosen station, boarding group and train, and moves the forecast and history together', async () => {
     const user = userEvent.setup();
     const recorded = name === 'mock' ? mock() : http();
     const journey = JOURNEYS[name];
@@ -315,14 +327,14 @@ describe.each(['mock', 'http'] as const)('selection with the %s client', (name) 
     await chooseStation(user, journey.station.name);
     await expectInStep(journey.station.heading, journey.station.request);
 
-    await user.click(screen.getByRole('radio', { name: journey.direction.label }));
-    await expectInStep(journey.direction.heading, journey.direction.request);
+    await user.click(screen.getByRole('radio', { name: journey.boarding.label }));
+    await expectInStep(journey.boarding.heading, journey.boarding.request);
 
     const [nextTrain] = within(trainGroup()).getAllByRole('radio', { name: journey.train.radio });
     await user.click(nextTrain as HTMLElement);
     // Choosing a train re-reads nothing but that train's history.
     const boards = recorded.calls.filter((c) => c.startsWith('getPredictions')).length;
-    await expectInStep(journey.train.heading, journey.direction.request);
+    await expectInStep(journey.train.heading, journey.boarding.request);
     expect(recorded.calls.filter((c) => c.startsWith('getPredictions'))).toHaveLength(boards);
 
     if (recorded.api) {
@@ -331,10 +343,10 @@ describe.each(['mock', 'http'] as const)('selection with the %s client', (name) 
       expect(paths).toEqual([
         '/api/v1/health',
         '/api/v1/stations',
-        BOARD('ANTC', '0'),
-        BOARD('DBRK', '0'),
+        BOARD('ANTC', 'to-PCTR'),
+        BOARD('DBRK', 'to-NBRK'),
         expect.stringMatching(/^\/api\/v1\/predictions\/2026-10-15:\d+:\d+\/history$/),
-        BOARD('DBRK', '1'),
+        BOARD('DBRK', 'to-ASHB'),
         '/api/v1/predictions/2026-10-15:1965638:4/history',
         '/api/v1/predictions/2026-10-15:1965440:4/history',
       ]);
@@ -347,78 +359,97 @@ describe('empty boards', () => {
     await screen.findByRole('heading', { level: 3, name: 'No upcoming trains' });
     return screen.getByText(/^The latest snapshot lists no trains/).textContent;
   };
-  const withUnplaced = (api: FakeApi, direction: string, unplacedTrainCount: number) =>
-    api.respond(BOARD('ANTC', direction), { body: { ...recordedBoard('ANTC', direction), unplacedTrainCount } });
+  const withCounts = (api: FakeApi, unplacedTrainCount: number, terminatingTrainCount = 0) =>
+    api.respond(BOARD('ANTC', 'to-PCTR'), {
+      body: { ...recordedBoard('ANTC', 'to-PCTR'), unplacedTrainCount, terminatingTrainCount },
+    });
+  const ANTIOCH_GROUP = 'toward Millbrae (Caltrain Transfer Platform) and San Francisco International Airport';
 
   it('gives the general reasons when nothing more is known (simulated)', async () => {
     render(<App client={mock('empty').client} />);
     expect(await emptyText()).toBe(
-      'The latest snapshot lists no trains toward the East Bay from Embarcadero. Service may have ended for the night, ' +
-        'this direction may not be running right now, or BART’s feed may not include it.',
+      'The latest snapshot lists no trains toward Daly City, SFO and Millbrae from Embarcadero. Service may have ended for the night, ' +
+        'trains may not be running this way at the snapshot time, or BART’s feed may not include them.',
     );
   });
 
-  it('says when trains in the chosen direction end here, and counts trains without a direction', async () => {
-    // Recorded replay: Antioch lists 5 unmatched trains; trains toward Antioch end there.
+  it('counts trains with no known way out, and says a terminal is the end of the line', async () => {
+    // Recorded replay: Antioch lists 5 unmatched trains, and every train there starts or ends its trip.
     render(<App client={http().client} />);
     expect(await emptyText()).toBe(
-      'The latest snapshot lists no trains toward Antioch from Antioch. Trains toward Antioch end their trips here, ' +
-        'and BART’s feed almost never lists a train at the last stop of its trip. BART’s feed does list 5 trains at ' +
-        'Antioch that match no scheduled trip, so their direction isn’t known and they aren’t shown.',
+      `The latest snapshot lists no trains ${ANTIOCH_GROUP} from Antioch. BART’s feed does list 5 trains at Antioch ` +
+        'that match no scheduled trip, so which way they’re going isn’t known and they aren’t shown.',
     );
-  });
-
-  it('counts trains without a direction on the other board too', async () => {
-    const user = userEvent.setup();
-    render(<App client={http().client} />);
-    await emptyText();
-    await user.click(screen.getByRole('radio', { name: /^Toward Millbrae/ }));
-    await screen.findByText(/^The latest snapshot lists no trains toward Millbrae/);
-    expect(await emptyText()).toMatch(
-      /from Antioch\. BART’s feed does list 5 trains at Antioch that match no scheduled trip, so their direction isn’t known and they aren’t shown\.$/,
-    );
+    // One way out, and no invented direction for the unmatched trains.
+    expect(within(screen.getByRole('group', { name: 'Which way are you going?' })).getAllByRole('radio')).toHaveLength(1);
+    expect(
+      screen.getByText('Antioch is the end of the line. Trains arriving here end their trips, so only trains leaving are listed.'),
+    ).toBeInTheDocument();
   });
 
   it('uses the singular for one train and falls back to the general reasons with none', async () => {
-    const user = userEvent.setup();
-    render(
-      <App
-        client={
-          http((api) => {
-            withUnplaced(api, '0', 1);
-            withUnplaced(api, '1', 0);
-          }).client
-        }
-      />,
-    );
+    const first = render(<App client={http((api) => withCounts(api, 1)).client} />);
     expect(await emptyText()).toMatch(
-      /BART’s feed does list 1 train at Antioch that matches no scheduled trip, so its direction isn’t known and it isn’t shown\.$/,
+      /BART’s feed does list 1 train at Antioch that matches no scheduled trip, so which way it’s going isn’t known and it isn’t shown\.$/,
     );
-    await user.click(screen.getByRole('radio', { name: /^Toward Millbrae/ }));
-    await screen.findByText(/^The latest snapshot lists no trains toward Millbrae/);
-    expect(await emptyText()).toMatch(/from Antioch\. Service may have ended for the night, .*may not include it\.$/);
+    first.unmount();
+    render(<App client={http((api) => withCounts(api, 0)).client} />);
+    expect(await emptyText()).toMatch(/from Antioch\. Service may have ended for the night, .*may not include them\.$/);
   });
 
-  it('matches a station to a destination despite different spacing', async () => {
-    const stations = structuredClone(API_RECORDING.responses['/api/v1/stations']) as {
-      name: string;
-      directions: { destinations: string[] }[];
-    }[];
-    const [antioch] = stations;
-    if (!antioch?.directions[0]) throw new Error('fixture changed');
-    antioch.name = 'Dublin / Pleasanton';
-    antioch.directions[0].destinations = ['Dublin/Pleasanton'];
-    render(
-      <App
-        client={
-          http((api) => {
-            api.respond('/api/v1/stations', { body: stations });
-            withUnplaced(api, '0', 0);
-          }).client
-        }
-      />,
+  it('says when trains listed here end their trips, so they cannot be boarded', async () => {
+    const one = render(<App client={http((api) => withCounts(api, 0, 1)).client} />);
+    expect(await emptyText()).toBe(
+      `The latest snapshot lists no trains ${ANTIOCH_GROUP} from Antioch. BART’s feed lists 1 train at Antioch that ` +
+        'ends its trip here, so it can’t be boarded and isn’t shown.',
     );
-    expect(await emptyText()).toMatch(/Trains toward Dublin \/ Pleasanton end their trips here, .* last stop of its trip\.$/);
+    one.unmount();
+    render(<App client={http((api) => withCounts(api, 5, 2)).client} />);
+    expect(await emptyText()).toMatch(
+      /BART’s feed lists 2 trains at Antioch that end their trips here, so they can’t be boarded and aren’t shown\. BART’s feed does list 5 trains/,
+    );
+  });
+});
+
+describe('boarding groups over the recorded replay', () => {
+  it('never mixes Berryessa trains with Daly City or Richmond trains at Hayward', async () => {
+    const user = userEvent.setup();
+    const recorded = http();
+    render(<App client={recorded.client} />);
+    await chooseStation(user, 'Hayward');
+    await screen.findByRole('heading', { level: 3, name: /^Hayward · / });
+    const ways = within(screen.getByRole('group', { name: 'Which way are you going?' })).getAllByRole('radio');
+    expect(ways.map((r) => r.closest('label')?.textContent)).toEqual([
+      'Toward Berryessa/North San Jose, Platform 1',
+      'Toward Daly City and Richmond, Platform 2',
+    ]);
+    const headsigns = () => new Set([...document.querySelectorAll('.timetable__headsign')].map((h) => h.textContent));
+    await user.click(screen.getByRole('button', { name: 'Show 5 more trains' }));
+    expect(headsigns()).toEqual(new Set(['Berryessa', 'Berryessa/North San Jose']));
+
+    await user.click(ways[1] as HTMLElement);
+    await screen.findByRole('heading', { level: 3, name: 'Hayward · Richmond train' });
+    await user.click(screen.getByRole('button', { name: 'Show 3 more trains' }));
+    expect(headsigns()).toEqual(new Set(['Richmond', 'Daly City']));
+    expect(recorded.api?.requests.filter((p) => p.includes('/predictions?'))).toEqual([
+      BOARD('ANTC', 'to-PCTR'),
+      BOARD('HAYW', 'to-SHAY'),
+      BOARD('HAYW', 'to-BAYF'),
+    ]);
+  });
+
+  it('offers the next model forecast at Hayward without selecting it', async () => {
+    const user = userEvent.setup();
+    render(<App client={http().client} />);
+    await chooseStation(user, 'Hayward');
+    // The earliest train is outside the model's horizons; the next one has a forecast.
+    expect(await screen.findByRole('heading', { level: 3, name: 'Hayward · Berryessa train' })).toBeInTheDocument();
+    expect(checkedTrain()).toMatch(/^2026-10-15:1965544:/);
+    expect(screen.getByTestId('forecast')).toHaveTextContent(/^BART’s published ETA/);
+    await user.click(screen.getByRole('button', { name: 'View the next model forecast' }));
+    expect(await screen.findByRole('heading', { level: 3, name: 'Hayward · Berryessa/North San Jose train' })).toBeInTheDocument();
+    expect(screen.getByTestId('forecast')).toHaveTextContent(/^Likely final published ETA/);
+    expect(checkedTrain()).toMatch(/^2026-10-15:1965438:/);
   });
 });
 
@@ -427,7 +458,7 @@ describe('data provenance', () => {
     render(<App client={mock().client} />);
     await screen.findByTestId('forecast');
     expect(screen.getByRole('complementary', { name: 'Prototype using simulated data' })).toBeInTheDocument();
-    expect(screen.getByText(/All values are simulated\./)).toBeInTheDocument();
+    expect(screen.getByTestId('data-details')).toHaveTextContent('Simulated. Every station reading, train and number is invented.');
     expect(screen.getByText('Simulated')).toBeInTheDocument();
     expect(screen.queryByText('Historical replay')).not.toBeInTheDocument();
     expect(screen.queryByTestId('replay-notice')).not.toBeInTheDocument();
@@ -444,15 +475,47 @@ describe('data provenance', () => {
       'This page replays BART’s recorded feeds as they stood at Thu, Oct 15, 2026, 10:00 AM Pacific.',
     );
     expect(within(opening).getByRole('link', { name: 'Try a historical replay' })).toBeInTheDocument();
-    expect(screen.getByText('Historical replay')).toHaveClass('replay-tag');
+    // One concise reminder beside the result.
     expect(screen.getByTestId('replay-notice')).toHaveTextContent(
-      'Historical replay, not live. Recorded BART data as of Thu, Oct 15, 2026, 10:00 AM Pacific.',
+      'Historical replay—not live. BART data as of Thu, Oct 15, 2026, 10:00 AM Pacific.',
     );
-    expect(screen.getByText(/Values are a historical replay of recorded BART data as of Thu, Oct 15, 2026, 10:00 AM, not live\./));
-    expect(screen.getByText(/0\.1\.0\+8d942e17429c/)).toHaveTextContent('10:00:00 AM (replay time) · 0.1.0+8d942e17429c');
+    // The full provenance is in one labelled, expandable section.
+    const details = screen.getByTestId('data-details');
+    expect(details.tagName).toBe('DETAILS');
+    expect(details).toHaveTextContent(
+      'Historical replay of recorded BART data as of Thu, Oct 15, 2026, 10:00 AM Pacific. The forecast uses only what ' +
+        'was known at that moment. Nothing here is live.',
+    );
+    expect(details).toHaveTextContent('Forecast generated10:00:00 AM (the replay time)');
+    expect(details).toHaveTextContent('ModelVersion 0.1.0+8d942e17429c, trained on data through Tue, Oct 13, 2026, 2:11 AM Pacific');
     // Freshness is judged at the replay time, not against today's clock.
-    expect(screen.getByText('Current')).toBeInTheDocument();
-    expect(screen.getByText(/37 s old at the replay time/)).toBeInTheDocument();
+    expect(within(details).getByText('Fresh at replay time')).toHaveClass('freshness--current');
+    expect(details).toHaveTextContent(/37 s old at the replay time/);
+    // Not repeated elsewhere: one banner, one reminder, one details section.
+    const example = screen.getByRole('region', { name: 'Try an ETA forecast' });
+    const intro = example.querySelector('.example__intro');
+    expect(intro).not.toHaveTextContent(/replay|live|simulat/i);
+    // Paragraphs that explain the replay (the call to action only names it).
+    const replayMentions = [...document.querySelectorAll('p:not(.opening__cta), dd')].filter(
+      (el) => /historical replay|replays BART/i.test(el.textContent ?? '') && !el.querySelector('p, dd'),
+    );
+    expect(replayMentions.map((el) => el.closest('aside, [data-testid="replay-notice"], details')?.tagName ?? el.tagName)).toEqual([
+      'ASIDE', // banner label
+      'ASIDE', // banner body
+      'P', // the reminder itself
+      'DETAILS',
+    ]);
+
+    // Past tense for a replay: BART said this in the snapshot; nothing "currently" or "right now".
+    expect(screen.getByTestId('summary-said')).toHaveTextContent(/^BART said in this snapshot/);
+    expect(screen.getByTestId('calc-now')).toHaveTextContent(/^BART said in this snapshot/);
+    // The history is named by its snapshot time, not as "the last N minutes".
+    expect(await within(history()).findByTestId('history-summary')).toHaveTextContent(
+      /^In the \d+ minutes before the 9:59:23 AM snapshot, /,
+    );
+    expect(document.body.textContent).not.toMatch(/currently says|right now|\bCurrent\b|Over the last/);
+    // Still clear that the forecast concerns BART's final published ETA, not a physical arrival.
+    expect(screen.getByTestId('forecast')).toHaveTextContent('Model forecast of BART’s last published ETA, not an observed arrival.');
 
     const text = document.body.textContent ?? '';
     expect(text).not.toMatch(/simulat/i);

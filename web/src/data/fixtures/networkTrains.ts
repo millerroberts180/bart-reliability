@@ -1,11 +1,11 @@
-// Simulated trains and histories for the full-network fixture. Destinations and lines
-// follow each station's real service pattern (network.ts); every number is generated
-// deterministically from the station, direction and position, so reloads match.
+// Simulated trains and histories for the full-network fixture. Destinations, lines and
+// platforms follow each station's real service pattern (network.ts); every number is
+// generated deterministically from the station, boarding group and position, so reloads match.
 
 import { NETWORK_SERVICE } from './network';
 import type { SimulatedHistory, SimulatedTrain } from './simulated';
 
-/** Upcoming trains listed per station and direction in the full network. */
+/** Upcoming trains listed per station and boarding group in the full network. */
 export const NETWORK_TRAIN_COUNT = 20;
 
 /** FNV-1a: a small, stable string hash. */
@@ -20,15 +20,15 @@ function hash(text: string): number {
 
 const CAR_COUNTS = [8, 9, 10, null] as const;
 
-/** Undefined when the station has no service in that direction. */
-export function networkTrains(stationId: string, directionId: string): SimulatedTrain[] | undefined {
-  const service = NETWORK_SERVICE[`${stationId}:${directionId}`];
+/** Undefined when the station has no such boarding group. */
+export function networkTrains(stationId: string, groupId: string): SimulatedTrain[] | undefined {
+  const service = NETWORK_SERVICE[`${stationId}:${groupId}`];
   if (!service) return undefined;
   const fallback = service[0];
   if (!fallback) return undefined;
   return Array.from({ length: NETWORK_TRAIN_COUNT }, (_, i) => {
     const pattern = service[i % service.length] ?? fallback;
-    const h = hash(`${stationId}:${directionId}:${i}`);
+    const h = hash(`${stationId}:${groupId}:${i}`);
     const revision = Math.round((((h >>> 3) % 241) - 60) / 5) * 5; // −60 … +180 s
     const spread = 20 + ((h >>> 9) % 90);
     return {
@@ -36,6 +36,7 @@ export function networkTrains(stationId: string, directionId: string): Simulated
       lineName: pattern.lineName,
       headsign: pattern.headsign,
       carCount: CAR_COUNTS[h % CAR_COUNTS.length] ?? null,
+      platform: pattern.platform,
       // About every 2¾ minutes, in order, so the list stays chronological.
       etaSeconds: 75 + i * 165 + ((h >>> 5) % 60),
       revisionSeconds: revision,

@@ -14,10 +14,18 @@
 .site-header__inner {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-2) var(--space-6);
-  padding-block: var(--space-4);
+  gap: 0 var(--space-6);
+  padding-block: var(--space-2);
+}
+
+/* The wordmark and every navigation link are at least 44px tall, for touch. */
+.wordmark,
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
 }
 
 .wordmark {
@@ -32,15 +40,13 @@
 .site-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-5);
+  gap: 0 var(--space-5);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .site-nav a {
-  display: inline-block;
-  padding-block: var(--space-2);
   color: var(--color-ink-secondary);
   font-family: var(--font-display);
   font-size: var(--text-small);
@@ -50,6 +56,17 @@
 .site-nav a:hover {
   color: var(--color-ink);
   text-decoration: underline;
+}
+
+/* Narrow phones: tighter spacing keeps the three links on one row. */
+@media (max-width: 24rem) {
+  .site-nav {
+    column-gap: var(--space-3);
+  }
+
+  .site-nav a {
+    font-size: var(--text-label);
+  }
 }
 
 /* Shared small-caps measurement voice */
@@ -68,16 +85,19 @@
 
 /* ---------- Opening ---------- */
 
+/* Short on purpose: the forecast tool follows directly; the full question comes after it. */
 .opening {
   display: grid;
+  /* The column is the screen's width, never the width of the longest word. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     'title'
     'lede'
+    'summary'
     'cta'
-    'disclosure'
-    'prose';
-  gap: var(--space-5);
-  padding-block: var(--space-7) var(--space-8);
+    'disclosure';
+  gap: var(--space-4);
+  padding-block: var(--space-6) var(--space-7);
 }
 
 @media (min-width: 64rem) {
@@ -86,9 +106,10 @@
     grid-template-areas:
       'title disclosure'
       'lede disclosure'
-      'cta disclosure'
-      'prose .';
-    column-gap: var(--space-8);
+      'summary disclosure'
+      'cta disclosure';
+    gap: var(--space-5) var(--space-8);
+    padding-block: var(--space-7) var(--space-8);
     align-items: start;
   }
 }
@@ -96,6 +117,9 @@
 .opening__title {
   grid-area: title;
   max-width: 11ch;
+  /* Very large text on a narrow screen may break the long word rather than overflow. */
+  overflow-wrap: break-word;
+  hyphens: auto;
   font-size: var(--text-display);
   font-weight: 760;
   line-height: var(--leading-tight);
@@ -108,6 +132,12 @@
   color: var(--color-ink-secondary);
   font-size: var(--text-lede);
   line-height: var(--leading-lede);
+}
+
+.opening__summary {
+  grid-area: summary;
+  max-width: var(--measure);
+  color: var(--color-ink-secondary);
 }
 
 .opening__cta {
@@ -133,12 +163,25 @@
   background: var(--color-signal);
 }
 
-.opening__prose {
-  grid-area: prose;
+/* ---------- The question (after the example) ---------- */
+
+.question {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-7) var(--space-8);
+  border-top: var(--border-strong);
+}
+
+.question__title {
+  font-size: var(--text-heading);
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+.question__prose {
   display: grid;
   gap: var(--space-4);
   max-width: var(--measure);
-  padding-top: var(--space-2);
 }
 
 .disclosure {
@@ -203,8 +246,14 @@
 /* ---------- Example ---------- */
 
 .example {
-  padding-block: var(--space-8) var(--space-9);
+  padding-block: var(--space-6) var(--space-8);
   border-top: var(--border-strong);
+}
+
+@media (min-width: 40rem) {
+  .example {
+    padding-block: var(--space-8) var(--space-9);
+  }
 }
 
 .example__title {
@@ -230,8 +279,15 @@
 
 .example__grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-7);
-  margin-top: var(--space-7);
+  margin-top: var(--space-5);
+}
+
+@media (min-width: 40rem) {
+  .example__grid {
+    margin-top: var(--space-7);
+  }
 }
 
 @media (min-width: 64rem) {
@@ -425,6 +481,14 @@
   font-size: var(--text-small);
 }
 
+/* A correction to what a link asked for: marked so it is not missed. */
+.field__note[role='status'] {
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--color-watch);
+  background: var(--color-watch-wash);
+  color: var(--color-ink);
+}
+
 .choice-list {
   display: grid;
 }
@@ -471,6 +535,28 @@
   line-height: var(--leading-snug);
 }
 
+.choice-list--compact .choice {
+  flex-wrap: wrap;
+}
+
+/* Beside the label when there is room; below it with very large text. */
+.choice__label {
+  flex: 1 1 6rem;
+  min-width: 0;
+}
+
+/* The platform number, set like a station sign's: short, mono, at the end of the choice. */
+.choice__platform {
+  flex: none;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-ink-muted);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 input[type='radio'] {
   flex: none;
   width: 1.125rem;
@@ -486,6 +572,10 @@ fieldset:disabled .timetable__row {
 }
 
 /* Timetable */
+
+.timetable {
+  container-type: inline-size;
+}
 
 .timetable__head,
 .timetable__row {
@@ -531,11 +621,28 @@ fieldset:disabled .timetable__row {
   outline: none;
 }
 
-.timetable__eta {
-  font-family: var(--font-mono);
-  font-size: var(--text-small);
-  font-weight: 560;
+/* BART's ETA as a clock time first, the time away beneath it. */
+.timetable__time {
+  display: grid;
+  align-self: start;
+  padding-top: 0.1em;
+}
+
+.timetable__clock {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  line-height: var(--leading-snug);
+  white-space: nowrap;
+}
+
+.timetable__eta {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-snug);
   white-space: nowrap;
 }
 
@@ -560,16 +667,57 @@ fieldset:disabled .timetable__row {
   line-height: var(--leading-snug);
 }
 
+.timetable__forecast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.timetable__final {
+  color: var(--color-ink-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: var(--leading-snug);
+}
+
 .timetable__stability {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  margin-top: var(--space-1);
   color: var(--tone);
   font-family: var(--font-display);
   font-size: var(--text-label);
   font-weight: 600;
   line-height: var(--leading-snug);
+}
+
+.timetable__dest > .timetable__stability {
+  margin-top: var(--space-1);
+}
+
+/* Very large text: the time sits above the destination instead of beside it. */
+@container (max-width: 17rem) {
+  .timetable__head,
+  .timetable__row {
+    grid-template-columns: 1.125rem minmax(0, 1fr);
+  }
+
+  .timetable__head span:last-child {
+    display: none;
+  }
+
+  .timetable__time,
+  .timetable__dest {
+    grid-column: 2;
+  }
+
+  .timetable__row input {
+    grid-row: span 2;
+    align-self: start;
+    margin-top: 0.2em;
+  }
 }
 
 .timetable__row--placeholder {
@@ -603,6 +751,15 @@ fieldset:disabled .timetable__row {
   font-size: var(--text-small);
 }
 
+/* Terse: the result explains why. */
+.timetable__message--empty {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
 /* ---------- Readout ---------- */
 
 .readout {
@@ -634,6 +791,11 @@ fieldset:disabled .timetable__row {
   font-weight: 680;
   letter-spacing: -0.005em;
   line-height: var(--leading-snug);
+}
+
+/* Focus lands here from "View the next model forecast"; show it only for keyboard users. */
+.readout__title:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .readout__meta {
@@ -794,7 +956,128 @@ fieldset:disabled .timetable__row {
   font-size: var(--text-small);
 }
 
-/* Calculation: three labelled rows directly beneath the forecast */
+/* Summary: BART's ETA, the adjustment and stability, at the glance's precision */
+
+.summary {
+  display: grid;
+  margin: var(--space-5) 0 0;
+  border-top: var(--border-hair);
+}
+
+.summary__row {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+  border-bottom: var(--border-hair);
+}
+
+@container (min-width: 34rem) {
+  .summary__row {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: baseline;
+  }
+}
+
+.summary__label {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-snug);
+  text-transform: uppercase;
+}
+
+.summary dd {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: var(--leading-snug);
+}
+
+.summary__stability {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--tone);
+  font-weight: 700;
+}
+
+.summary__percent {
+  color: var(--color-ink-secondary);
+  font-family: var(--font-text);
+  font-weight: 400;
+}
+
+/* Expandable detail: clearly labelled, closed by default, never louder than the forecast */
+
+.more {
+  margin-top: var(--space-4);
+  border-top: var(--border-hair);
+}
+
+.more > summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--color-signal);
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.more[open] > summary {
+  margin-bottom: var(--space-2);
+}
+
+.more .calc {
+  margin-top: 0;
+}
+
+.more .details__item,
+.more .stability,
+.more .readout__caveat {
+  margin-top: var(--space-4);
+}
+
+.more .stability {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.more .facts {
+  margin-top: 0;
+}
+
+.next-forecast {
+  margin-top: var(--space-3);
+  color: var(--color-ink-secondary);
+  font-size: var(--text-small);
+}
+
+.link-button {
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-signal);
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Calculation: three labelled rows, in "How the forecast is calculated" */
 
 .calc {
   display: grid;
@@ -993,6 +1276,10 @@ fieldset:disabled .timetable__row {
   margin: var(--space-6) 0 0;
 }
 
+.facts--alerts {
+  margin-top: var(--space-5);
+}
+
 .facts__row {
   display: grid;
   gap: var(--space-1);
@@ -1108,6 +1395,45 @@ fieldset:disabled .timetable__row {
   font-size: var(--text-small);
 }
 
+/* A history with no change at all: one quiet rule and one line of text. */
+.history__flat {
+  display: grid;
+  gap: var(--space-2);
+  max-width: var(--measure);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-hair);
+}
+
+.history__flat-rule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 0.75rem;
+}
+
+.history__flat-line {
+  flex: 1;
+  border-top: 2px solid var(--color-ink);
+}
+
+.history__flat-dot {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--color-ink);
+}
+
+.history__flat-text {
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.history__chart-toggle {
+  justify-self: start;
+}
+
 /* Reserves the chart's height so loading, failure and empty states don't shift the page. */
 .history__frame {
   display: grid;
@@ -1192,12 +1518,22 @@ fieldset:disabled .timetable__row {
   touch-action: pan-y;
 }
 
+/* Marks only where something happened: a revision, either side of a gap, the latest. */
 .history-chart__point {
   fill: var(--color-ink);
   stroke: var(--color-surface);
   stroke-width: 1.5;
-  cursor: pointer;
-  outline: none;
+}
+
+.history-chart__point--gap {
+  fill: var(--color-surface);
+  stroke: var(--color-ink);
+}
+
+/* The chart is one slider over the snapshots; its focus ring frames the plot. */
+.history-chart__svg:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 /* The inspected point gets a ring; keyboard focus makes it heavier. */
@@ -1208,7 +1544,7 @@ fieldset:disabled .timetable__row {
   pointer-events: none;
 }
 
-.history-chart__svg:has(.history-chart__point:focus-visible) .history-chart__ring {
+.history-chart__svg:focus-visible .history-chart__ring {
   stroke-width: 3;
 }
 
@@ -1419,19 +1755,10 @@ fieldset:disabled .timetable__row {
   height: 0.5rem;
 }
 
-.replay-tag {
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-signal);
-  color: var(--color-signal);
-}
-
-.replay-tag::before {
-  background: var(--color-signal);
-}
-
 /* A stale snapshot keeps its numbers visible but withdraws their emphasis. */
 .is-stale .forecast__clock,
 .is-stale .forecast__away,
+.is-stale .summary__stability,
 .is-stale .stability__class,
 .is-stale .stability__percent {
   color: var(--color-ink-muted);

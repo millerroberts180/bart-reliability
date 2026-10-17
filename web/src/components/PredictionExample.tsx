@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import { formatMoment } from '../domain/eta';
-import type { PredictionResponse, Station } from '../domain/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { correctionNote, resolveBoardingGroup, sameId } from '../domain/boardingSelection';
+import { hasForecast, type PredictionResponse, type Station, type TrainPrediction } from '../domain/types';
 import { usePredictionEnvironment } from '../data/PredictionClientContext';
 import { clientKey } from '../data/clientKey';
 import { useRecentStations } from '../hooks/useRecentStations';
 import { useRequest } from '../hooks/useRequest';
-import { readUrlSelection, writeUrlSelection } from '../hooks/useUrlSelection';
+import { readUrlSelection, useUrlNavigation, writeUrlSelection, type UrlSelection } from '../hooks/useUrlSelection';
 import { EXAMPLE_HEADING_ID } from './ExampleLink';
 import { EtaHistory, type HistorySubject } from './EtaHistory';
-import { PredictionReadout, type ReadoutState } from './PredictionReadout';
+import { PredictionReadout, READOUT_TITLE_ID, type NextForecast, type ReadoutState } from './PredictionReadout';
 import { StationPicker } from './StationPicker';
 import { TrainTimetable } from './TrainTimetable';
 
@@ -18,13 +18,14 @@ export interface ReceivedPredictions {
   receivedAt: Date;
 }
 
-const sameId = (a: string, b: string | null) => b !== null && a.toLowerCase() === b.toLowerCase();
+/** What the page has been asked to show; `fromUrl` while it still comes from the address. */
+interface Requested extends UrlSelection {
+  fromUrl: boolean;
+}
 
 export function PredictionExample() {
   const { client, now } = usePredictionEnvironment();
   const { recentIds, remember } = useRecentStations();
-  // The URL seeds the first choice; after that the page owns it and keeps the URL in step.
-  const [initialUrl] = useState(readUrlSelection);
 
   const loadStations = useCallback((signal: AbortSignal) => client.listStations(signal), [client]);
   const { state: stationsState, retry: retryStations } = useRequest<Station[]>(
@@ -33,54 +34,81 @@ export function PredictionExample() {
   );
   const stations = stationsState.status === 'success' ? stationsState.data : [];
 
-  const [stationId, setStationId] = useState<string | null>(initialUrl.station);
-  const [directionId, setDirectionId] = useState<string | null>(initialUrl.direction);
+  // The URL seeds the choice; after that the page owns it and keeps the URL in step.
+  const [requested, setRequested] = useState<Requested>(() => ({ ...readUrlSelection(), fromUrl: true }));
   const [trainId, setTrainId] = useState<string | null>(null);
 
   // Fall back safely whenever a choice is unset, unknown or no longer exists: to the
   // first station the active client lists (the API's order in HTTP mode).
-  const station = stations.find((s) => sameId(s.id, stationId)) ?? stations[0];
-  const direction = station?.directions.find((d) => sameId(d.id, directionId)) ?? station?.directions[0];
-  const unknownUrlStation =
-    stations.length > 0 && initialUrl.station !== null && stationId === initialUrl.station && !stations.some((s) => sameId(s.id, stationId))
-      ? initialUrl.station
+  const requestedStation = stations.find((s) => sameId(s.id, requested.station));
+  const station = requestedStation ?? stations[0];
+  // A boarding group asked for at an unknown station does not apply to its stand-in.
+  const appliesHere = Boolean(requestedStation) || requested.station === null;
+  const resolution = station
+    ? resolveBoardingGroup(station, appliesHere ? requested : { boarding: null, legacyDirection: null })
+    : { group: undefined, correction: null };
+  const group = resolution.group;
+
+  // Notes explain only what the address asked for, and only once stations have loaded.
+  const stationNote =
+    requested.fromUrl && station && requested.station !== null && !requestedStation
+      ? `Station “${requested.station}” isn’t in the list, so ${station.name} is shown instead.`
+      : null;
+  const groupNote =
+    requested.fromUrl && station && group && resolution.correction
+      ? correctionNote(resolution.correction, station, group)
       : null;
 
-  // Keep ?station=…&direction=… in step with what is shown, correcting invalid values.
+  // Keep ?station=…&boarding=… in step with what is shown, correcting invalid values.
+  const shown = useRef<{ station: string; boarding: string } | null>(null);
   useEffect(() => {
-    if (station && direction) writeUrlSelection({ station: station.id, direction: direction.id });
-  }, [station, direction]);
+    if (!station || !group) return;
+    shown.current = { station: station.id, boarding: group.id };
+    writeUrlSelection(shown.current);
+  }, [station, group]);
 
-  const predictionsKey = station && direction ? `${clientKey(client)}:${station.id}:${direction.id}` : null;
+  // Back and forward restore whatever the address then says, so the page and the URL
+  // can never disagree. An address that matches what is shown changes nothing.
+  useUrlNavigation((selection) => {
+    const current = shown.current;
+    if (current && sameId(current.station, selection.station) && sameId(current.boarding, selection.boarding)) return;
+    setRequested({ ...selection, fromUrl: true });
+    setTrainId(null);
+  });
+
+  const predictionsKey = station && group ? `${clientKey(client)}:${station.id}:${group.id}` : null;
   const loadPredictions = useCallback(
     async (signal: AbortSignal): Promise<ReceivedPredictions> => {
-      if (!station || !direction) throw new Error('No station selected.');
-      const response = await client.getPredictions(station.id, direction.id, signal);
+      if (!station || !group) throw new Error('No station selected.');
+      const response = await client.getPredictions(station.id, group.id, signal);
       return { response, receivedAt: now() };
     },
-    [client, now, station, direction],
+    [client, now, station, group],
   );
   const { state: predictionsState, retry: retryPredictions } = useRequest(predictionsKey, loadPredictions);
 
   const trains = predictionsState.status === 'success' ? predictionsState.data.response.trains : [];
-  const replayAsOf = predictionsState.status === 'success' ? (predictionsState.data.response.replay?.asOf ?? null) : null;
+  // The earliest train is chosen by default; a later one only when the visitor picks it.
   const train = trains.find((t) => t.predictionId === trainId) ?? trains[0];
+
+  const viewForecast = (target: TrainPrediction) => {
+    setTrainId(target.predictionId);
+    // The button that was pressed goes away, so focus moves to the result it opened.
+    requestAnimationFrame(() => document.getElementById(READOUT_TITLE_ID)?.focus());
+  };
 
   let readout: ReadoutState;
   if (stationsState.status === 'error') {
     readout = { kind: 'error', retry: retryStations };
-  } else if (!station || !direction || predictionsState.status === 'loading') {
+  } else if (!station || !group || predictionsState.status === 'loading') {
     readout = { kind: 'loading' };
   } else if (predictionsState.status === 'error') {
     readout = { kind: 'error', retry: retryPredictions };
   } else if (!train) {
-    readout = {
-      kind: 'empty',
-      unplacedTrainCount: predictionsState.data.response.unplacedTrainCount,
-      endsHere: direction.destinations.some((d) => sameName(d, station.name)),
-    };
+    const { unplacedTrainCount, terminatingTrainCount } = predictionsState.data.response;
+    readout = { kind: 'empty', unplacedTrainCount, terminatingTrainCount };
   } else {
-    readout = { kind: 'ready', received: predictionsState.data, train };
+    readout = { kind: 'ready', received: predictionsState.data, train, nextForecast: nextForecastFor(train, trains) };
   }
 
   const history: HistorySubject =
@@ -96,10 +124,7 @@ export function PredictionExample() {
         <h2 id={EXAMPLE_HEADING_ID} className="example__title" tabIndex={-1}>
           Try an ETA forecast
         </h2>
-        <p>
-          Choose a station, a direction and an upcoming train. The result shows what BART says now, how much the model
-          expects BART to change that estimate, and the likely final published ETA. {sourceSentence(client.source, replayAsOf)}
-        </p>
+        <p>Choose where you’re boarding, which way you’re going and a train.</p>
       </div>
 
       <div className="example__grid">
@@ -110,50 +135,67 @@ export function PredictionExample() {
               selected={station}
               recentIds={recentIds}
               onSelect={(s) => {
-                setStationId(s.id);
-                setDirectionId(null);
+                setRequested({ station: s.id, boarding: null, legacyDirection: null, fromUrl: false });
                 setTrainId(null);
                 remember(s.id);
               }}
             />
-            {unknownUrlStation && station && (
+            {stationNote && (
               <p className="field__note" role="status">
-                Station “{unknownUrlStation}” isn’t in the list, so {station.name} is shown instead.
+                {stationNote}
               </p>
             )}
           </div>
 
           <fieldset className="field" disabled={!station}>
-            <legend className="field__label">Direction</legend>
+            <legend className="field__label">Which way are you going?</legend>
             <div className="choice-list choice-list--compact">
-              {(station?.directions ?? []).map((d) => (
-                <label key={d.id} className="choice">
+              {(station?.boardingGroups ?? []).map((g) => (
+                <label key={g.id} className="choice">
                   <input
                     type="radio"
-                    name="direction"
-                    value={d.id}
-                    checked={d.id === direction?.id}
+                    name="boarding"
+                    value={g.id}
+                    checked={g.id === group?.id}
                     onChange={() => {
-                      setDirectionId(d.id);
+                      if (!station) return;
+                      setRequested({ station: station.id, boarding: g.id, legacyDirection: null, fromUrl: false });
                       setTrainId(null);
                     }}
                   />
-                  <span>{d.label}</span>
+                  <span className="choice__label">{g.label}</span>
+                  {g.platform && (
+                    <span className="choice__platform">
+                      <span className="visually-hidden">,</span> Platform {g.platform}
+                    </span>
+                  )}
                 </label>
               ))}
             </div>
+            {station?.endOfLine && (
+              <p className="field__note">
+                {station.name} is the end of the line. Trains arriving here end their trips, so only trains leaving are
+                listed.
+              </p>
+            )}
+            {groupNote && (
+              <p className="field__note" role="status">
+                {groupNote}
+              </p>
+            )}
           </fieldset>
 
           <TrainTimetable
-            key={`${station?.id ?? ''}:${direction?.id ?? ''}`}
+            key={`${station?.id ?? ''}:${group?.id ?? ''}`}
             state={predictionsState.status === 'success' ? (trains.length ? 'ready' : 'empty') : predictionsState.status}
             trains={trains}
             selectedId={train?.predictionId ?? null}
+            groupPlatform={group?.platform ?? null}
             onSelect={setTrainId}
           />
         </form>
 
-        <PredictionReadout state={readout} stationName={station?.name ?? ''} directionLabel={direction?.label ?? ''} />
+        <PredictionReadout state={readout} stationName={station?.name ?? ''} group={group} onViewForecast={viewForecast} />
       </div>
 
       <EtaHistory subject={history} stationName={station?.name ?? ''} />
@@ -161,15 +203,15 @@ export function PredictionExample() {
   );
 }
 
-/** Station names and destinations differ in spacing ("Dublin / Pleasanton", "Dublin/Pleasanton"). */
-function sameName(a: string, b: string): boolean {
-  const key = (s: string) => s.replace(/\s+/g, '').toLowerCase();
-  return key(a) === key(b);
-}
-
-/** Says where the values come from; replay data is named as such and never as live. */
-function sourceSentence(source: 'simulated' | 'api', replayAsOf: string | null): string {
-  if (source === 'simulated') return 'All values are simulated.';
-  if (replayAsOf) return `Values are a historical replay of recorded BART data as of ${formatMoment(replayAsOf)}, not live.`;
-  return 'Values come from the prediction API and are labelled with how they were produced.';
+/**
+ * For a train without a model forecast, the next train after it that has one (or,
+ * failing that, the earliest one that has). It is offered as an explicit choice, never
+ * selected for the visitor.
+ */
+function nextForecastFor(train: TrainPrediction, trains: TrainPrediction[]): NextForecast | null {
+  if (hasForecast(train)) return null;
+  const later = trains.slice(trains.indexOf(train) + 1).find(hasForecast);
+  if (later) return { train: later, later: true };
+  const earlier = trains.find(hasForecast);
+  return earlier ? { train: earlier, later: false } : null;
 }

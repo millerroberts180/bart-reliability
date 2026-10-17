@@ -2,6 +2,7 @@ import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { formatClock } from '../domain/eta';
 import { describeObservation, type HistoryAnalysis, type HistoryObservation } from '../domain/history';
 import { useElementWidth } from '../hooks/useElementWidth';
+import { useRootFontScale } from '../hooks/useRootFontScale';
 
 export interface FinalReference {
   /** Likely final published ETA (clock time). */
@@ -14,8 +15,10 @@ interface HistoryChartProps {
   analysis: HistoryAnalysis;
   /** The model's forecast, or null for a train without one (BART's ETA only). */
   final: FinalReference | null;
-  /** Accessible description of what is charted (station and train). */
+  /** Accessible name of what is charted (station and train). */
   label: string;
+  /** Id of the chart's one description (what is plotted, over what span). */
+  describedBy?: string;
 }
 
 const MINUTE = 60_000;
@@ -49,24 +52,51 @@ function ticks(start: number, end: number, step: number): number[] {
   return out;
 }
 
+/** Which snapshots get a visible mark: only where something happened, never every minute. */
+export type MarkerKind = 'revision' | 'gap' | 'latest';
+
+export function markerKind(analysis: HistoryAnalysis, i: number): MarkerKind | null {
+  const { observations } = analysis;
+  const o = observations[i];
+  if (!o) return null;
+  if (i === observations.length - 1) return 'latest';
+  // Either side of a gap in the feed, so a lone snapshot between gaps is still visible.
+  if (o.afterGap || observations[i + 1]?.afterGap) return 'gap';
+  if (o.changeSeconds !== null && o.changeSeconds !== 0) return 'revision';
+  return null;
+}
+
 /**
  * Step chart of BART's published arrival time at each feed snapshot. Up = BART
  * moved the ETA later, down = earlier, flat = it held. A break in the line is a
  * gap in the feed. The dashed line is the model's likely final published ETA, drawn
- * only for a train with a model forecast.
+ * only for a train with a model forecast. Marks appear only at revisions, either side
+ * of a gap and at the latest snapshot; the snapshot being inspected gets a ring.
+ *
+ * For assistive technology the chart is one slider over the snapshots: its name says
+ * what is charted and its value is the inspected snapshot in words, so arrow keys,
+ * Home and End move through every snapshot without exposing each point separately.
  */
-export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
+export function HistoryChart({ analysis, final, label, describedBy }: HistoryChartProps) {
   const [containerRef, width] = useElementWidth<HTMLDivElement>(640);
   const { observations, segments } = analysis;
   const latestIndex = observations.length - 1;
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const active = observations[activeIndex ?? latestIndex];
-  const pointRefs = useRef<(SVGCircleElement | null)[]>([]);
+  const index = activeIndex ?? latestIndex;
+  const active = observations[index];
+  const svgRef = useRef<SVGSVGElement>(null);
 
-  const compact = width < 480;
-  const height = compact ? 250 : 290;
+  // Text is sized in rem, so the space reserved for labels grows with the visitor's text size.
+  const text = useRootFontScale();
+  const compact = width < 480 * text;
+  const height = (compact ? 250 : 290) + 40 * (text - 1);
   // The right gutter holds the range bracket and the end labels ("Latest", "Likely final").
-  const margin = { top: 30, right: compact ? 80 : 124, bottom: 50, left: compact ? 44 : 52 };
+  const margin = {
+    top: 30 * text,
+    right: (compact ? 80 : 124) * text,
+    bottom: 50 * text,
+    left: (compact ? 44 : 52) * text,
+  };
   const plotW = Math.max(40, width - margin.left - margin.right);
   const plotH = height - margin.top - margin.bottom;
 
@@ -115,7 +145,7 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
   const latestY = y(ms(last.publishedEtaAt));
   let latestLabelY = latestY;
   let finalLabelY = finalY ?? latestY;
-  const LABEL_GAP = 22; // label line height plus breathing room
+  const LABEL_GAP = 22 * text; // label line height plus breathing room
   if (finalY !== null && Math.abs(latestLabelY - finalLabelY) < LABEL_GAP) {
     const mid = (latestLabelY + finalLabelY) / 2;
     const finalAbove = finalY <= latestY;
@@ -125,17 +155,21 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
   const gutterX = margin.left + plotW + 10;
   const labelX = gutterX + 12;
 
-  const focusPoint = (i: number) => {
-    const clamped = Math.max(0, Math.min(latestIndex, i));
-    setActiveIndex(clamped);
-    pointRefs.current[clamped]?.focus();
-  };
-  const onKeyDown = (e: KeyboardEvent, i: number) => {
-    const moves: Record<string, number> = { ArrowLeft: i - 1, ArrowDown: i - 1, ArrowRight: i + 1, ArrowUp: i + 1, Home: 0, End: latestIndex };
+  const onKeyDown = (e: KeyboardEvent<SVGSVGElement>) => {
+    const moves: Record<string, number> = {
+      ArrowLeft: index - 1,
+      ArrowDown: index - 1,
+      ArrowRight: index + 1,
+      ArrowUp: index + 1,
+      PageDown: index - 10,
+      PageUp: index + 10,
+      Home: 0,
+      End: latestIndex,
+    };
     const next = moves[e.key];
     if (next === undefined) return;
     e.preventDefault();
-    focusPoint(next);
+    setActiveIndex(Math.max(0, Math.min(latestIndex, next)));
   };
   const nearest = (clientX: number, rect: DOMRect) => {
     const t = xStart + ((clientX - rect.left - margin.left) / plotW) * (xEnd - xStart);
@@ -150,16 +184,24 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
     const svg = e.currentTarget.ownerSVGElement;
     if (svg) setActiveIndex(nearest(e.clientX, svg.getBoundingClientRect()));
   };
-  const tabStop = activeIndex ?? latestIndex;
 
   return (
     <div className="history-chart" ref={containerRef}>
       <svg
+        ref={svgRef}
         className="history-chart__svg"
         width={width}
         height={height}
-        role="group"
-        aria-label={`${label}. Step chart of BART’s published arrival time at each feed snapshot; up means later. Use the arrow keys to move between snapshots.`}
+        tabIndex={0}
+        role="slider"
+        aria-label={label}
+        aria-describedby={describedBy}
+        aria-orientation="horizontal"
+        aria-valuemin={1}
+        aria-valuemax={observations.length}
+        aria-valuenow={index + 1}
+        aria-valuetext={active ? describeObservation(active, active === last) : undefined}
+        onKeyDown={onKeyDown}
       >
         {/* Horizontal grid and y-axis: published arrival time */}
         <g aria-hidden="true">
@@ -179,18 +221,18 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
             y2={margin.top + plotH}
           />
           {xTicks.map((t) => (
-            <text key={t} className="history-chart__tick" x={x(t)} y={margin.top + plotH + 20} textAnchor="middle">
+            <text key={t} className="history-chart__tick" x={x(t)} y={margin.top + plotH + 20 * text} textAnchor="middle">
               {tickLabel(t)}
             </text>
           ))}
-          <text className="history-chart__axis-title" x={0} y={16}>
+          <text className="history-chart__axis-title" x={0} y={16 * text}>
             {compact ? 'Published ETA' : 'BART’s published ETA (higher = later)'}
           </text>
           <text className="history-chart__axis-title" x={margin.left + plotW} y={height - 6} textAnchor="end">
             Snapshot time
           </text>
           {observations.length === 1 && (
-            <text className="history-chart__tick" x={x(xEnd)} y={margin.top + plotH + 20} textAnchor="end">
+            <text className="history-chart__tick" x={x(xEnd)} y={margin.top + plotH + 20 * text} textAnchor="end">
               {tickLabel(xEnd)}
             </text>
           )}
@@ -246,7 +288,10 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
           width={plotW}
           height={plotH}
           onPointerMove={onPointer}
-          onPointerDown={onPointer}
+          onPointerDown={(e) => {
+            onPointer(e);
+            svgRef.current?.focus({ preventScroll: true });
+          }}
           aria-hidden="true"
         />
 
@@ -260,26 +305,21 @@ export function HistoryChart({ analysis, final, label }: HistoryChartProps) {
           />
         )}
 
-        {observations.map((o, i) => {
-          const isActive = active === o;
-          return (
-            <circle
-              key={o.feedTimestamp}
-              ref={(el) => {
-                pointRefs.current[i] = el;
-              }}
-              className={`history-chart__point${i === latestIndex ? ' history-chart__point--latest' : ''}${isActive ? ' is-active' : ''}`}
-              cx={x(ms(o.feedTimestamp))}
-              cy={y(ms(o.publishedEtaAt))}
-              r={i === latestIndex ? 5 : 3.5}
-              tabIndex={i === tabStop ? 0 : -1}
-              role="img"
-              aria-label={describeObservation(o, i === latestIndex)}
-              onFocus={() => setActiveIndex(i)}
-              onKeyDown={(e) => onKeyDown(e, i)}
-            />
-          );
-        })}
+        <g aria-hidden="true">
+          {observations.map((o, i) => {
+            const kind = markerKind(analysis, i);
+            if (!kind) return null;
+            return (
+              <circle
+                key={o.feedTimestamp}
+                className={`history-chart__point history-chart__point--${kind}${active === o ? ' is-active' : ''}`}
+                cx={x(ms(o.feedTimestamp))}
+                cy={y(ms(o.publishedEtaAt))}
+                r={kind === 'latest' ? 5 : 3.5}
+              />
+            );
+          })}
+        </g>
       </svg>
 
       {active && (

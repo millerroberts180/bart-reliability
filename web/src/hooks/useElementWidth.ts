@@ -12,7 +12,8 @@ export function useElementWidth<T extends HTMLElement>(fallback: number) {
     const el = ref.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(([entry]) => {
-      if (entry) setWidth(Math.round(entry.contentRect.width));
+      // A hidden element measures 0; keep the last real width until it is shown again.
+      if (entry && entry.contentRect.width > 0) setWidth(Math.round(entry.contentRect.width));
     });
     observer.observe(el);
     return () => observer.disconnect();

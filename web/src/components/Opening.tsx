@@ -33,11 +33,15 @@ export function Opening() {
   const asOf = source.kind === 'replay' ? formatMoment(source.asOf) : '';
 
   return (
-    <section className="opening" id="question" aria-labelledby="page-title">
+    <section className="opening" aria-labelledby="page-title">
       <h1 id="page-title" className="opening__title">
         ETA Reliability
       </h1>
       <p className="opening__lede">How stable are BART’s published arrival estimates?</p>
+      <p className="opening__summary">
+        A model of how BART will revise a train’s published ETA before it arrives.{' '}
+        <strong>It does not predict when a train physically arrives.</strong>
+      </p>
       <p className="opening__cta">
         <ExampleLink className="cta">{disclosure.cta}</ExampleLink>
       </p>
@@ -57,20 +61,6 @@ export function Opening() {
           </button>
         )}
       </aside>
-
-      <div className="opening__prose">
-        <p>
-          This project studies how BART changes its published arrival estimates as a train approaches the platform.
-          BART publishes an estimated arrival time for every train and keeps updating it. A train shown as six
-          minutes away may become seven, then eight, before it reaches the platform.
-        </p>
-        <p>
-          This project predicts those changes: how far BART’s published ETA is likely to move, and how likely it is
-          to move by more than a minute. <strong>It does not predict when a train physically arrives.</strong> BART
-          publishes no independent record of arrivals, so the reference is BART’s own final published estimate for
-          each stop.
-        </p>
-      </div>
     </section>
   );
 }

@@ -35,8 +35,8 @@ function minuteHistory(minutes: number, start: number, changes: Record<number, n
   return history(points);
 }
 
-const summary = (points: PredictionHistoryPoint[], stale = false) =>
-  summarizeHistory(analyzeHistory(points, LATEST), { stale });
+const summary = (points: PredictionHistoryPoint[], anchored = false) =>
+  summarizeHistory(analyzeHistory(points, LATEST), { anchored });
 
 describe('analyzeHistory', () => {
   it('orders snapshots and drops any newer than the prediction’s snapshot', () => {

@@ -23,7 +23,15 @@ import { PredictionClientError, type PredictionClient } from './PredictionClient
  * Which response the mock gives for predictions. "live" is the normal case;
  * the others exist so every interface state can be reviewed and tested.
  */
-export type MockScenario = 'live' | 'loading' | 'error' | 'stale' | 'empty' | 'no-interval' | 'eta-only';
+export type MockScenario =
+  | 'live'
+  | 'loading'
+  | 'error'
+  | 'stale'
+  | 'empty'
+  | 'no-interval'
+  | 'eta-only'
+  | 'model-horizon';
 
 export const MOCK_SCENARIOS: readonly MockScenario[] = [
   'live',
@@ -33,7 +41,15 @@ export const MOCK_SCENARIOS: readonly MockScenario[] = [
   'empty',
   'no-interval',
   'eta-only',
+  'model-horizon',
 ];
+
+/**
+ * The real models serve only ETAs within this many seconds of these published-time
+ * horizons (docs/local_api.md); the "model-horizon" scenario applies the same rule.
+ */
+const SERVED_HORIZONS_SECONDS = [300, 600, 900];
+const HORIZON_TOLERANCE_SECONDS = 60;
 
 /**
  * Which response the mock gives for ETA history. "normal" follows each train's
@@ -77,7 +93,7 @@ export class MockPredictionClient implements PredictionClient {
   private readonly now: () => Date;
   private readonly latencyMs: number;
   /**
-   * Feed snapshot of the latest predictions response per station and direction, so
+   * Feed snapshot of the latest predictions response per station and boarding group, so
    * history ends exactly at the snapshot the visitor is looking at.
    */
   private readonly latestSnapshots = new Map<string, string>();
@@ -101,32 +117,32 @@ export class MockPredictionClient implements PredictionClient {
     return this.ready().then(() => this.respond(() => structuredClone(this.full().NETWORK_STATIONS), signal));
   }
 
-  getPredictions(stationId: string, directionId: string, signal?: AbortSignal): Promise<PredictionResponse> {
-    if (this.network !== 'full') return this.predictionsFor(stationId, directionId, signal);
-    return this.ready().then(() => this.predictionsFor(stationId, directionId, signal));
+  getPredictions(stationId: string, boardingGroupId: string, signal?: AbortSignal): Promise<PredictionResponse> {
+    if (this.network !== 'full') return this.predictionsFor(stationId, boardingGroupId, signal);
+    return this.ready().then(() => this.predictionsFor(stationId, boardingGroupId, signal));
   }
 
-  private predictionsFor(stationId: string, directionId: string, signal?: AbortSignal): Promise<PredictionResponse> {
+  private predictionsFor(stationId: string, groupId: string, signal?: AbortSignal): Promise<PredictionResponse> {
     if (this.scenario === 'loading') return this.never(signal);
     if (this.scenario === 'error') {
       return this.fail(new PredictionClientError('unavailable', 'The prediction service did not respond.'), signal);
     }
 
-    const fixture = this.trainsFor(stationId, directionId);
+    const fixture = this.trainsFor(stationId, groupId);
     if (!fixture) {
       return this.fail(
-        new PredictionClientError('not_found', `No direction ${directionId} at station ${stationId}.`),
+        new PredictionClientError('not_found', `No boarding group ${groupId} at station ${stationId}.`),
         signal,
       );
     }
 
     return this.respond(() => {
       const feedTimestamp = this.currentSnapshot();
-      this.latestSnapshots.set(`${stationId}:${directionId}`, feedTimestamp);
+      this.latestSnapshots.set(`${stationId}:${groupId}`, feedTimestamp);
       const trains =
         this.scenario === 'empty'
           ? []
-          : fixture.map((t) => toPrediction(t, stationId, directionId, feedTimestamp, this.scenario));
+          : fixture.map((t) => toPrediction(t, stationId, groupId, feedTimestamp, this.scenario));
       const alerts = (SIMULATED_ALERTS[stationId] ?? []).map(({ visibleForSeconds, ...alert }) => ({
         ...alert,
         visibleSince: addSeconds(feedTimestamp, -visibleForSeconds),
@@ -135,11 +151,12 @@ export class MockPredictionClient implements PredictionClient {
         dataProvenance: 'simulated' as const,
         replay: null,
         stationId,
-        directionId,
+        boardingGroupId: groupId,
         feedTimestamp,
         generatedAt: addSeconds(feedTimestamp, MODEL_LAG_SECONDS),
         trains,
         unplacedTrainCount: 0,
+        terminatingTrainCount: 0,
         alerts,
         model: { ...SIMULATED_MODEL },
       };
@@ -157,15 +174,15 @@ export class MockPredictionClient implements PredictionClient {
       return this.fail(new PredictionClientError('unavailable', 'The history service did not respond.'), signal);
     }
 
-    const [stationId, directionId, tripId] = predictionId.split(':');
-    const train = this.trainsFor(stationId ?? '', directionId ?? '')?.find((t) => t.tripId === tripId);
+    const [stationId, groupId, tripId] = predictionId.split(':');
+    const train = this.trainsFor(stationId ?? '', groupId ?? '')?.find((t) => t.tripId === tripId);
     const script = this.network === 'full' && train ? this.full().networkHistory(predictionId) : SIMULATED_HISTORY[predictionId];
     if (!train || !script) {
       return this.fail(new PredictionClientError('not_found', `Unknown prediction ${predictionId}.`), signal);
     }
 
     return this.respond(() => {
-      const latest = this.latestSnapshots.get(`${stationId}:${directionId}`) ?? this.currentSnapshot();
+      const latest = this.latestSnapshots.get(`${stationId}:${groupId}`) ?? this.currentSnapshot();
       const currentEtaAt = addSeconds(latest, train.etaSeconds);
       const missing = new Set([...(script.missing ?? []), ...(this.historyScenario === 'gaps' ? FORCED_GAP_MINUTES : [])]);
       let minutesAgo = Array.from({ length: script.snapshots }, (_, i) => script.snapshots - 1 - i).filter(
@@ -213,10 +230,10 @@ export class MockPredictionClient implements PredictionClient {
     return this.fullNetwork;
   }
 
-  private trainsFor(stationId: string, directionId: string): SimulatedTrain[] | undefined {
+  private trainsFor(stationId: string, groupId: string): SimulatedTrain[] | undefined {
     return this.network === 'full'
-      ? this.full().networkTrains(stationId, directionId)
-      : SIMULATED_TRAINS[`${stationId}:${directionId}`];
+      ? this.full().networkTrains(stationId, groupId)
+      : SIMULATED_TRAINS[`${stationId}:${groupId}`];
   }
 
   /** The newest feed snapshot for this scenario, placed against the clock. */
@@ -259,20 +276,22 @@ export class MockPredictionClient implements PredictionClient {
 function toPrediction(
   t: SimulatedTrain,
   stationId: string,
-  directionId: string,
+  groupId: string,
   feedTimestamp: string,
   scenario: MockScenario,
 ): TrainPrediction {
   const base = {
-    predictionId: `${stationId}:${directionId}:${t.tripId}`,
+    predictionId: `${stationId}:${groupId}:${t.tripId}`,
     tripId: t.tripId,
     lineName: t.lineName,
     headsign: t.headsign,
     carCount: t.carCount,
     currentEtaSeconds: t.etaSeconds,
     currentEtaAt: addSeconds(feedTimestamp, t.etaSeconds),
+    platform: t.platform,
   };
-  if (scenario === 'eta-only') {
+  const served = SERVED_HORIZONS_SECONDS.some((h) => Math.abs(t.etaSeconds - h) <= HORIZON_TOLERANCE_SECONDS);
+  if (scenario === 'eta-only' || (scenario === 'model-horizon' && !served)) {
     // Reviews how a train outside the model's support looks: BART's ETA only.
     return {
       ...base,

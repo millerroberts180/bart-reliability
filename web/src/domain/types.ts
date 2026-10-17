@@ -4,21 +4,31 @@
 // revise its own published ETA. Nothing here represents an observed arrival.
 // Timestamps are ISO 8601 strings in UTC; durations are whole seconds.
 
-/** A travel direction at a station, described by where its trains go. */
-export interface Direction {
-  /** GTFS direction_id as a string ("0" or "1"). */
+/**
+ * One way a train can leave a station: the trains a rider boards from one side of the
+ * line (docs/boarding_groups.md). Built from the schedule's platforms and neighbouring
+ * stations, never from GTFS direction_id, which each route defines for itself.
+ */
+export interface BoardingGroup {
+  /** Stable ID from the shape of the network, e.g. "to-SHAY" (toward South Hayward). */
   id: string;
-  /** Short label for the choice, e.g. "Toward Antioch and Richmond". */
+  /** Short label for the choice, e.g. "Toward Daly City and Richmond". */
   label: string;
-  /** Train headsigns served in this direction from this station. */
+  /** Train destinations served from this side of the station. */
   destinations: string[];
+  /** The platform every train in the group leaves from, or null when they use more than one. */
+  platform: string | null;
+  /** GTFS direction_id values of the group's trains: route-relative, read only to translate old ?direction= links. */
+  gtfsDirectionIds: string[];
 }
 
 export interface Station {
-  /** GTFS stop_id of the platform group, e.g. "EMBR". */
+  /** GTFS stop_id of the parent station, e.g. "EMBR". */
   id: string;
   name: string;
-  directions: Direction[];
+  boardingGroups: BoardingGroup[];
+  /** Every train here starts or ends its trip here (a terminal): none passes through. */
+  endOfLine: boolean;
 }
 
 /** Model view of how stable a published ETA is, derived from revisionProbability. */
@@ -57,6 +67,8 @@ interface TrainBase {
   currentEtaSeconds: number;
   /** BART's current published arrival estimate as a clock time. */
   currentEtaAt: string;
+  /** Scheduled platform at this station; null when it is not known for certain. */
+  platform: string | null;
 }
 
 /** A train the model supports: a forecast, with a range only when one can be supported. */
@@ -140,18 +152,23 @@ export interface PredictionResponse {
   /** Present exactly when dataProvenance is "historical_replay". */
   replay: ReplayInfo | null;
   stationId: string;
-  directionId: string;
+  boardingGroupId: string;
   /** BART feed snapshot the predictions were computed from. */
   feedTimestamp: string;
-  /** When the model produced these predictions (the model timestamp). */
+  /** When the model produced these predictions; in a replay, the replay time. */
   generatedAt: string;
   /** Upcoming trains in published-ETA order; empty when none are scheduled. */
   trains: TrainPrediction[];
   /**
-   * Trains the feed lists at this station that match no scheduled trip, so their
-   * direction is unknown and they are not in `trains`. Always 0 for simulated data.
+   * Trains the feed lists at this station that match no scheduled trip, so which way
+   * they leave is unknown and they are not in `trains`. Always 0 for simulated data.
    */
   unplacedTrainCount: number;
+  /**
+   * Trains the feed lists at this station whose trips end here: they cannot be boarded,
+   * so they are not in `trains`. Always 0 for simulated data.
+   */
+  terminatingTrainCount: number;
   alerts: AlertContext[];
   model: ModelMetadata;
 }

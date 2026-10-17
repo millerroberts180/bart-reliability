@@ -80,11 +80,24 @@ export function StationPicker({ stations, selected, recentIds, onSelect }: Stati
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, activeIndex, section]);
 
-  // A press outside the picker closes it without moving focus.
+  // A press outside the picker closes it. A press on another control keeps the focus
+  // that control takes; a press on empty space would leave focus nowhere (the search
+  // field is gone), so once the press is over, focus returns to Change.
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+      if (rootRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+      const settle = () => {
+        document.removeEventListener('pointerup', settle, true);
+        document.removeEventListener('pointercancel', settle, true);
+        window.setTimeout(() => {
+          const active = document.activeElement;
+          if (!active || active === document.body) changeRef.current?.focus();
+        }, 0);
+      };
+      document.addEventListener('pointerup', settle, true);
+      document.addEventListener('pointercancel', settle, true);
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);

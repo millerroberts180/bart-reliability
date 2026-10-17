@@ -3,9 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Describes the historical-replay site. A simulated (mock) build replaces the
+      description text at build time (vite.config.ts), so neither build misstates its data.
+      The canonical URL and a social image belong to deployment (docs/website_architecture.md).
+    -->
     <meta
       name="description"
-      content="ETA Reliability studies how BART changes its published arrival estimates as a train approaches. Prototype using simulated data."
+      content="A historical replay of recorded BART data, with a model of how BART revises a train’s published arrival estimate before it arrives. Not live, and not a prediction of physical arrival."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ETA Reliability" />
+    <meta property="og:title" content="ETA Reliability · How stable are BART’s published arrival estimates?" />
+    <meta
+      property="og:description"
+      content="A historical replay of recorded BART data, with a model of how BART revises a train’s published arrival estimate before it arrives. Not live, and not a prediction of physical arrival."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="ETA Reliability · How stable are BART’s published arrival estimates?" />
+    <meta
+      name="twitter:description"
+      content="A historical replay of recorded BART data, with a model of how BART revises a train’s published arrival estimate before it arrives. Not live, and not a prediction of physical arrival."
     />
     <meta name="theme-color" content="#f3f1ea" />
     <link
