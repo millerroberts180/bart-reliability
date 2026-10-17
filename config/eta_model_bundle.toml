@@ -1,0 +1,32 @@
+# Inference bundle for the ETA revision models (docs/model_serving.md). Every key is
+# required. The models, features and splits come from config/eta_model.toml; this file
+# only controls packaging and the provisional revision interval.
+
+model_name = "bart_eta_revision"
+# Bumped by hand when the served model line changes. The bundle version appends a
+# content hash, so every distinct bundle has a distinct version.
+model_line_version = "0.1.0"
+
+# Generated files only; git-ignored and replaced atomically on each build.
+output_dir = "data/models/eta_revision_bundle"
+
+[interval]
+# Horizon-aware residual interval: per published-time horizon bucket, empirical
+# quantiles of the residuals (actual minus predicted eta_revision_seconds) of the
+# selected regression model on the VALIDATION split. Test outcomes are never used to fit
+# it. Validation also selected the model, so the calibration is not independent of
+# model selection.
+nominal_coverage = 0.8
+
+# Predeclared availability rule, fixed before any test coverage was computed. The
+# interval is served only if every published-time horizon has at least this many
+# calibration examples ...
+min_calibration_examples_per_horizon = 1000
+# ... and its empirical test coverage is within this distance of nominal_coverage,
+# overall and for every horizon. Otherwise the interval is returned as unavailable.
+max_coverage_error = 0.05
+
+[verification]
+# Rows (evenly spaced over validation and test) re-predicted one record at a time at
+# build time; every validation and test row is checked in batch.
+single_record_parity_rows = 500

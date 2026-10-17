@@ -23,6 +23,8 @@ output_dir = "data/models/eta_revision"
 # horizon of an event shares its service date, so an event never spans two splits.
 # Only complete service dates are used: 2026-10-09 is a late-night tail and 2026-10-15
 # was still being collected at the snapshot cutoff.
+# 2026-10-14 has been used to evaluate the models and to decide interval availability:
+# it is not an untouched test day for later model versions, which need later dates.
 train = ["2026-10-10", "2026-10-12"]
 validation = ["2026-10-13", "2026-10-13"]
 test = ["2026-10-14", "2026-10-14"]

@@ -8,12 +8,13 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  python:
+    name: Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -22,7 +23,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e '.[dev,model]'
+          python -m pip install -e '.[dev,model,serve]'
 
       - name: Test
         run: pytest
@@ -32,3 +33,38 @@ jobs:
 
       - name: Format
         run: ruff format --check .
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # Exactly the versions in package-lock.json; fails if it is out of date.
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm run test
+
+      - name: Lint and type-check
+        run: npm run lint
+
+      - name: Build (simulated data)
+        run: npm run build
+
+      # Compile-time check of the replay build; no API is contacted.
+      - name: Build (HTTP mode)
+        run: npm run build
+        env:
+          VITE_DATA_MODE: http
+          VITE_API_BASE_URL: http://127.0.0.1:8000

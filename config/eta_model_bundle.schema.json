@@ -1,0 +1,483 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BART ETA revision inference bundle metadata",
+  "description": "Committed contract for bundle.json, written by `bart-eta-bundle build` into the git-ignored bundle directory. Constants pin the feature schema (names, types and order) and the input domain, which change only with a new feature_schema_version, and the fallback policy, which changes only with a new bundle_format_version. Instance values (hashes, versions, cutoffs, interval calibration, verification) are validated by type. See docs/model_serving.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifacts",
+    "bundle_format_version",
+    "bundle_id",
+    "categorical_handling",
+    "context_fields",
+    "domain",
+    "environment",
+    "fallback_behavior",
+    "feature_schema_version",
+    "features",
+    "interval",
+    "model",
+    "model_configuration",
+    "producer",
+    "producer_version",
+    "training_data",
+    "verification"
+  ],
+  "properties": {
+    "producer": {
+      "const": "bart-reliability"
+    },
+    "producer_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bundle_format_version": {
+      "const": 2
+    },
+    "bundle_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "feature_schema_version": {
+      "const": "eta-revision-features-1"
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "name",
+        "regression",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+\\+[0-9a-f]{12}$"
+        },
+        "regression": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "artifact",
+            "candidate",
+            "estimator",
+            "family",
+            "refitted_on_validation",
+            "selected_by"
+          ],
+          "properties": {
+            "candidate": {
+              "type": "string",
+              "minLength": 1
+            },
+            "family": {
+              "enum": [
+                "linear",
+                "tree"
+              ]
+            },
+            "estimator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "selected_by": {
+              "type": "string",
+              "minLength": 1
+            },
+            "refitted_on_validation": {
+              "const": false
+            },
+            "artifact": {
+              "enum": [
+                "regression.joblib",
+                "classification.joblib"
+              ]
+            }
+          }
+        },
+        "classification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "artifact",
+            "candidate",
+            "estimator",
+            "family",
+            "refitted_on_validation",
+            "selected_by"
+          ],
+          "properties": {
+            "candidate": {
+              "type": "string",
+              "minLength": 1
+            },
+            "family": {
+              "enum": [
+                "linear",
+                "tree"
+              ]
+            },
+            "estimator": {
+              "type": "string",
+              "minLength": 1
+            },
+            "selected_by": {
+              "type": "string",
+              "minLength": 1
+            },
+            "refitted_on_validation": {
+              "const": false
+            },
+            "artifact": {
+              "enum": [
+                "regression.joblib",
+                "classification.joblib"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bytes",
+          "filename",
+          "role",
+          "sha256"
+        ],
+        "properties": {
+          "role": {
+            "enum": [
+              "regression",
+              "classification"
+            ]
+          },
+          "filename": {
+            "enum": [
+              "regression.joblib",
+              "classification.joblib"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duckdb",
+        "joblib",
+        "numpy",
+        "pandas",
+        "python",
+        "scikit-learn"
+      ],
+      "properties": {
+        "python": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scikit-learn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "numpy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pandas": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joblib": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duckdb": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "features": {
+      "const": [
+        {
+          "position": 0,
+          "name": "published_horizon_s",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 1,
+          "name": "published_minus_scheduled_s",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 2,
+          "name": "stop_position",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 3,
+          "name": "stops_away",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 4,
+          "name": "seconds_since_first_seen",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 5,
+          "name": "eta_change_last_snapshot_s",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 6,
+          "name": "eta_change_last_5min_s",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 7,
+          "name": "eta_change_since_first_seen_s",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 8,
+          "name": "prior_change_count",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 9,
+          "name": "prior_abs_change_sum_s",
+          "kind": "numeric",
+          "input_type": "number",
+          "model_dtype": "float64"
+        },
+        {
+          "position": 10,
+          "name": "published_horizon_bucket_s",
+          "kind": "categorical",
+          "input_type": "integer",
+          "model_dtype": "string"
+        },
+        {
+          "position": 11,
+          "name": "route_short_name",
+          "kind": "categorical",
+          "input_type": "string",
+          "model_dtype": "string"
+        },
+        {
+          "position": 12,
+          "name": "stop_id",
+          "kind": "categorical",
+          "input_type": "string",
+          "model_dtype": "string"
+        },
+        {
+          "position": 13,
+          "name": "hour_local",
+          "kind": "categorical",
+          "input_type": "integer",
+          "model_dtype": "string"
+        },
+        {
+          "position": 14,
+          "name": "service_day_type",
+          "kind": "categorical",
+          "input_type": "string",
+          "model_dtype": "string"
+        }
+      ]
+    },
+    "context_fields": {
+      "const": [
+        {
+          "name": "feature_schema_version",
+          "input_type": "string",
+          "description": "must equal the bundle's feature_schema_version"
+        },
+        {
+          "name": "snapshot_collected_at",
+          "input_type": "timestamp",
+          "description": "ISO-8601 time with UTC offset at which the feed snapshot was collected"
+        },
+        {
+          "name": "published_eta",
+          "input_type": "timestamp",
+          "description": "ISO-8601 arrival time BART publishes for this trip and stop in that snapshot"
+        }
+      ]
+    },
+    "domain": {
+      "const": {
+        "published_horizon_buckets_s": [
+          300,
+          600,
+          900
+        ],
+        "horizon_tolerance_s": 60,
+        "hour_local_range": [
+          0,
+          23
+        ],
+        "timezone": "America/Los_Angeles"
+      }
+    },
+    "categorical_handling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "input",
+        "known_categories",
+        "regression"
+      ],
+      "properties": {
+        "input": {
+          "const": "Categorical values are strings; published_horizon_bucket_s and hour_local are integers, converted to their decimal strings for the model."
+        },
+        "regression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "classification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "known_categories": {
+          "type": "object"
+        }
+      }
+    },
+    "fallback_behavior": {
+      "const": {
+        "missing_field": "reject",
+        "unexpected_field": "reject",
+        "null_or_non_finite_value": "reject",
+        "type_mismatch": "reject",
+        "feature_schema_version_mismatch": "reject",
+        "inconsistent_derived_feature": "reject: published_horizon_s must equal published_eta minus snapshot_collected_at in whole seconds, and hour_local must be the Pacific hour of snapshot_collected_at",
+        "out_of_domain_horizon": "reject: published_horizon_bucket_s must be 300, 600 or 900 and within 60 s of published_horizon_s",
+        "unknown_category": "fallback_required: a valid record with any categorical value unseen in training is outside demonstrated model support; the response lists the unknown features and values and carries no prediction, probability or interval; the caller should use BART's unadjusted published ETA",
+        "interval_unavailable": "return null bounds with the reason; supported point predictions are still returned"
+      }
+    },
+    "training_data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "calibration_data_cutoff_utc",
+        "frame_fingerprint_sha256",
+        "quality_tiers",
+        "test_day_status",
+        "test_service_dates",
+        "train_service_dates",
+        "training_data_cutoff_utc",
+        "validation_service_dates",
+        "warehouse"
+      ],
+      "properties": {
+        "warehouse": {
+          "type": "object"
+        },
+        "frame_fingerprint_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "train_service_dates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "validation_service_dates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "test_service_dates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "training_data_cutoff_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "calibration_data_cutoff_utc": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "quality_tiers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "test_day_status": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "model_configuration": {
+      "type": "object"
+    },
+    "interval": {
+      "type": "object"
+    },
+    "verification": {
+      "type": "object"
+    }
+  }
+}

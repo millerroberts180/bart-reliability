@@ -1,0 +1,4034 @@
+{
+ "_recorded": {
+  "source": "bart-serve-local (historical replay) via FastAPI TestClient; no network",
+  "asOf": "2026-10-15T17:00:00Z",
+  "warehouse": "server_export_2026-10-15 development snapshot",
+  "trimmed": "stations ['ANTC', 'CAST', 'DBRK', 'HAYW'] only; each history keeps its last 12 points (still ending at the replay snapshot)"
+ },
+ "responses": {
+  "/api/v1/health": {
+   "status": "ok",
+   "latestFeedTimestamp": "2026-10-15T16:59:23Z",
+   "dataMode": "historical_replay",
+   "asOf": "2026-10-15T17:00:00Z",
+   "freshnessSeconds": 37,
+   "problems": [],
+   "modelVersion": "0.1.0+8d942e17429c",
+   "featureSchemaVersion": "eta-revision-features-1",
+   "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9"
+  },
+  "/api/v1/model/metadata": {
+   "modelVersion": "0.1.0+8d942e17429c",
+   "trainedThrough": "2026-10-13T09:11:23Z",
+   "revisionThresholdSeconds": 60,
+   "simulated": false,
+   "featureSchemaVersion": "eta-revision-features-1",
+   "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9",
+   "provisional": true,
+   "intervalAvailable": true,
+   "servedHorizonsSeconds": [
+    300,
+    600,
+    900
+   ],
+   "horizonToleranceSeconds": 60,
+   "dataMode": "historical_replay"
+  },
+  "/api/v1/stations": [
+   {
+    "id": "ANTC",
+    "name": "Antioch",
+    "boardingGroups": [
+     {
+      "id": "to-PCTR",
+      "label": "Toward Millbrae (Caltrain Transfer Platform) and San Francisco International Airport",
+      "destinations": [
+       "Millbrae (Caltrain Transfer Platform)",
+       "San Francisco International Airport"
+      ],
+      "platform": "2",
+      "gtfsDirectionIds": [
+       "1"
+      ]
+     }
+    ],
+    "endOfLine": true
+   },
+   {
+    "id": "CAST",
+    "name": "Castro Valley",
+    "boardingGroups": [
+     {
+      "id": "to-WDUB",
+      "label": "Toward Dublin/Pleasanton",
+      "destinations": [
+       "Dublin/Pleasanton"
+      ],
+      "platform": "1",
+      "gtfsDirectionIds": [
+       "0"
+      ]
+     },
+     {
+      "id": "to-BAYF",
+      "label": "Toward Bay Fair and Daly City",
+      "destinations": [
+       "Bay Fair",
+       "Daly City"
+      ],
+      "platform": "2",
+      "gtfsDirectionIds": [
+       "1"
+      ]
+     }
+    ],
+    "endOfLine": false
+   },
+   {
+    "id": "DBRK",
+    "name": "Downtown Berkeley",
+    "boardingGroups": [
+     {
+      "id": "to-NBRK",
+      "label": "Toward Richmond",
+      "destinations": [
+       "Richmond"
+      ],
+      "platform": "1",
+      "gtfsDirectionIds": [
+       "0"
+      ]
+     },
+     {
+      "id": "to-ASHB",
+      "label": "Toward Berryessa/North San Jose and Millbrae",
+      "destinations": [
+       "Berryessa/North San Jose",
+       "Millbrae"
+      ],
+      "platform": "2",
+      "gtfsDirectionIds": [
+       "1"
+      ]
+     }
+    ],
+    "endOfLine": false
+   },
+   {
+    "id": "HAYW",
+    "name": "Hayward",
+    "boardingGroups": [
+     {
+      "id": "to-SHAY",
+      "label": "Toward Berryessa/North San Jose",
+      "destinations": [
+       "Berryessa",
+       "Berryessa/North San Jose"
+      ],
+      "platform": "1",
+      "gtfsDirectionIds": [
+       "0",
+       "1"
+      ]
+     },
+     {
+      "id": "to-BAYF",
+      "label": "Toward Daly City and Richmond",
+      "destinations": [
+       "Daly City",
+       "Richmond"
+      ],
+      "platform": "2",
+      "gtfsDirectionIds": [
+       "0",
+       "1"
+      ]
+     }
+    ],
+    "endOfLine": false
+   }
+  ],
+  "/api/v1/stations/ANTC/predictions?boarding_group=to-PCTR": {
+   "stationId": "ANTC",
+   "boardingGroupId": "to-PCTR",
+   "feedTimestamp": "2026-10-15T16:59:23Z",
+   "generatedAt": "2026-10-15T17:00:00Z",
+   "trains": [],
+   "alerts": [
+    {
+     "alertId": "BSA_560",
+     "scope": "system",
+     "category": "planned_work",
+     "headerText": "BART.gov Alert",
+     "visibleSince": "2026-10-14T02:56:22Z",
+     "descriptionText": "Expect 30-minute delays starting at 9pm each night on Sunday-Thursday for riders traveling between Millbrae, SFO, and Daly City stations due to planned train control modernization construction work. "
+    }
+   ],
+   "model": {
+    "modelVersion": "0.1.0+8d942e17429c",
+    "trainedThrough": "2026-10-13T09:11:23Z",
+    "revisionThresholdSeconds": 60,
+    "simulated": false,
+    "featureSchemaVersion": "eta-revision-features-1",
+    "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9",
+    "provisional": true,
+    "intervalAvailable": true,
+    "servedHorizonsSeconds": [
+     300,
+     600,
+     900
+    ],
+    "horizonToleranceSeconds": 60,
+    "dataMode": "historical_replay"
+   },
+   "dataMode": "historical_replay",
+   "replay": {
+    "dataMode": "historical_replay",
+    "asOf": "2026-10-15T17:00:00Z",
+    "sourceTimestamp": "2026-10-15T16:59:23Z",
+    "collectedAt": "2026-10-15T16:59:23Z",
+    "freshnessSeconds": 37,
+    "stale": false,
+    "staleAfterSeconds": 120
+   },
+   "alertState": {
+    "known": true,
+    "snapshotTimestamp": "2026-10-15T16:59:23Z",
+    "ageSeconds": 0
+   },
+   "unplacedTrainCount": 5,
+   "terminatingTrainCount": 0
+  },
+  "/api/v1/stations/CAST/predictions?boarding_group=to-WDUB": {
+   "stationId": "CAST",
+   "boardingGroupId": "to-WDUB",
+   "feedTimestamp": "2026-10-15T16:59:23Z",
+   "generatedAt": "2026-10-15T17:00:00Z",
+   "trains": [
+    {
+     "predictionId": "2026-10-15:1965828:15",
+     "tripId": "1965828",
+     "lineName": "Blue line",
+     "headsign": "Dublin/Pleasanton",
+     "carCount": null,
+     "currentEtaSeconds": 18,
+     "currentEtaAt": "2026-10-15T16:59:41Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 18 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T16:59:41Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "12",
+     "routeShortName": "Blue-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "CAST",
+     "stationName": "Castro Valley",
+     "stopId": "L10-1",
+     "scheduledHeadsign": "SF / OAK Airport / Dublin/Pleasanton"
+    },
+    {
+     "predictionId": "2026-10-15:1965829:15",
+     "tripId": "1965829",
+     "lineName": "Blue line",
+     "headsign": "Dublin/Pleasanton",
+     "carCount": null,
+     "currentEtaSeconds": 1568,
+     "currentEtaAt": "2026-10-15T17:25:31Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 1568 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:25:31Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "12",
+     "routeShortName": "Blue-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "CAST",
+     "stationName": "Castro Valley",
+     "stopId": "L10-1",
+     "scheduledHeadsign": "SF / OAK Airport / Dublin/Pleasanton"
+    },
+    {
+     "predictionId": "2026-10-15:1965830:15",
+     "tripId": "1965830",
+     "lineName": "Blue line",
+     "headsign": "Dublin/Pleasanton",
+     "carCount": null,
+     "currentEtaSeconds": 2388,
+     "currentEtaAt": "2026-10-15T17:39:11Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 2388 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:39:11Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "12",
+     "routeShortName": "Blue-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "CAST",
+     "stationName": "Castro Valley",
+     "stopId": "L10-1",
+     "scheduledHeadsign": "SF / OAK Airport / Dublin/Pleasanton"
+    },
+    {
+     "predictionId": "2026-10-15:1965831:15",
+     "tripId": "1965831",
+     "lineName": "Blue line",
+     "headsign": "Dublin/Pleasanton",
+     "carCount": null,
+     "currentEtaSeconds": 3588,
+     "currentEtaAt": "2026-10-15T17:59:11Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 3588 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:59:11Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "12",
+     "routeShortName": "Blue-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "CAST",
+     "stationName": "Castro Valley",
+     "stopId": "L10-1",
+     "scheduledHeadsign": "SF / OAK Airport / Dublin/Pleasanton"
+    },
+    {
+     "predictionId": "2026-10-15:1965832:15",
+     "tripId": "1965832",
+     "lineName": "Blue line",
+     "headsign": "Dublin/Pleasanton",
+     "carCount": null,
+     "currentEtaSeconds": 4788,
+     "currentEtaAt": "2026-10-15T18:19:11Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 4788 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:19:11Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "12",
+     "routeShortName": "Blue-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "CAST",
+     "stationName": "Castro Valley",
+     "stopId": "L10-1",
+     "scheduledHeadsign": "SF / OAK Airport / Dublin/Pleasanton"
+    }
+   ],
+   "alerts": [
+    {
+     "alertId": "BSA_560",
+     "scope": "system",
+     "category": "planned_work",
+     "headerText": "BART.gov Alert",
+     "visibleSince": "2026-10-14T02:56:22Z",
+     "descriptionText": "Expect 30-minute delays starting at 9pm each night on Sunday-Thursday for riders traveling between Millbrae, SFO, and Daly City stations due to planned train control modernization construction work. "
+    }
+   ],
+   "model": {
+    "modelVersion": "0.1.0+8d942e17429c",
+    "trainedThrough": "2026-10-13T09:11:23Z",
+    "revisionThresholdSeconds": 60,
+    "simulated": false,
+    "featureSchemaVersion": "eta-revision-features-1",
+    "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9",
+    "provisional": true,
+    "intervalAvailable": true,
+    "servedHorizonsSeconds": [
+     300,
+     600,
+     900
+    ],
+    "horizonToleranceSeconds": 60,
+    "dataMode": "historical_replay"
+   },
+   "dataMode": "historical_replay",
+   "replay": {
+    "dataMode": "historical_replay",
+    "asOf": "2026-10-15T17:00:00Z",
+    "sourceTimestamp": "2026-10-15T16:59:23Z",
+    "collectedAt": "2026-10-15T16:59:23Z",
+    "freshnessSeconds": 37,
+    "stale": false,
+    "staleAfterSeconds": 120
+   },
+   "alertState": {
+    "known": true,
+    "snapshotTimestamp": "2026-10-15T16:59:23Z",
+    "ageSeconds": 0
+   },
+   "unplacedTrainCount": 0,
+   "terminatingTrainCount": 0
+  },
+  "/api/v1/predictions/2026-10-15:1965828:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:11Z",
+    "publishedEtaSeconds": 648
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:11Z",
+    "publishedEtaSeconds": 588
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:11Z",
+    "publishedEtaSeconds": 528
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:11Z",
+    "publishedEtaSeconds": 468
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:11Z",
+    "publishedEtaSeconds": 408
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:11Z",
+    "publishedEtaSeconds": 348
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:11Z",
+    "publishedEtaSeconds": 288
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:11Z",
+    "publishedEtaSeconds": 228
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:41Z",
+    "publishedEtaSeconds": 198
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:41Z",
+    "publishedEtaSeconds": 138
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:41Z",
+    "publishedEtaSeconds": 78
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T16:59:41Z",
+    "publishedEtaSeconds": 18
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965829:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 2228
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 2168
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 2108
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 2048
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 1988
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 1928
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 1868
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 1808
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 1748
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 1688
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 1628
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:31Z",
+    "publishedEtaSeconds": 1568
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965830:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 3048
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2988
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2928
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2868
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2808
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2748
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2688
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2628
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2568
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2508
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2448
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:39:11Z",
+    "publishedEtaSeconds": 2388
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965831:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 4248
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 4188
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 4128
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 4068
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 4008
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 3948
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 3888
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 3828
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 3768
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 3708
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 3648
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:59:11Z",
+    "publishedEtaSeconds": 3588
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965832:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 5448
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 5388
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 5328
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 5268
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 5208
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 5148
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 5088
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 5028
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 4968
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 4908
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 4848
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:19:11Z",
+    "publishedEtaSeconds": 4788
+   }
+  ],
+  "/api/v1/stations/CAST/predictions?boarding_group=to-BAYF": {
+   "stationId": "CAST",
+   "boardingGroupId": "to-BAYF",
+   "feedTimestamp": "2026-10-15T16:59:23Z",
+   "generatedAt": "2026-10-15T17:00:00Z",
+   "trains": [
+    {
+     "predictionId": "2026-10-15:1965774:2",
+     "tripId": "1965774",
+     "lineName": "Blue line",
+     "headsign": "Daly City",
+     "carCount": null,
+     "currentEtaSeconds": 342,
+     "currentEtaAt": "2026-10-15T17:05:05Z",
+     "predictedRevisionSeconds": 0,
+     "revisionInterval": {
+      "lowerSeconds": -18,
+      "upperSeconds": 24,
+      "level": 0.8
+     },
+     "revisionProbability": 0.009282496855106183,
+     "stability": "likely_to_hold",
+     "predictionStatus": "ok",
+     "statusReason": null,
+     "fallbackEtaAt": null,
+     "likelyFinalEtaSeconds": 342,
+     "likelyFinalEtaAt": "2026-10-15T17:05:05Z",
+     "publishedTimeHorizonSeconds": 300,
+     "revisionIntervalStatus": {
+      "available": true,
+      "provisional": true,
+      "method": "validation_residual_quantiles_by_published_time_horizon",
+      "nominalLevel": 0.8,
+      "unavailableReasons": [],
+      "empiricalTestCoverage": 0.7959,
+      "calibrationSplit": "validation",
+      "independentlyCalibrated": false
+     },
+     "unknownCategories": [],
+     "routeId": "11",
+     "routeShortName": "Blue-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "CAST",
+     "stationName": "Castro Valley",
+     "stopId": "L10-2",
+     "scheduledHeadsign": "OAK Airport / SF / Daly City"
+    },
+    {
+     "predictionId": "2026-10-15:1965775:2",
+     "tripId": "1965775",
+     "lineName": "Blue line",
+     "headsign": "Daly City",
+     "carCount": null,
+     "currentEtaSeconds": 1501,
+     "currentEtaAt": "2026-10-15T17:24:24Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 1501 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:24:24Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "11",
+     "routeShortName": "Blue-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "CAST",
+     "stationName": "Castro Valley",
+     "stopId": "L10-2",
+     "scheduledHeadsign": "OAK Airport / SF / Daly City"
+    },
+    {
+     "predictionId": "2026-10-15:1965776:2",
+     "tripId": "1965776",
+     "lineName": "Blue line",
+     "headsign": "Daly City",
+     "carCount": null,
+     "currentEtaSeconds": 2701,
+     "currentEtaAt": "2026-10-15T17:44:24Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 2701 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:44:24Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "11",
+     "routeShortName": "Blue-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "CAST",
+     "stationName": "Castro Valley",
+     "stopId": "L10-2",
+     "scheduledHeadsign": "OAK Airport / SF / Daly City"
+    }
+   ],
+   "alerts": [
+    {
+     "alertId": "BSA_560",
+     "scope": "system",
+     "category": "planned_work",
+     "headerText": "BART.gov Alert",
+     "visibleSince": "2026-10-14T02:56:22Z",
+     "descriptionText": "Expect 30-minute delays starting at 9pm each night on Sunday-Thursday for riders traveling between Millbrae, SFO, and Daly City stations due to planned train control modernization construction work. "
+    }
+   ],
+   "model": {
+    "modelVersion": "0.1.0+8d942e17429c",
+    "trainedThrough": "2026-10-13T09:11:23Z",
+    "revisionThresholdSeconds": 60,
+    "simulated": false,
+    "featureSchemaVersion": "eta-revision-features-1",
+    "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9",
+    "provisional": true,
+    "intervalAvailable": true,
+    "servedHorizonsSeconds": [
+     300,
+     600,
+     900
+    ],
+    "horizonToleranceSeconds": 60,
+    "dataMode": "historical_replay"
+   },
+   "dataMode": "historical_replay",
+   "replay": {
+    "dataMode": "historical_replay",
+    "asOf": "2026-10-15T17:00:00Z",
+    "sourceTimestamp": "2026-10-15T16:59:23Z",
+    "collectedAt": "2026-10-15T16:59:23Z",
+    "freshnessSeconds": 37,
+    "stale": false,
+    "staleAfterSeconds": 120
+   },
+   "alertState": {
+    "known": true,
+    "snapshotTimestamp": "2026-10-15T16:59:23Z",
+    "ageSeconds": 0
+   },
+   "unplacedTrainCount": 0,
+   "terminatingTrainCount": 0
+  },
+  "/api/v1/predictions/2026-10-15:1965774:2/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:24Z",
+    "publishedEtaSeconds": 961
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:24Z",
+    "publishedEtaSeconds": 901
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:24Z",
+    "publishedEtaSeconds": 841
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:24Z",
+    "publishedEtaSeconds": 781
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:24Z",
+    "publishedEtaSeconds": 721
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:24Z",
+    "publishedEtaSeconds": 661
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:24Z",
+    "publishedEtaSeconds": 601
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:56Z",
+    "publishedEtaSeconds": 573
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:05Z",
+    "publishedEtaSeconds": 522
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:05Z",
+    "publishedEtaSeconds": 462
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:05Z",
+    "publishedEtaSeconds": 402
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:05Z",
+    "publishedEtaSeconds": 342
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965775:2/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 2161
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 2101
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 2041
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1981
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1921
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1861
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1801
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1741
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1681
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1621
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1561
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:24:24Z",
+    "publishedEtaSeconds": 1501
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965776:2/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 3361
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 3301
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 3241
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 3181
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 3121
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 3061
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 3001
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 2941
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 2881
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 2821
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 2761
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:44:24Z",
+    "publishedEtaSeconds": 2701
+   }
+  ],
+  "/api/v1/stations/DBRK/predictions?boarding_group=to-NBRK": {
+   "stationId": "DBRK",
+   "boardingGroupId": "to-NBRK",
+   "feedTimestamp": "2026-10-15T16:59:23Z",
+   "generatedAt": "2026-10-15T17:00:00Z",
+   "trains": [
+    {
+     "predictionId": "2026-10-15:1965379:17",
+     "tripId": "1965379",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 461,
+     "currentEtaAt": "2026-10-15T17:07:04Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 461 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:07:04Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965678:20",
+     "tripId": "1965678",
+     "lineName": "Red line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 1227,
+     "currentEtaAt": "2026-10-15T17:19:50Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 1227 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:19:50Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "8",
+     "routeShortName": "Red-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "SFO / SF / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965380:17",
+     "tripId": "1965380",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 1465,
+     "currentEtaAt": "2026-10-15T17:23:48Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 1465 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:23:48Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965679:20",
+     "tripId": "1965679",
+     "lineName": "Red line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 1977,
+     "currentEtaAt": "2026-10-15T17:32:20Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 1977 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:32:20Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "8",
+     "routeShortName": "Red-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "SFO / SF / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965381:17",
+     "tripId": "1965381",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 2665,
+     "currentEtaAt": "2026-10-15T17:43:48Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 2665 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:43:48Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965680:20",
+     "tripId": "1965680",
+     "lineName": "Red line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 3177,
+     "currentEtaAt": "2026-10-15T17:52:20Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 3177 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:52:20Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "8",
+     "routeShortName": "Red-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "SFO / SF / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965382:17",
+     "tripId": "1965382",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 3865,
+     "currentEtaAt": "2026-10-15T18:03:48Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 3865 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:03:48Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965681:20",
+     "tripId": "1965681",
+     "lineName": "Red line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 4377,
+     "currentEtaAt": "2026-10-15T18:12:20Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 4377 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:12:20Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "8",
+     "routeShortName": "Red-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "SFO / SF / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965383:17",
+     "tripId": "1965383",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 5065,
+     "currentEtaAt": "2026-10-15T18:23:48Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 5065 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:23:48Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965682:20",
+     "tripId": "1965682",
+     "lineName": "Red line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 5577,
+     "currentEtaAt": "2026-10-15T18:32:20Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 5577 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:32:20Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "8",
+     "routeShortName": "Red-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "SFO / SF / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965384:17",
+     "tripId": "1965384",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 6265,
+     "currentEtaAt": "2026-10-15T18:43:48Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 6265 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:43:48Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-1",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    }
+   ],
+   "alerts": [
+    {
+     "alertId": "BSA_560",
+     "scope": "system",
+     "category": "planned_work",
+     "headerText": "BART.gov Alert",
+     "visibleSince": "2026-10-14T02:56:22Z",
+     "descriptionText": "Expect 30-minute delays starting at 9pm each night on Sunday-Thursday for riders traveling between Millbrae, SFO, and Daly City stations due to planned train control modernization construction work. "
+    }
+   ],
+   "model": {
+    "modelVersion": "0.1.0+8d942e17429c",
+    "trainedThrough": "2026-10-13T09:11:23Z",
+    "revisionThresholdSeconds": 60,
+    "simulated": false,
+    "featureSchemaVersion": "eta-revision-features-1",
+    "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9",
+    "provisional": true,
+    "intervalAvailable": true,
+    "servedHorizonsSeconds": [
+     300,
+     600,
+     900
+    ],
+    "horizonToleranceSeconds": 60,
+    "dataMode": "historical_replay"
+   },
+   "dataMode": "historical_replay",
+   "replay": {
+    "dataMode": "historical_replay",
+    "asOf": "2026-10-15T17:00:00Z",
+    "sourceTimestamp": "2026-10-15T16:59:23Z",
+    "collectedAt": "2026-10-15T16:59:23Z",
+    "freshnessSeconds": 37,
+    "stale": false,
+    "staleAfterSeconds": 120
+   },
+   "alertState": {
+    "known": true,
+    "snapshotTimestamp": "2026-10-15T16:59:23Z",
+    "ageSeconds": 0
+   },
+   "unplacedTrainCount": 0,
+   "terminatingTrainCount": 0
+  },
+  "/api/v1/predictions/2026-10-15:1965379:17/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:04:53Z",
+    "publishedEtaSeconds": 990
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:23Z",
+    "publishedEtaSeconds": 960
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:23Z",
+    "publishedEtaSeconds": 900
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:23Z",
+    "publishedEtaSeconds": 840
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:23Z",
+    "publishedEtaSeconds": 780
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:23Z",
+    "publishedEtaSeconds": 720
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:06:30Z",
+    "publishedEtaSeconds": 727
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:06:30Z",
+    "publishedEtaSeconds": 667
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:06:30Z",
+    "publishedEtaSeconds": 607
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:06:30Z",
+    "publishedEtaSeconds": 547
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:07:04Z",
+    "publishedEtaSeconds": 521
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:07:04Z",
+    "publishedEtaSeconds": 461
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965678:20/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:44Z",
+    "publishedEtaSeconds": 1761
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:44Z",
+    "publishedEtaSeconds": 1701
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:18:17Z",
+    "publishedEtaSeconds": 1674
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:18:17Z",
+    "publishedEtaSeconds": 1614
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:18:49Z",
+    "publishedEtaSeconds": 1586
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:18:49Z",
+    "publishedEtaSeconds": 1526
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:18:49Z",
+    "publishedEtaSeconds": 1466
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:18:49Z",
+    "publishedEtaSeconds": 1406
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:18:49Z",
+    "publishedEtaSeconds": 1346
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:18:49Z",
+    "publishedEtaSeconds": 1286
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:19:50Z",
+    "publishedEtaSeconds": 1287
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:19:50Z",
+    "publishedEtaSeconds": 1227
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965380:17/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 2125
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 2065
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 2005
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1945
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1885
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1825
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1765
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1705
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1645
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1585
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1525
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:23:48Z",
+    "publishedEtaSeconds": 1465
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965679:20/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2637
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2577
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2517
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2457
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2397
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2337
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2277
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2217
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2157
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2097
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 2037
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:20Z",
+    "publishedEtaSeconds": 1977
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965381:17/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 3325
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 3265
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 3205
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 3145
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 3085
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 3025
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 2965
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 2905
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 2845
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 2785
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 2725
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:43:48Z",
+    "publishedEtaSeconds": 2665
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965680:20/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3837
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3777
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3717
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3657
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3597
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3537
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3477
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3417
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3357
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3297
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3237
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:52:20Z",
+    "publishedEtaSeconds": 3177
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965382:17/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4525
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4465
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4405
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4345
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4285
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4225
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4165
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4105
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 4045
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 3985
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 3925
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:03:48Z",
+    "publishedEtaSeconds": 3865
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965681:20/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 5037
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4977
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4917
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4857
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4797
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4737
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4677
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4617
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4557
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4497
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4437
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:12:20Z",
+    "publishedEtaSeconds": 4377
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965383:17/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5725
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5665
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5605
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5545
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5485
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5425
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5365
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5305
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5245
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5185
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5125
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:23:48Z",
+    "publishedEtaSeconds": 5065
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965682:20/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:32:20Z",
+    "publishedEtaSeconds": 5697
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:32:20Z",
+    "publishedEtaSeconds": 5637
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:32:20Z",
+    "publishedEtaSeconds": 5577
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965384:17/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:43:48Z",
+    "publishedEtaSeconds": 6385
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:43:48Z",
+    "publishedEtaSeconds": 6325
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:43:48Z",
+    "publishedEtaSeconds": 6265
+   }
+  ],
+  "/api/v1/stations/DBRK/predictions?boarding_group=to-ASHB": {
+   "stationId": "DBRK",
+   "boardingGroupId": "to-ASHB",
+   "feedTimestamp": "2026-10-15T16:59:23Z",
+   "generatedAt": "2026-10-15T17:00:00Z",
+   "trains": [
+    {
+     "predictionId": "2026-10-15:1965638:4",
+     "tripId": "1965638",
+     "lineName": "Red line",
+     "headsign": "Millbrae",
+     "carCount": null,
+     "currentEtaSeconds": 341,
+     "currentEtaAt": "2026-10-15T17:05:04Z",
+     "predictedRevisionSeconds": 30,
+     "revisionInterval": {
+      "lowerSeconds": 13,
+      "upperSeconds": 54,
+      "level": 0.8
+     },
+     "revisionProbability": 0.07163297868232113,
+     "stability": "likely_to_hold",
+     "predictionStatus": "ok",
+     "statusReason": null,
+     "fallbackEtaAt": null,
+     "likelyFinalEtaSeconds": 371,
+     "likelyFinalEtaAt": "2026-10-15T17:05:34Z",
+     "publishedTimeHorizonSeconds": 300,
+     "revisionIntervalStatus": {
+      "available": true,
+      "provisional": true,
+      "method": "validation_residual_quantiles_by_published_time_horizon",
+      "nominalLevel": 0.8,
+      "unavailableReasons": [],
+      "empiricalTestCoverage": 0.7959,
+      "calibrationSplit": "validation",
+      "independentlyCalibrated": false
+     },
+     "unknownCategories": [],
+     "routeId": "7",
+     "routeShortName": "Red-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-2",
+     "scheduledHeadsign": "SF / SFO Airport / Millbrae"
+    },
+    {
+     "predictionId": "2026-10-15:1965440:4",
+     "tripId": "1965440",
+     "lineName": "Orange line",
+     "headsign": "Berryessa/North San Jose",
+     "carCount": null,
+     "currentEtaSeconds": 1089,
+     "currentEtaAt": "2026-10-15T17:17:32Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 1089 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:17:32Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "4",
+     "routeShortName": "Orange-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-2",
+     "scheduledHeadsign": "OAK Airport / Berryessa/North San Jose"
+    },
+    {
+     "predictionId": "2026-10-15:1965639:4",
+     "tripId": "1965639",
+     "lineName": "Red line",
+     "headsign": "Millbrae",
+     "carCount": null,
+     "currentEtaSeconds": 1541,
+     "currentEtaAt": "2026-10-15T17:25:04Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 1541 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:25:04Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "7",
+     "routeShortName": "Red-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-2",
+     "scheduledHeadsign": "SF / SFO Airport / Millbrae"
+    },
+    {
+     "predictionId": "2026-10-15:1965441:4",
+     "tripId": "1965441",
+     "lineName": "Orange line",
+     "headsign": "Berryessa/North San Jose",
+     "carCount": null,
+     "currentEtaSeconds": 2289,
+     "currentEtaAt": "2026-10-15T17:37:32Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 2289 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:37:32Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "4",
+     "routeShortName": "Orange-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-2",
+     "scheduledHeadsign": "OAK Airport / Berryessa/North San Jose"
+    },
+    {
+     "predictionId": "2026-10-15:1965640:4",
+     "tripId": "1965640",
+     "lineName": "Red line",
+     "headsign": "Millbrae",
+     "carCount": null,
+     "currentEtaSeconds": 2741,
+     "currentEtaAt": "2026-10-15T17:45:04Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 2741 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:45:04Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "7",
+     "routeShortName": "Red-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "DBRK",
+     "stationName": "Downtown Berkeley",
+     "stopId": "R20-2",
+     "scheduledHeadsign": "SF / SFO Airport / Millbrae"
+    }
+   ],
+   "alerts": [
+    {
+     "alertId": "BSA_560",
+     "scope": "system",
+     "category": "planned_work",
+     "headerText": "BART.gov Alert",
+     "visibleSince": "2026-10-14T02:56:22Z",
+     "descriptionText": "Expect 30-minute delays starting at 9pm each night on Sunday-Thursday for riders traveling between Millbrae, SFO, and Daly City stations due to planned train control modernization construction work. "
+    }
+   ],
+   "model": {
+    "modelVersion": "0.1.0+8d942e17429c",
+    "trainedThrough": "2026-10-13T09:11:23Z",
+    "revisionThresholdSeconds": 60,
+    "simulated": false,
+    "featureSchemaVersion": "eta-revision-features-1",
+    "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9",
+    "provisional": true,
+    "intervalAvailable": true,
+    "servedHorizonsSeconds": [
+     300,
+     600,
+     900
+    ],
+    "horizonToleranceSeconds": 60,
+    "dataMode": "historical_replay"
+   },
+   "dataMode": "historical_replay",
+   "replay": {
+    "dataMode": "historical_replay",
+    "asOf": "2026-10-15T17:00:00Z",
+    "sourceTimestamp": "2026-10-15T16:59:23Z",
+    "collectedAt": "2026-10-15T16:59:23Z",
+    "freshnessSeconds": 37,
+    "stale": false,
+    "staleAfterSeconds": 120
+   },
+   "alertState": {
+    "known": true,
+    "snapshotTimestamp": "2026-10-15T16:59:23Z",
+    "ageSeconds": 0
+   },
+   "unplacedTrainCount": 0,
+   "terminatingTrainCount": 0
+  },
+  "/api/v1/predictions/2026-10-15:1965638:4/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 1001
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 941
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 881
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 821
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 761
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 701
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 641
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 581
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 521
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 461
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 401
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:05:04Z",
+    "publishedEtaSeconds": 341
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965440:4/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1749
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1689
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1629
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1569
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1509
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1449
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1389
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1329
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1269
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1209
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1149
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:17:32Z",
+    "publishedEtaSeconds": 1089
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965639:4/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 2201
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 2141
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 2081
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 2021
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 1961
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 1901
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 1841
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 1781
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 1721
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 1661
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 1601
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:25:04Z",
+    "publishedEtaSeconds": 1541
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965441:4/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2949
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2889
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2829
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2769
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2709
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2649
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2589
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2529
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2469
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2409
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2349
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:37:32Z",
+    "publishedEtaSeconds": 2289
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965640:4/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 3401
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 3341
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 3281
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 3221
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 3161
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 3101
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 3041
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 2981
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 2921
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 2861
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 2801
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:45:04Z",
+    "publishedEtaSeconds": 2741
+   }
+  ],
+  "/api/v1/stations/HAYW/predictions?boarding_group=to-SHAY": {
+   "stationId": "HAYW",
+   "boardingGroupId": "to-SHAY",
+   "feedTimestamp": "2026-10-15T16:59:23Z",
+   "generatedAt": "2026-10-15T17:00:00Z",
+   "trains": [
+    {
+     "predictionId": "2026-10-15:1965544:15",
+     "tripId": "1965544",
+     "lineName": "Green line",
+     "headsign": "Berryessa",
+     "carCount": null,
+     "currentEtaSeconds": 727,
+     "currentEtaAt": "2026-10-15T17:11:30Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 727 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:11:30Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "6",
+     "routeShortName": "Green-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "SF / OAK Airport / Berryessa"
+    },
+    {
+     "predictionId": "2026-10-15:1965438:14",
+     "tripId": "1965438",
+     "lineName": "Orange line",
+     "headsign": "Berryessa/North San Jose",
+     "carCount": null,
+     "currentEtaSeconds": 897,
+     "currentEtaAt": "2026-10-15T17:14:20Z",
+     "predictedRevisionSeconds": 49,
+     "revisionInterval": {
+      "lowerSeconds": 23,
+      "upperSeconds": 119,
+      "level": 0.8
+     },
+     "revisionProbability": 0.5246062164499441,
+     "stability": "likely_to_be_revised",
+     "predictionStatus": "ok",
+     "statusReason": null,
+     "fallbackEtaAt": null,
+     "likelyFinalEtaSeconds": 946,
+     "likelyFinalEtaAt": "2026-10-15T17:15:09Z",
+     "publishedTimeHorizonSeconds": 900,
+     "revisionIntervalStatus": {
+      "available": true,
+      "provisional": true,
+      "method": "validation_residual_quantiles_by_published_time_horizon",
+      "nominalLevel": 0.8,
+      "unavailableReasons": [],
+      "empiricalTestCoverage": 0.8089,
+      "calibrationSplit": "validation",
+      "independentlyCalibrated": false
+     },
+     "unknownCategories": [],
+     "routeId": "4",
+     "routeShortName": "Orange-S",
+     "gtfsDirectionId": "1",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "OAK Airport / Berryessa/North San Jose"
+    },
+    {
+     "predictionId": "2026-10-15:1965545:15",
+     "tripId": "1965545",
+     "lineName": "Green line",
+     "headsign": "Berryessa",
+     "carCount": null,
+     "currentEtaSeconds": 2014,
+     "currentEtaAt": "2026-10-15T17:32:57Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 2014 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:32:57Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "6",
+     "routeShortName": "Green-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "SF / OAK Airport / Berryessa"
+    },
+    {
+     "predictionId": "2026-10-15:1965439:14",
+     "tripId": "1965439",
+     "lineName": "Orange line",
+     "headsign": "Berryessa/North San Jose",
+     "carCount": null,
+     "currentEtaSeconds": 2097,
+     "currentEtaAt": "2026-10-15T17:34:20Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 2097 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:34:20Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "4",
+     "routeShortName": "Orange-S",
+     "gtfsDirectionId": "1",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "OAK Airport / Berryessa/North San Jose"
+    },
+    {
+     "predictionId": "2026-10-15:1965546:15",
+     "tripId": "1965546",
+     "lineName": "Green line",
+     "headsign": "Berryessa",
+     "carCount": null,
+     "currentEtaSeconds": 3095,
+     "currentEtaAt": "2026-10-15T17:50:58Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 3095 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:50:58Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "6",
+     "routeShortName": "Green-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "SF / OAK Airport / Berryessa"
+    },
+    {
+     "predictionId": "2026-10-15:1965440:14",
+     "tripId": "1965440",
+     "lineName": "Orange line",
+     "headsign": "Berryessa/North San Jose",
+     "carCount": null,
+     "currentEtaSeconds": 3297,
+     "currentEtaAt": "2026-10-15T17:54:20Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 3297 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:54:20Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "4",
+     "routeShortName": "Orange-S",
+     "gtfsDirectionId": "1",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "OAK Airport / Berryessa/North San Jose"
+    },
+    {
+     "predictionId": "2026-10-15:1965547:15",
+     "tripId": "1965547",
+     "lineName": "Green line",
+     "headsign": "Berryessa",
+     "carCount": null,
+     "currentEtaSeconds": 4295,
+     "currentEtaAt": "2026-10-15T18:10:58Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 4295 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:10:58Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "6",
+     "routeShortName": "Green-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "SF / OAK Airport / Berryessa"
+    },
+    {
+     "predictionId": "2026-10-15:1965441:14",
+     "tripId": "1965441",
+     "lineName": "Orange line",
+     "headsign": "Berryessa/North San Jose",
+     "carCount": null,
+     "currentEtaSeconds": 4497,
+     "currentEtaAt": "2026-10-15T18:14:20Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 4497 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:14:20Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "4",
+     "routeShortName": "Orange-S",
+     "gtfsDirectionId": "1",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "OAK Airport / Berryessa/North San Jose"
+    },
+    {
+     "predictionId": "2026-10-15:1965548:15",
+     "tripId": "1965548",
+     "lineName": "Green line",
+     "headsign": "Berryessa",
+     "carCount": null,
+     "currentEtaSeconds": 5495,
+     "currentEtaAt": "2026-10-15T18:30:58Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 5495 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:30:58Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "6",
+     "routeShortName": "Green-N",
+     "gtfsDirectionId": "0",
+     "platform": "1",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-1",
+     "scheduledHeadsign": "SF / OAK Airport / Berryessa"
+    }
+   ],
+   "alerts": [
+    {
+     "alertId": "BSA_560",
+     "scope": "system",
+     "category": "planned_work",
+     "headerText": "BART.gov Alert",
+     "visibleSince": "2026-10-14T02:56:22Z",
+     "descriptionText": "Expect 30-minute delays starting at 9pm each night on Sunday-Thursday for riders traveling between Millbrae, SFO, and Daly City stations due to planned train control modernization construction work. "
+    }
+   ],
+   "model": {
+    "modelVersion": "0.1.0+8d942e17429c",
+    "trainedThrough": "2026-10-13T09:11:23Z",
+    "revisionThresholdSeconds": 60,
+    "simulated": false,
+    "featureSchemaVersion": "eta-revision-features-1",
+    "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9",
+    "provisional": true,
+    "intervalAvailable": true,
+    "servedHorizonsSeconds": [
+     300,
+     600,
+     900
+    ],
+    "horizonToleranceSeconds": 60,
+    "dataMode": "historical_replay"
+   },
+   "dataMode": "historical_replay",
+   "replay": {
+    "dataMode": "historical_replay",
+    "asOf": "2026-10-15T17:00:00Z",
+    "sourceTimestamp": "2026-10-15T16:59:23Z",
+    "collectedAt": "2026-10-15T16:59:23Z",
+    "freshnessSeconds": 37,
+    "stale": false,
+    "staleAfterSeconds": 120
+   },
+   "alertState": {
+    "known": true,
+    "snapshotTimestamp": "2026-10-15T16:59:23Z",
+    "ageSeconds": 0
+   },
+   "unplacedTrainCount": 0,
+   "terminatingTrainCount": 0
+  },
+  "/api/v1/predictions/2026-10-15:1965544:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:58Z",
+    "publishedEtaSeconds": 1355
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:58Z",
+    "publishedEtaSeconds": 1295
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:58Z",
+    "publishedEtaSeconds": 1235
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:58Z",
+    "publishedEtaSeconds": 1175
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:58Z",
+    "publishedEtaSeconds": 1115
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:58Z",
+    "publishedEtaSeconds": 1055
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:11:30Z",
+    "publishedEtaSeconds": 1027
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:11:30Z",
+    "publishedEtaSeconds": 967
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:11:30Z",
+    "publishedEtaSeconds": 907
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:11:30Z",
+    "publishedEtaSeconds": 847
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:11:30Z",
+    "publishedEtaSeconds": 787
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:11:30Z",
+    "publishedEtaSeconds": 727
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965438:14/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1557
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1497
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1437
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1377
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1317
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1257
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1197
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1137
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1077
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 1017
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 957
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:14:20Z",
+    "publishedEtaSeconds": 897
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965545:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:41Z",
+    "publishedEtaSeconds": 2658
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:41Z",
+    "publishedEtaSeconds": 2598
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2573
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2513
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2453
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2393
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2333
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2273
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2213
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2153
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:16Z",
+    "publishedEtaSeconds": 2093
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:32:57Z",
+    "publishedEtaSeconds": 2014
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965439:14/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:35:04Z",
+    "publishedEtaSeconds": 2801
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2697
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:35:05Z",
+    "publishedEtaSeconds": 2682
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:35:05Z",
+    "publishedEtaSeconds": 2622
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2517
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2457
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2397
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2337
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2277
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2217
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2157
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:34:20Z",
+    "publishedEtaSeconds": 2097
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965546:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3755
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3695
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3635
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3575
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3515
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3455
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3395
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3335
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3275
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3215
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3155
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:50:58Z",
+    "publishedEtaSeconds": 3095
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965440:14/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3957
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3897
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3837
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3777
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3717
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3657
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3597
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3537
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3477
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3417
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3357
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:54:20Z",
+    "publishedEtaSeconds": 3297
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965547:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4955
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4895
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4835
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4775
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4715
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4655
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4595
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4535
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4475
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4415
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4355
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:10:58Z",
+    "publishedEtaSeconds": 4295
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965441:14/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 5157
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 5097
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 5037
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4977
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4917
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4857
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4797
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4737
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4677
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4617
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4557
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:14:20Z",
+    "publishedEtaSeconds": 4497
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965548:15/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T18:30:58Z",
+    "publishedEtaSeconds": 5855
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T18:30:58Z",
+    "publishedEtaSeconds": 5795
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T18:30:58Z",
+    "publishedEtaSeconds": 5735
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T18:30:58Z",
+    "publishedEtaSeconds": 5675
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:30:58Z",
+    "publishedEtaSeconds": 5615
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:30:58Z",
+    "publishedEtaSeconds": 5555
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:30:58Z",
+    "publishedEtaSeconds": 5495
+   }
+  ],
+  "/api/v1/stations/HAYW/predictions?boarding_group=to-BAYF": {
+   "stationId": "HAYW",
+   "boardingGroupId": "to-BAYF",
+   "feedTimestamp": "2026-10-15T16:59:23Z",
+   "generatedAt": "2026-10-15T17:00:00Z",
+   "trains": [
+    {
+     "predictionId": "2026-10-15:1965381:7",
+     "tripId": "1965381",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 726,
+     "currentEtaAt": "2026-10-15T17:11:29Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 726 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:11:29Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "2",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-2",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965500:7",
+     "tripId": "1965500",
+     "lineName": "Green line",
+     "headsign": "Daly City",
+     "carCount": null,
+     "currentEtaSeconds": 827,
+     "currentEtaAt": "2026-10-15T17:13:10Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 827 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:13:10Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "5",
+     "routeShortName": "Green-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-2",
+     "scheduledHeadsign": "OAK Airport / SF / Daly City"
+    },
+    {
+     "predictionId": "2026-10-15:1965382:7",
+     "tripId": "1965382",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 1817,
+     "currentEtaAt": "2026-10-15T17:29:40Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 1817 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:29:40Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "2",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-2",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965501:7",
+     "tripId": "1965501",
+     "lineName": "Green line",
+     "headsign": "Daly City",
+     "carCount": null,
+     "currentEtaSeconds": 2027,
+     "currentEtaAt": "2026-10-15T17:33:10Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 2027 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:33:10Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "5",
+     "routeShortName": "Green-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-2",
+     "scheduledHeadsign": "OAK Airport / SF / Daly City"
+    },
+    {
+     "predictionId": "2026-10-15:1965383:7",
+     "tripId": "1965383",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 3017,
+     "currentEtaAt": "2026-10-15T17:49:40Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 3017 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:49:40Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "2",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-2",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    },
+    {
+     "predictionId": "2026-10-15:1965502:7",
+     "tripId": "1965502",
+     "lineName": "Green line",
+     "headsign": "Daly City",
+     "carCount": null,
+     "currentEtaSeconds": 3227,
+     "currentEtaAt": "2026-10-15T17:53:10Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 3227 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T17:53:10Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "5",
+     "routeShortName": "Green-S",
+     "gtfsDirectionId": "1",
+     "platform": "2",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-2",
+     "scheduledHeadsign": "OAK Airport / SF / Daly City"
+    },
+    {
+     "predictionId": "2026-10-15:1965384:7",
+     "tripId": "1965384",
+     "lineName": "Orange line",
+     "headsign": "Richmond",
+     "carCount": null,
+     "currentEtaSeconds": 4217,
+     "currentEtaAt": "2026-10-15T18:09:40Z",
+     "predictedRevisionSeconds": null,
+     "revisionInterval": null,
+     "revisionProbability": null,
+     "stability": null,
+     "predictionStatus": "outside_model_horizon",
+     "statusReason": "BART's ETA was 4217 s away; the models serve only published-time horizons of 5, 10 and 15 minutes (within 60 s)",
+     "fallbackEtaAt": "2026-10-15T18:09:40Z",
+     "likelyFinalEtaSeconds": null,
+     "likelyFinalEtaAt": null,
+     "publishedTimeHorizonSeconds": null,
+     "revisionIntervalStatus": null,
+     "unknownCategories": [],
+     "routeId": "3",
+     "routeShortName": "Orange-N",
+     "gtfsDirectionId": "0",
+     "platform": "2",
+     "stationId": "HAYW",
+     "stationName": "Hayward",
+     "stopId": "A60-2",
+     "scheduledHeadsign": "OAK Airport / Richmond"
+    }
+   ],
+   "alerts": [
+    {
+     "alertId": "BSA_560",
+     "scope": "system",
+     "category": "planned_work",
+     "headerText": "BART.gov Alert",
+     "visibleSince": "2026-10-14T02:56:22Z",
+     "descriptionText": "Expect 30-minute delays starting at 9pm each night on Sunday-Thursday for riders traveling between Millbrae, SFO, and Daly City stations due to planned train control modernization construction work. "
+    }
+   ],
+   "model": {
+    "modelVersion": "0.1.0+8d942e17429c",
+    "trainedThrough": "2026-10-13T09:11:23Z",
+    "revisionThresholdSeconds": 60,
+    "simulated": false,
+    "featureSchemaVersion": "eta-revision-features-1",
+    "bundleId": "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9",
+    "provisional": true,
+    "intervalAvailable": true,
+    "servedHorizonsSeconds": [
+     300,
+     600,
+     900
+    ],
+    "horizonToleranceSeconds": 60,
+    "dataMode": "historical_replay"
+   },
+   "dataMode": "historical_replay",
+   "replay": {
+    "dataMode": "historical_replay",
+    "asOf": "2026-10-15T17:00:00Z",
+    "sourceTimestamp": "2026-10-15T16:59:23Z",
+    "collectedAt": "2026-10-15T16:59:23Z",
+    "freshnessSeconds": 37,
+    "stale": false,
+    "staleAfterSeconds": 120
+   },
+   "alertState": {
+    "known": true,
+    "snapshotTimestamp": "2026-10-15T16:59:23Z",
+    "ageSeconds": 0
+   },
+   "unplacedTrainCount": 0,
+   "terminatingTrainCount": 0
+  },
+  "/api/v1/predictions/2026-10-15:1965381:7/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:09:40Z",
+    "publishedEtaSeconds": 1277
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:09:40Z",
+    "publishedEtaSeconds": 1217
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:09:40Z",
+    "publishedEtaSeconds": 1157
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:09:40Z",
+    "publishedEtaSeconds": 1097
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:11Z",
+    "publishedEtaSeconds": 1068
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:11Z",
+    "publishedEtaSeconds": 1008
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:11Z",
+    "publishedEtaSeconds": 948
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:11Z",
+    "publishedEtaSeconds": 888
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:11Z",
+    "publishedEtaSeconds": 828
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:11Z",
+    "publishedEtaSeconds": 768
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:10:11Z",
+    "publishedEtaSeconds": 708
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:11:29Z",
+    "publishedEtaSeconds": 726
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965500:7/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1487
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1427
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1367
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1307
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1247
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1187
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1127
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1067
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 1007
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 947
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 887
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:13:10Z",
+    "publishedEtaSeconds": 827
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965382:7/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 2477
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 2417
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 2357
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 2297
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 2237
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 2177
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 2117
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 2057
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 1997
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 1937
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 1877
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:29:40Z",
+    "publishedEtaSeconds": 1817
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965501:7/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2687
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2627
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2567
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2507
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2447
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2387
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2327
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2267
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2207
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2147
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2087
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:33:10Z",
+    "publishedEtaSeconds": 2027
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965383:7/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3677
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3617
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3557
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3497
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3437
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3377
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3317
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3257
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3197
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3137
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3077
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:49:40Z",
+    "publishedEtaSeconds": 3017
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965502:7/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:48:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3887
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:49:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3827
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:50:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3767
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:51:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3707
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:52:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3647
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:53:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3587
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:54:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3527
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:55:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3467
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:56:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3407
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3347
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3287
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T17:53:10Z",
+    "publishedEtaSeconds": 3227
+   }
+  ],
+  "/api/v1/predictions/2026-10-15:1965384:7/history": [
+   {
+    "feedTimestamp": "2026-10-15T16:57:23Z",
+    "publishedEtaAt": "2026-10-15T18:09:40Z",
+    "publishedEtaSeconds": 4337
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:58:23Z",
+    "publishedEtaAt": "2026-10-15T18:09:40Z",
+    "publishedEtaSeconds": 4277
+   },
+   {
+    "feedTimestamp": "2026-10-15T16:59:23Z",
+    "publishedEtaAt": "2026-10-15T18:09:40Z",
+    "publishedEtaSeconds": 4217
+   }
+  ]
+ }
+}

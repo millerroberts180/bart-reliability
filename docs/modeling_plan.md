@@ -192,6 +192,12 @@ Only complete service dates are used, to keep each split's time-of-day mix whole
 more data exists, the boundaries are edited in `config/eta_model.toml`, and the run
 records them.
 
+**The test day is spent.** 2026-10-14 has been used to evaluate the selected models,
+and later to decide whether the serving interval is available
+([model_serving.md](model_serving.md#the-test-day-is-no-longer-untouched)). It is no
+longer an untouched holdout. Later model versions must be evaluated on later service
+days, not on any date up to 2026-10-14.
+
 ## Baselines
 
 1. **No revision:** predicts 0 s, and a probability of 0 for a large revision.
