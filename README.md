@@ -67,8 +67,10 @@ warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historica
 - **Local prediction API** (`src/bart_reliability/api/`): FastAPI in historical-replay
   mode, answering as of a configured past moment with features, history and alerts cut
   off at that moment, through the website's `PredictionClient` contract. It binds to
-  127.0.0.1 with localhost-only CORS. The website can read it locally (below):
-  [docs/local_api.md](docs/local_api.md).
+  127.0.0.1 with localhost-only CORS. Boards are grouped by boarding group, the way a
+  train leaves the station, built from the schedule's platforms rather than GTFS
+  `direction_id`: [docs/boarding_groups.md](docs/boarding_groups.md). The website can read
+  it locally (below): [docs/local_api.md](docs/local_api.md).
 
 ## Setup
 

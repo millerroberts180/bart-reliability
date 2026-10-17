@@ -85,13 +85,55 @@ In replay, `generatedAt` (the model timestamp) is `asOf`, the moment the model i
 | Endpoint | Response |
 |---|---|
 | `GET /api/v1/health` | `HealthStatus` plus `asOf`, `freshnessSeconds`, `problems`, model and schema versions. Always 200; `status` is `degraded` when anything is missing or stale |
-| `GET /api/v1/stations` | `Station[]`: parent stations with service on the replay date. Directions are labelled by destination (the last part of BART's headsign) |
-| `GET /api/v1/stations/{station_id}/predictions?direction_id=0` | `PredictionResponse` for one direction (`direction_id` is required, `0` or `1`) |
+| `GET /api/v1/stations` | `Station[]`: parent stations with service on the replay date, each with its `boardingGroups` and `endOfLine` |
+| `GET /api/v1/stations/{station_id}/predictions?boarding_group=to-SHAY` | `PredictionResponse` for one boarding group (`boarding_group` is required) |
 | `GET /api/v1/predictions/{prediction_id}/history` | `PredictionHistoryPoint[]`, oldest first, ending at the replay snapshot |
 | `GET /api/v1/model/metadata` | `ModelMetadata` (the client's `getModelMetadata`) |
 
 `prediction_id` is `<service date>:<trip_id>:<stop_sequence>`, as in
 `2026-10-15:1965830:8`. Interactive docs are at `/docs` while the server runs.
+
+### Boarding groups
+
+A board is the trains leaving a station one way: a **boarding group**, built from the
+schedule's platforms and neighbouring stations. GTFS `direction_id` is never used to
+group or place trains, because each route defines it for itself: at Hayward, direction 1
+holds Green line trains to Daly City and Orange line trains to Berryessa, which leave
+from opposite platforms. The audit, the rule and why it works are in
+[boarding_groups.md](boarding_groups.md) (`src/bart_reliability/api/boarding.py`).
+
+Each station lists its groups in platform order, then by group ID:
+
+```json
+{"id": "HAYW", "name": "Hayward", "endOfLine": false,
+ "boardingGroups": [
+  {"id": "to-SHAY", "label": "Toward Berryessa/North San Jose",
+   "destinations": ["Berryessa", "Berryessa/North San Jose"], "platform": "1",
+   "gtfsDirectionIds": ["0", "1"]},
+  {"id": "to-BAYF", "label": "Toward Daly City and Richmond",
+   "destinations": ["Daly City", "Richmond"], "platform": "2",
+   "gtfsDirectionIds": ["0", "1"]}]}
+```
+
+- `id` is `to-` and the group's next stations, stable for the feed and readable in a URL.
+- `label` comes from that day's destinations.
+- `platform` is set only when every train in the group leaves from that one platform on
+  the replay date; otherwise it is `null`, and each train carries its own `platform`.
+- `gtfsDirectionIds` is there only so the website can translate old `?direction=` links,
+  where that is unambiguous.
+- `endOfLine` is true when every train at the station starts or ends its trip there.
+  Antioch, Berryessa, Dublin/Pleasanton, Millbrae, Oakland Airport and Richmond have one
+  group each.
+
+A train is placed by its scheduled stop:
+- its matched stop gives the visit and the next station, and the next station gives the
+  group;
+- a train listed at a platform its schedule does not use there is placed by its one
+  scheduled visit to the station, and gets no `platform`;
+- a train whose trip ends at the station cannot be boarded, and is counted in
+  `terminatingTrainCount`;
+- a train with no scheduled trip, or with no single possible visit, is counted in
+  `unplacedTrainCount`.
 
 ### Each train
 
@@ -114,7 +156,10 @@ Additions:
 - `publishedTimeHorizonSeconds`;
 - `revisionIntervalStatus`;
 - `unknownCategories`;
-- route, station and stop identifiers;
+- `platform`, the scheduled platform code at this station (`null` when the listing and the
+  schedule disagree, or the schedule has no platform codes);
+- route, station and stop identifiers, and `gtfsDirectionId` (route-relative; never used to
+  group trains);
 - `scheduledHeadsign`, BART's full headsign.
 
 | `predictionStatus` | Meaning | Model fields |
@@ -168,9 +213,9 @@ Errors return `{"error": {"code", "clientCode", "message", "dataMode", "asOf"}}`
 | 503 | `feed_unavailable` | No trip-update snapshot at or before `as_of` |
 | 503 | `feed_stale` | The latest snapshot at or before `as_of` is more than 120 s old: the warehouse does not cover `as_of` |
 | 503 | `feature_schema_mismatch` | The bundle needs a feature schema other than the one this API computes (`eta-revision-features-1`) |
-| 404 | `station_not_found`, `direction_not_found` | Unknown station, or a direction the station does not serve on the replay date |
+| 404 | `station_not_found`, `boarding_group_not_found` | Unknown station, or a boarding group the station does not have with trains on the replay date |
 | 404 | `prediction_history_unavailable` | Unknown or malformed `prediction_id`, or no listing at or before `as_of` |
-| 422 | `invalid_request` | Missing or invalid query parameter, for example `direction_id` |
+| 422 | `invalid_request` | Missing or invalid query parameter: no `boarding_group` (including a request that still sends only the old `direction_id`), or one with characters other than letters, digits and `-` |
 
 A missing feature for one train is not a request error. That train gets
 `features_unavailable` and the others are unaffected.
@@ -207,8 +252,10 @@ built:
    BART's published ETA for them (`currentEtaAt`, which equals `fallbackEtaAt`).
 2. **`HealthStatus.latestFeedTimestamp`** is `null` only when no warehouse is loaded.
 3. **Predictions path.** The API uses
-   `GET /api/v1/stations/{station_id}/predictions?direction_id=…`, and so does
+   `GET /api/v1/stations/{station_id}/predictions?boarding_group=…`, and so does
    `HttpPredictionClient` (the earlier placeholder used `/api/v1/predictions?station_id=…`).
+   Stations carry `boardingGroups` instead of `directions`, and a board carries
+   `boardingGroupId` instead of `directionId` (see "Boarding groups").
 4. **Arrays stay arrays.** `stations` and `history` return bare arrays, as the contract
    says. For them, the replay identification is in the headers.
 5. **Additions only otherwise.** Every other difference is an extra field, which a
@@ -225,25 +272,26 @@ built:
 - **Post-hoc eligibility.** Only exclusions that can be checked at the snapshot are
   applied. Training also kept only events with a stable, confirmed final estimate, and
   that cannot be known in advance.
-- **Unplaced trains.** Trains the feed lists without a schedule match have no direction.
-  They are counted in `unplacedTrainCount`, not shown.
-- **Empty boards.** At the default `as_of`, 9 of the 100 station boards are empty. Each
-  was checked against the replay data, the raw trip updates and the opposite direction:
-  every row the feed lists at those stations is on the opposite board or counted as
-  unplaced, so no query or direction mapping drops trains.
-  - *Trains ending at the station* (Antioch, Dublin/Pleasanton, Millbrae and Richmond,
-    each toward itself). BART's feed almost never lists a train at the last stop of its
-    trip: Dublin-bound trains are last listed at West Dublin/Pleasanton, Richmond-bound
-    trains at El Cerrito del Norte. Across the whole collection, only 10 of 3,404 trips
-    were ever listed at their final stop.
-  - *Oakland International Airport*, both directions. The airport line (routes 19 and 20)
-    never appears in the collected feed, though the schedule has 370 trips a day.
-  - *Antioch toward San Francisco, and Pittsburg Center* both ways. The feed does list
-    trains here (5 at Antioch and 9 upcoming at Pittsburg Center at the default `as_of`),
-    but the Antioch extension's real-time trips use trip ids that are not in the static
-    GTFS and carry no route or direction. None of them matches a scheduled trip (83,812
-    rows in the collection), so they are unplaced. They would also be outside the model's
-    population.
+- **Unplaced and terminating trains.** Trains the feed lists without a schedule match have
+  no known way out; they are counted in `unplacedTrainCount`, not shown. Trains listed at
+  the last stop of their trip cannot be boarded; they are counted in
+  `terminatingTrainCount` (2 across all 50 stations at the default `as_of`).
+- **Empty boards.** At the default `as_of`, 5 of the 95 boards are empty. Every train
+  listed at those stations is on another board or counted as unplaced, so no query or
+  mapping drops trains.
+  - *The Oakland Airport connector*, at Coliseum and at Oakland Airport. The airport line
+    (routes 19 and 20) never appears in the collected feed, and `realtime_routes.txt`
+    marks it as having no real-time data, though the schedule has 370 trips a day.
+  - *Antioch, and Pittsburg Center* both ways. The feed does list trains here (5 at Antioch
+    and 9 upcoming at Pittsburg Center), but the Antioch extension's real-time trips use
+    trip ids that are not in the static GTFS and carry no route or direction. None of
+    them matches a scheduled trip (83,812 rows in the collection), so they are unplaced
+    and given no direction. They would also be outside the model's population.
+
+  Before boarding groups, 9 of 100 boards were empty. The four extra were the arrival
+  "directions" of Antioch, Dublin/Pleasanton, Millbrae and Richmond, each toward itself.
+  BART's feed almost never lists a train at the last stop of its trip (only 10 of 3,404
+  trips in the collection), and a terminal now offers only its departures.
 
   The website's empty state names whichever of these reasons the response shows.
 - **Provisional.** The models and interval carry everything in
@@ -265,7 +313,7 @@ window. Nothing was optimized for them.
 | Resident memory | about 195 MB after imports; 1.5 to 1.8 GB right after start-up (peak 2.0 GB while building the replay copy); 1.25 to 1.5 GB once loaded and after requests |
 | `GET /health` | median 0.9 ms, p95 1.4 ms (320 bytes) |
 | `GET /stations` | median 0.9 ms, p95 1.1 ms (17.7 KB; cached after the first call) |
-| One full board (`EMBR`, direction 0, 20 trains) | median 84 ms, p95 90 ms (17.8 KB); other boards 30 to 108 ms on first request |
+| One full board (`EMBR`, toward the East Bay, 20 trains) | median 84 ms, p95 90 ms (17.8 KB); other boards 30 to 108 ms on first request. Measured before boarding groups; the engine now also builds its visit and group tables at start-up (start-up measured at 3.0 s in-process afterwards) |
 | One history (59 points) | median 3.4 ms, p95 3.8 ms (8.7 KB) |
 
 Building the replay copy runs the enriched view over the whole warehouse. DuckDB keeps
@@ -281,17 +329,17 @@ changed for it yet. Possible approaches:
 
 ## Example (2026-10-15, 10:00 PDT, abridged)
 
-`GET /api/v1/stations/EMBR/predictions?direction_id=0`:
+`GET /api/v1/stations/EMBR/predictions?boarding_group=to-WOAK`:
 
 ```json
-{"stationId": "EMBR", "directionId": "0",
+{"stationId": "EMBR", "boardingGroupId": "to-WOAK",
  "feedTimestamp": "2026-10-15T16:59:23Z", "generatedAt": "2026-10-15T17:00:00Z",
  "dataMode": "historical_replay",
  "replay": {"asOf": "2026-10-15T17:00:00Z", "sourceTimestamp": "2026-10-15T16:59:23Z",
             "freshnessSeconds": 37, "stale": false, "...": "..."},
  "trains": [
   {"predictionId": "2026-10-15:1965830:8", "lineName": "Blue line",
-   "headsign": "Dublin/Pleasanton", "currentEtaSeconds": 552,
+   "headsign": "Dublin/Pleasanton", "currentEtaSeconds": 552, "platform": "2",
    "currentEtaAt": "2026-10-15T17:08:35Z", "predictedRevisionSeconds": 26,
    "revisionInterval": {"lowerSeconds": 2, "upperSeconds": 72, "level": 0.8},
    "revisionProbability": 0.0738, "stability": "likely_to_hold",
@@ -306,5 +354,6 @@ changed for it yet. Possible approaches:
              "headerText": "BART.gov Alert", "visibleSince": "2026-10-14T02:56:22Z"}],
  "model": {"modelVersion": "0.1.0+8d942e17429c", "trainedThrough": "2026-10-13T09:11:23Z",
            "revisionThresholdSeconds": 60, "simulated": false,
-           "featureSchemaVersion": "eta-revision-features-1", "...": "..."}}
+           "featureSchemaVersion": "eta-revision-features-1", "...": "..."},
+ "unplacedTrainCount": 0, "terminatingTrainCount": 0}
 ```

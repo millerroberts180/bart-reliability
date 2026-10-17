@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 
 import duckdb
 import pytest
+from boarding_fixtures import AS_OF as HAYWARD_AS_OF
+from boarding_fixtures import build_hayward_warehouse
 from fastapi.testclient import TestClient
 from modeling_fixtures import (
     ALERT_DAY,
@@ -69,18 +71,36 @@ def client(warehouse, bundle):
     return TestClient(create_app(api_config(warehouse, bundle.bundle_dir)))
 
 
-def predictions(client, station="A30", direction="0"):
-    r = client.get(f"/api/v1/stations/{station}/predictions", params={"direction_id": direction})
+BOARD_A30 = "/api/v1/stations/A30/predictions?boarding_group=to-A40"
+
+
+def group_of(station: str) -> str:
+    """The synthetic line runs A10 -> A60, so each station's only boarding group leads to
+    the next station."""
+    return f"to-A{int(station[1:]) + 10}"
+
+
+def predictions(client, station="A30", group=None):
+    r = client.get(
+        f"/api/v1/stations/{station}/predictions",
+        params={"boarding_group": group or group_of(station)},
+    )
     assert r.status_code == 200, r.json()
     return r.json()
 
 
-# -- TypeScript contract (web/src/domain/types.ts at commit f0c6cb4) -----------------
+# -- TypeScript contract (web/src/domain/types.ts) -----------------------------------
 
 STR, INT, NUM, BOOL, LIST, OBJ, NULL = "string", "int", "number", "bool", "list", "object", "null"
 CONTRACT = {
-    "Station": {"id": STR, "name": STR, "directions": LIST},
-    "Direction": {"id": STR, "label": STR, "destinations": LIST},
+    "Station": {"id": STR, "name": STR, "boardingGroups": LIST, "endOfLine": BOOL},
+    "BoardingGroup": {
+        "id": STR,
+        "label": STR,
+        "destinations": LIST,
+        "platform": (STR, NULL),
+        "gtfsDirectionIds": LIST,
+    },
     "TrainPrediction": {
         "predictionId": STR,
         "tripId": STR,
@@ -89,6 +109,7 @@ CONTRACT = {
         "carCount": (INT, NULL),
         "currentEtaSeconds": INT,
         "currentEtaAt": STR,
+        "platform": (STR, NULL),
         "predictedRevisionSeconds": NUM,
         "revisionInterval": OBJ,
         "revisionProbability": NUM,
@@ -115,10 +136,12 @@ CONTRACT = {
     },
     "PredictionResponse": {
         "stationId": STR,
-        "directionId": STR,
+        "boardingGroupId": STR,
         "feedTimestamp": STR,
         "generatedAt": STR,
         "trains": LIST,
+        "unplacedTrainCount": INT,
+        "terminatingTrainCount": INT,
         "alerts": LIST,
         "model": OBJ,
     },
@@ -171,8 +194,8 @@ def conforms(name: str, obj: dict) -> None:
 def test_responses_satisfy_the_typescript_contract(client):
     for station in client.get("/api/v1/stations").json():
         conforms("Station", station)
-        for direction in station["directions"]:
-            conforms("Direction", direction)
+        for group in station["boardingGroups"]:
+            conforms("BoardingGroup", group)
     body = predictions(client)
     conforms("PredictionResponse", body)
     conforms("ModelMetadata", body["model"])
@@ -205,8 +228,8 @@ def test_every_response_identifies_historical_replay(client):
         "/api/v1/health",
         "/api/v1/stations",
         "/api/v1/model/metadata",
-        "/api/v1/stations/A30/predictions?direction_id=0",
-        "/api/v1/stations/NOPE/predictions?direction_id=0",
+        BOARD_A30,
+        "/api/v1/stations/NOPE/predictions?boarding_group=to-A40",
         "/api/v1/nothing",
     ]
     for path in paths:
@@ -260,12 +283,79 @@ def test_board_statuses_and_presentation_fields(client):
     assert etas == sorted(etas) and min(etas) >= 0
     t3 = next(t for t in body["trains"] if t["tripId"] == "T3")
     assert t3["lineName"] == "Yellow line" and t3["headsign"] == "Somewhere"
-    assert (t3["stationId"], t3["directionId"], t3["stopId"]) == ("A30", "0", "A30-1")
+    assert (t3["stationId"], t3["stopId"], t3["gtfsDirectionId"]) == ("A30", "A30-1", "0")
+    assert body["boardingGroupId"] == "to-A40" and t3["platform"] is None  # no platform codes
     assert t3["predictionId"] == f"{DAYS[3]}:T3:4"
     # Origin stops are a population the models never saw.
     origin = predictions(client, "A10")["trains"]
     assert origin and {t["predictionStatus"] for t in origin} == {"outside_model_population"}
     assert all("trip origin" in t["statusReason"] for t in origin)
+
+
+# -- boarding groups: Hayward (docs/boarding_groups.md) ------------------------------
+
+
+@pytest.fixture(scope="module")
+def hayward(tmp_path_factory, bundle):
+    db = build_hayward_warehouse(tmp_path_factory.mktemp("hayward"))
+    return TestClient(create_app(api_config(db, bundle.bundle_dir, as_of=HAYWARD_AS_OF)))
+
+
+def test_hayward_groups_follow_the_platforms_not_direction_id(hayward):
+    stations = {s["id"]: s for s in hayward.get("/api/v1/stations").json()}
+    assert stations["A60"] == {
+        "id": "A60",
+        "name": "Hayward",
+        "endOfLine": False,
+        "boardingGroups": [
+            {
+                "id": "to-A70",
+                "label": "Toward Berryessa/North San Jose",
+                "destinations": ["Berryessa", "Berryessa/North San Jose"],
+                "platform": "1",
+                # Both ids on each side, so an old ?direction= link cannot be translated.
+                "gtfsDirectionIds": ["0", "1"],
+            },
+            {
+                "id": "to-A50",
+                "label": "Toward Daly City and Richmond",
+                "destinations": ["Daly City", "Richmond"],
+                # The bus bridge stops on platform 1; buses are not trains and do not count.
+                "platform": "2",
+                "gtfsDirectionIds": ["0", "1"],
+            },
+        ],
+    }
+    # Every train at the ends of this little line starts or ends its trip there.
+    for end in ("A50", "A70"):
+        assert stations[end]["endOfLine"] is True
+        assert len(stations[end]["boardingGroups"]) == 1
+
+
+def test_hayward_boards_never_mix_berryessa_with_daly_city_or_richmond(hayward):
+    north = predictions(hayward, "A60", "to-A50")
+    south = predictions(hayward, "A60", "to-A70")
+    assert north["boardingGroupId"] == "to-A50" and south["boardingGroupId"] == "to-A70"
+
+    def placed(board):
+        return {t["tripId"]: (t["headsign"], t["platform"]) for t in board["trains"]}
+
+    assert placed(north) == {"OR_N": ("Richmond", "2"), "GR_S": ("Daly City", "2")}
+    assert placed(south) == {
+        "OR_S": ("Berryessa/North San Jose", "1"),
+        "GR_N": ("Berryessa", "1"),
+        # Listed at platform 2 although scheduled at 1: placed by its schedule, and no
+        # platform is claimed for it.
+        "OR_MOVED": ("Berryessa/North San Jose", None),
+    }
+    for board in (north, south):
+        # Both GTFS direction ids on each board: direction_id does not place trains.
+        assert {t["gtfsDirectionId"] for t in board["trains"]} == {"0", "1"}
+        # The unmatched train is not given a direction; the train ending here is not boarded.
+        assert board["unplacedTrainCount"] == 1
+        assert board["terminatingTrainCount"] == 1
+    assert "RT_ONLY" not in placed(north) | placed(south)
+    assert "GR_END" not in placed(north) | placed(south)
 
 
 def test_ok_predictions_match_the_bundle_and_derive_consistently(client, bundle):
@@ -345,7 +435,7 @@ def test_missing_feature_marks_the_train_without_predicting(client, bundle):
 
     predictor = Predictor.load(bundle.bundle_dir)
     engine = client.app.state.api.engine
-    row = next(r for r in engine.board("A30", "0")[0] if r["trip_id"] == "T3")
+    row = next(r for r in engine.board("A30", "to-A40")[0] if r["trip_id"] == "T3")
     t = train_prediction({**row, "stops_away": None}, predictor, client.app.state.api.config)
     assert t.prediction_status == "features_unavailable"
     assert "stops_away" in t.status_reason and t.predicted_revision_seconds is None
@@ -356,10 +446,16 @@ def test_missing_feature_marks_the_train_without_predicting(client, bundle):
 
 def test_engine_holds_only_allowlisted_data_cut_at_as_of(client):
     engine = client.app.state.api.engine
-    # Exactly the allowlist was copied; the only other table is derived from the schedule.
+    # Exactly the allowlist was copied; the only other tables are derived from the schedule.
     assert engine.tables == sorted(allowed_sources(AS_OF, 21600, AS_OF.date()))
     now = sorted(r[0] for r in engine.con.execute("SHOW TABLES").fetchall())
-    assert now == sorted([*engine.tables, "static_stop_positions"])
+    derived = [
+        "boarding_group_exits",
+        "static_stop_positions",
+        "static_trip_station_visits",
+        "static_visits",
+    ]
+    assert now == sorted([*engine.tables, *derived])
     assert (
         engine.con.execute(
             "SELECT count(*) FROM duckdb_databases() WHERE database_name = 'wh'"
@@ -449,7 +545,7 @@ def test_replay_features_equal_the_training_features(bundle, warehouse):
     checked = 0
     for _, ex in examples.iloc[::5].iterrows():
         engine = ReplayEngine(warehouse, ex.prediction_collected_at.to_pydatetime(), 21600)
-        rows, _ = engine.board(ex.stop_id[:3], "0")
+        rows, *_ = engine.board(ex.stop_id[:3], group_of(ex.stop_id[:3]))
         row = next(r for r in rows if r["trip_id"] == ex.trip_id)
         for name in FEATURE_COLUMNS:
             assert row[name] == ex[name], (ex.event_id, name)
@@ -462,9 +558,10 @@ def test_concurrent_requests_get_their_own_answers(warehouse, bundle):
     """FastAPI runs these endpoints on a thread pool and a browser sends several requests
     at once, so concurrent queries must not read each other's results."""
     engine = ReplayEngine(warehouse, AS_OF, 21600)
-    rows, _ = engine.board("A30", "0")
+    rows, *_ = engine.board("A30", "to-A40")
     ids = [prediction_id(r["event_service_date"], r["trip_id"], r["stop_sequence"]) for r in rows]
-    calls = [("board", ("A30", "0")), ("board", ("A30", "1"))] + [("history", (i,)) for i in ids]
+    boards = [("A30", "to-A40"), ("A20", "to-A30"), ("A30", "to-X")]
+    calls = [("board", b) for b in boards] + [("history", (i,)) for i in ids]
     expected = {call: getattr(engine, call[0])(*call[1]) for call in calls}
     barrier = threading.Barrier(8)
 
@@ -514,10 +611,10 @@ def _closed(cur) -> bool:
 
 def test_every_query_cursor_is_closed_even_when_the_query_fails(warehouse):
     engine = ReplayEngine(warehouse, AS_OF, 21600)
-    rows, _ = engine.board("A30", "0")
+    rows, *_ = engine.board("A30", "to-A40")
     pid = prediction_id(rows[0]["event_service_date"], rows[0]["trip_id"], rows[0]["stop_sequence"])
     calls = (
-        lambda: engine.board("A30", "0"),
+        lambda: engine.board("A30", "to-A40"),
         lambda: engine.history(pid),
         lambda: engine.alerts("A30", [], [], 120),
         engine._load_stations,
@@ -544,7 +641,7 @@ def test_replay_is_deterministic(warehouse, bundle, client):
     again = TestClient(create_app(api_config(warehouse, bundle.bundle_dir)))
     for path in (
         "/api/v1/stations",
-        "/api/v1/stations/A30/predictions?direction_id=0",
+        BOARD_A30,
         "/api/v1/health",
     ):
         assert again.get(path).json() == client.get(path).json()
@@ -561,14 +658,20 @@ def _error(r, status, code):
     return body
 
 
-def test_unknown_station_direction_and_missing_parameter(client):
-    _error(client.get("/api/v1/stations/NOPE/predictions?direction_id=0"), 404, "station_not_found")
+def test_unknown_station_boarding_group_and_missing_parameter(client):
+    base = "/api/v1/stations"
+    _error(client.get(f"{base}/NOPE/predictions?boarding_group=to-A40"), 404, "station_not_found")
+    # A group of another station, and a direction-style value, are not this station's groups.
+    for group in ("to-A30", "to-A20", "0"):
+        r = client.get(f"{base}/A30/predictions", params={"boarding_group": group})
+        _error(r, 404, "boarding_group_not_found")
+    _error(client.get(f"{base}/A30/predictions"), 422, "invalid_request")
+    # The old parameter is no longer read, so the required one is missing.
+    _error(client.get(f"{base}/A30/predictions?direction_id=0"), 422, "invalid_request")
     _error(
-        client.get("/api/v1/stations/A30/predictions?direction_id=1"), 404, "direction_not_found"
-    )
-    _error(client.get("/api/v1/stations/A30/predictions"), 422, "invalid_request")
-    _error(
-        client.get("/api/v1/stations/A30/predictions?direction_id=north"), 422, "invalid_request"
+        client.get(f"{base}/A30/predictions", params={"boarding_group": "to A40"}),
+        422,
+        "invalid_request",
     )
 
 
@@ -585,9 +688,7 @@ def test_unavailable_history(client):
 
 def test_missing_model_bundle(warehouse, tmp_path):
     c = TestClient(create_app(api_config(warehouse, tmp_path / "no-bundle")))
-    _error(
-        c.get("/api/v1/stations/A30/predictions?direction_id=0"), 503, "model_bundle_unavailable"
-    )
+    _error(c.get(BOARD_A30), 503, "model_bundle_unavailable")
     _error(c.get("/api/v1/model/metadata"), 503, "model_bundle_unavailable")
     assert c.get("/api/v1/stations").status_code == 200  # the schedule needs no model
     health = c.get("/api/v1/health").json()
@@ -598,7 +699,7 @@ def test_missing_model_bundle(warehouse, tmp_path):
 def test_missing_warehouse(bundle, tmp_path):
     c = TestClient(create_app(api_config(tmp_path / "missing.duckdb", bundle.bundle_dir)))
     _error(c.get("/api/v1/stations"), 503, "warehouse_unavailable")
-    _error(c.get("/api/v1/stations/A30/predictions?direction_id=0"), 503, "warehouse_unavailable")
+    _error(c.get(BOARD_A30), 503, "warehouse_unavailable")
     _error(c.get(f"/api/v1/predictions/{DAYS[3]}:T3:4/history"), 503, "warehouse_unavailable")
     health = c.get("/api/v1/health").json()
     assert health["status"] == "degraded" and health["latestFeedTimestamp"] is None
@@ -608,21 +709,19 @@ def test_stale_and_missing_feed(warehouse, bundle):
     stale = TestClient(
         create_app(api_config(warehouse, bundle.bundle_dir, as_of=local(DAYS[3], 12, 0)))
     )
-    body = _error(stale.get("/api/v1/stations/A30/predictions?direction_id=0"), 503, "feed_stale")
+    body = _error(stale.get(BOARD_A30), 503, "feed_stale")
     assert "does not cover as_of" in body["message"]
     assert stale.get("/api/v1/health").json()["status"] == "degraded"
     before = TestClient(
         create_app(api_config(warehouse, bundle.bundle_dir, as_of=local(DAYS[0], 6, 0)))
     )
-    _error(before.get("/api/v1/stations/A30/predictions?direction_id=0"), 503, "feed_unavailable")
+    _error(before.get(BOARD_A30), 503, "feed_unavailable")
 
 
 def test_feature_schema_mismatch(warehouse, bundle, monkeypatch):
     monkeypatch.setattr(api_app, "FEATURE_SCHEMA_VERSION", "eta-revision-features-2")
     c = TestClient(create_app(api_config(warehouse, bundle.bundle_dir)))
-    body = _error(
-        c.get("/api/v1/stations/A30/predictions?direction_id=0"), 503, "feature_schema_mismatch"
-    )
+    body = _error(c.get(BOARD_A30), 503, "feature_schema_mismatch")
     assert "eta-revision-features-1" in body["message"]
     assert any(p.startswith("feature schema:") for p in c.get("/api/v1/health").json()["problems"])
 
@@ -659,9 +758,9 @@ def _browser_paths(client):
         "/api/v1/health",
         "/api/v1/stations",
         "/api/v1/model/metadata",
-        "/api/v1/stations/A30/predictions?direction_id=0",
+        BOARD_A30,
         f"/api/v1/predictions/{pid}/history",
-        "/api/v1/stations/NOPE/predictions?direction_id=0",  # an error body too
+        "/api/v1/stations/NOPE/predictions?boarding_group=to-A40",  # an error body too
     ]
 
 

@@ -30,16 +30,25 @@ class ApiModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
-class Direction(ApiModel):
+class BoardingGroup(ApiModel):
+    """One way a train can leave a station (docs/boarding_groups.md). Never a GTFS
+    direction_id, which is defined per route."""
+
     id: str
     label: str
     destinations: list[str]
+    # The platform every train in the group leaves from on the replay date, else null.
+    platform: str | None
+    # GTFS direction ids of the group's trains, only to translate old ?direction= links.
+    gtfs_direction_ids: list[str]
 
 
 class Station(ApiModel):
     id: str
     name: str
-    directions: list[Direction]
+    boarding_groups: list[BoardingGroup]
+    # Every train here starts or ends its trip here: no train passes through.
+    end_of_line: bool
 
 
 class RevisionInterval(ApiModel):
@@ -90,7 +99,11 @@ class TrainPrediction(ApiModel):
     unknown_categories: list[UnknownCategory]
     route_id: str | None
     route_short_name: str | None
-    direction_id: str
+    # Route-relative; never used to group trains.
+    gtfs_direction_id: str | None
+    # Scheduled platform code at this station; null when the feed lists the train at a
+    # platform its schedule does not use here.
+    platform: str | None
     station_id: str
     station_name: str | None
     stop_id: str
@@ -142,7 +155,7 @@ class AlertState(ApiModel):
 class PredictionResponse(ApiModel):
     # Contract fields
     station_id: str
-    direction_id: str
+    boarding_group_id: str
     feed_timestamp: str
     generated_at: str
     trains: list[TrainPrediction]
@@ -153,6 +166,7 @@ class PredictionResponse(ApiModel):
     replay: ReplayInfo
     alert_state: AlertState
     unplaced_train_count: int
+    terminating_train_count: int
 
 
 class PredictionHistoryPoint(ApiModel):

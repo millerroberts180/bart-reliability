@@ -19,6 +19,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "httpx>=0.27",
+    # Starlette's TestClient (FastAPI's) runs on httpx2; with only httpx it warns.
+    "httpx2>=2.0.0",
     "pytest>=8",
     "responses>=0.25",
     "ruff>=0.6",

@@ -52,6 +52,8 @@ LOCAL_ORIGIN_REGEX = r"^http://(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$"
 DATA_MODE_HEADER = "X-Data-Mode"
 AS_OF_HEADER = "X-Replay-As-Of"
 ALERT_SNAPSHOT_MAX_AGE_S = 120
+# "to-" and station ids (docs/boarding_groups.md); anything else is an invalid request.
+BOARDING_GROUP_PATTERN = r"^[A-Za-z0-9-]{1,80}$"
 
 
 def iso(ts: datetime) -> str:
@@ -217,7 +219,8 @@ def train_prediction(row: dict, predictor: Predictor, config: LocalApiConfig) ->
         unknown_categories=[],
         route_id=row["route_id"],
         route_short_name=row["route_short_name"],
-        direction_id=row["direction_id"],
+        gtfs_direction_id=row["gtfs_direction_id"],
+        platform=row["platform"],
         station_id=row["station_id"],
         station_name=row["stop_name"],
         stop_id=row["stop_id"],
@@ -383,7 +386,7 @@ def create_app(config: LocalApiConfig, state: ApiState | None = None) -> FastAPI
 
     @app.get("/api/v1/stations/{station_id}/predictions", response_model=PredictionResponse)
     def predictions(
-        station_id: str, direction_id: str = Query(..., pattern=r"^[01]$")
+        station_id: str, boarding_group: str = Query(..., pattern=BOARDING_GROUP_PATTERN)
     ) -> PredictionResponse:
         engine = state.require_engine()
         station = next((s for s in engine.stations() if s["id"] == station_id), None)
@@ -394,16 +397,17 @@ def create_app(config: LocalApiConfig, state: ApiState | None = None) -> FastAPI
                 "not_found",
                 f"No station {station_id!r} has service on the replay date.",
             )
-        if direction_id not in {d["id"] for d in station["directions"]}:
+        if boarding_group not in {g["id"] for g in station["boarding_groups"]}:
             raise ApiError(
                 404,
-                "direction_not_found",
+                "boarding_group_not_found",
                 "not_found",
-                f"Station {station_id!r} has no direction {direction_id!r}.",
+                f"Station {station_id!r} has no boarding group {boarding_group!r} with "
+                "trains on the replay date.",
             )
         engine = state.require_fresh_snapshot()
         predictor = state.require_predictor()
-        rows, unplaced = engine.board(station_id, direction_id)
+        rows, unplaced, terminating = engine.board(station_id, boarding_group)
         trains = [train_prediction(r, predictor, config) for r in rows]
         alerts = engine.alerts(
             station_id,
@@ -414,7 +418,7 @@ def create_app(config: LocalApiConfig, state: ApiState | None = None) -> FastAPI
         snap = engine.snapshot
         return PredictionResponse(
             station_id=station_id,
-            direction_id=direction_id,
+            boarding_group_id=boarding_group,
             feed_timestamp=iso(snap.feed_timestamp),
             generated_at=as_of,  # the replay clock: the model runs "as of" this time
             trains=trains,
@@ -437,6 +441,7 @@ def create_app(config: LocalApiConfig, state: ApiState | None = None) -> FastAPI
                 age_seconds=alerts["age_seconds"],
             ),
             unplaced_train_count=unplaced,
+            terminating_train_count=terminating,
         )
 
     @app.get(

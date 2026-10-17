@@ -1,0 +1,348 @@
+station_id,previous_station_id,next_station_id,platform_code,route_short_name,gtfs_direction_id,trip_headsign,destination,scheduled_departures
+12TH,19TH,LAKE,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+12TH,19TH,LAKE,2,Orange-S,1,OAK Airport / Union City,Union City,108
+12TH,19TH,WOAK,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+12TH,19TH,WOAK,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+12TH,19TH,WOAK,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+12TH,LAKE,19TH,1,Orange-N,0,OAK Airport / Richmond,Richmond,276
+12TH,WOAK,19TH,1,Red-N,0,SFO / SF / Richmond,Richmond,201
+12TH,WOAK,19TH,3,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+12TH,WOAK,19TH,3,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+12TH,WOAK,19TH,3,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+12TH,WOAK,19TH,3,Yellow-N,0,San Francisco / Antioch,Antioch,4
+16TH,24TH,CIVC,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+16TH,24TH,CIVC,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+16TH,24TH,CIVC,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+16TH,24TH,CIVC,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+16TH,24TH,CIVC,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+16TH,24TH,CIVC,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+16TH,24TH,CIVC,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+16TH,CIVC,24TH,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+16TH,CIVC,24TH,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+16TH,CIVC,24TH,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+16TH,CIVC,24TH,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+16TH,CIVC,24TH,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+19TH,12TH,MCAR,1,Orange-N,0,OAK Airport / Richmond,Richmond,276
+19TH,12TH,MCAR,1,Red-N,0,SFO / SF / Richmond,Richmond,201
+19TH,12TH,MCAR,3,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+19TH,12TH,MCAR,3,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+19TH,12TH,MCAR,3,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+19TH,12TH,MCAR,3,Yellow-N,0,San Francisco / Antioch,Antioch,4
+19TH,MCAR,12TH,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+19TH,MCAR,12TH,2,Orange-S,1,OAK Airport / Union City,Union City,108
+19TH,MCAR,12TH,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+19TH,MCAR,12TH,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+19TH,MCAR,12TH,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+24TH,16TH,GLEN,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+24TH,16TH,GLEN,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+24TH,16TH,GLEN,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+24TH,16TH,GLEN,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+24TH,16TH,GLEN,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+24TH,GLEN,16TH,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+24TH,GLEN,16TH,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+24TH,GLEN,16TH,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+24TH,GLEN,16TH,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+24TH,GLEN,16TH,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+24TH,GLEN,16TH,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+24TH,GLEN,16TH,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+ANTC,,PCTR,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+ANTC,,PCTR,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,261
+ASHB,DBRK,MCAR,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+ASHB,DBRK,MCAR,2,Orange-S,1,OAK Airport / Union City,Union City,108
+ASHB,DBRK,MCAR,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+ASHB,MCAR,DBRK,1,Orange-N,0,OAK Airport / Richmond,Richmond,276
+ASHB,MCAR,DBRK,1,Red-N,0,SFO / SF / Richmond,Richmond,201
+BALB,DALY,GLEN,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+BALB,DALY,GLEN,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+BALB,DALY,GLEN,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+BALB,DALY,GLEN,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+BALB,DALY,GLEN,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+BALB,DALY,GLEN,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+BALB,DALY,GLEN,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+BALB,GLEN,DALY,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+BALB,GLEN,DALY,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+BALB,GLEN,DALY,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+BALB,GLEN,DALY,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+BALB,GLEN,DALY,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+BAYF,,CAST,2,Blue-N,0,Dublin/Pleasanton,Dublin/Pleasanton,5
+BAYF,CAST,SANL,2,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+BAYF,HAYW,SANL,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+BAYF,HAYW,SANL,2,Orange-N,0,OAK Airport / Richmond,Richmond,276
+BAYF,SANL,CAST,1,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+BAYF,SANL,HAYW,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+BAYF,SANL,HAYW,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+BAYF,SANL,HAYW,1,Orange-S,1,OAK Airport / Union City,Union City,108
+BERY,,MLPT,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,117
+BERY,,MLPT,2,Orange-N,0,OAK Airport / Richmond,Richmond,263
+CAST,BAYF,WDUB,1,Blue-N,0,Dublin/Pleasanton,Dublin/Pleasanton,5
+CAST,BAYF,WDUB,1,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+CAST,WDUB,BAYF,2,Blue-S,1,Bay Fair,Bay Fair,5
+CAST,WDUB,BAYF,2,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+CIVC,16TH,POWL,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+CIVC,16TH,POWL,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+CIVC,16TH,POWL,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+CIVC,16TH,POWL,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+CIVC,16TH,POWL,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+CIVC,16TH,POWL,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+CIVC,16TH,POWL,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+CIVC,POWL,16TH,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+CIVC,POWL,16TH,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+CIVC,POWL,16TH,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+CIVC,POWL,16TH,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+CIVC,POWL,16TH,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+COLM,DALY,SSAN,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+COLM,DALY,SSAN,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+COLM,DALY,SSAN,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+COLM,SSAN,DALY,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+COLM,SSAN,DALY,2,Yellow-N,0,SFO / SF / Antioch,Antioch,270
+COLM,SSAN,DALY,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+COLS,,OAKL,3,Grey-S,1,Oakland Airport,Oakland Airport,516
+COLS,FTVL,SANL,1,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+COLS,FTVL,SANL,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+COLS,FTVL,SANL,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+COLS,FTVL,SANL,1,Orange-S,1,OAK Airport / Union City,Union City,108
+COLS,SANL,FTVL,2,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+COLS,SANL,FTVL,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+COLS,SANL,FTVL,2,Orange-N,0,OAK Airport / Richmond,Richmond,276
+CONC,,PHIL,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,10
+CONC,NCON,PHIL,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+CONC,NCON,PHIL,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,304
+CONC,PHIL,NCON,1,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+CONC,PHIL,NCON,1,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+CONC,PHIL,NCON,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+CONC,PHIL,NCON,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+DALY,,BALB,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+DALY,,BALB,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+DALY,,BALB,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+DALY,,BALB,2,Yellow-N,0,SFO / SF / Antioch,Antioch,2
+DALY,,BALB,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+DALY,BALB,COLM,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+DALY,BALB,COLM,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+DALY,BALB,COLM,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+DALY,COLM,BALB,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+DALY,COLM,BALB,2,Yellow-N,0,SFO / SF / Antioch,Antioch,270
+DALY,COLM,BALB,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+DBRK,ASHB,NBRK,1,Orange-N,0,OAK Airport / Richmond,Richmond,276
+DBRK,ASHB,NBRK,1,Red-N,0,SFO / SF / Richmond,Richmond,201
+DBRK,NBRK,ASHB,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+DBRK,NBRK,ASHB,2,Orange-S,1,OAK Airport / Union City,Union City,108
+DBRK,NBRK,ASHB,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+DELN,PLZA,RICH,1,Orange-N,0,OAK Airport / Richmond,Richmond,276
+DELN,PLZA,RICH,1,Red-N,0,SFO / SF / Richmond,Richmond,201
+DELN,RICH,PLZA,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+DELN,RICH,PLZA,2,Orange-S,1,OAK Airport / Union City,Union City,108
+DELN,RICH,PLZA,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+DUBL,,WDUB,2,Blue-S,1,Bay Fair,Bay Fair,5
+DUBL,,WDUB,2,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+EMBR,MONT,WOAK,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+EMBR,MONT,WOAK,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+EMBR,MONT,WOAK,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+EMBR,MONT,WOAK,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+EMBR,MONT,WOAK,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+EMBR,MONT,WOAK,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+EMBR,MONT,WOAK,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+EMBR,WOAK,MONT,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+EMBR,WOAK,MONT,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+EMBR,WOAK,MONT,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+EMBR,WOAK,MONT,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+EMBR,WOAK,MONT,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+FRMT,,UCTY,2,Orange-N,0,OAK Airport / Richmond,Richmond,3
+FRMT,UCTY,WARM,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,132
+FRMT,UCTY,WARM,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+FRMT,WARM,UCTY,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,117
+FRMT,WARM,UCTY,2,Orange-N,0,OAK Airport / Richmond,Richmond,162
+FTVL,COLS,LAKE,2,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+FTVL,COLS,LAKE,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+FTVL,COLS,LAKE,2,Orange-N,0,OAK Airport / Richmond,Richmond,276
+FTVL,LAKE,COLS,1,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+FTVL,LAKE,COLS,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+FTVL,LAKE,COLS,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+FTVL,LAKE,COLS,1,Orange-S,1,OAK Airport / Union City,Union City,108
+GLEN,24TH,BALB,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+GLEN,24TH,BALB,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+GLEN,24TH,BALB,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+GLEN,24TH,BALB,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+GLEN,24TH,BALB,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+GLEN,BALB,24TH,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+GLEN,BALB,24TH,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+GLEN,BALB,24TH,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+GLEN,BALB,24TH,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+GLEN,BALB,24TH,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+GLEN,BALB,24TH,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+GLEN,BALB,24TH,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+HAYW,BAYF,SHAY,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+HAYW,BAYF,SHAY,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+HAYW,BAYF,SHAY,1,Orange-S,1,OAK Airport / Union City,Union City,108
+HAYW,SHAY,BAYF,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+HAYW,SHAY,BAYF,2,Orange-N,0,OAK Airport / Richmond,Richmond,276
+LAFY,ORIN,WCRK,1,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+LAFY,ORIN,WCRK,1,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+LAFY,ORIN,WCRK,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+LAFY,ORIN,WCRK,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+LAFY,WCRK,ORIN,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+LAFY,WCRK,ORIN,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+LAKE,12TH,FTVL,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+LAKE,12TH,FTVL,1,Orange-S,1,OAK Airport / Union City,Union City,108
+LAKE,FTVL,12TH,2,Orange-N,0,OAK Airport / Richmond,Richmond,276
+LAKE,FTVL,WOAK,2,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+LAKE,FTVL,WOAK,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+LAKE,WOAK,FTVL,1,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+LAKE,WOAK,FTVL,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+MCAR,19TH,ASHB,1,Orange-N,0,OAK Airport / Richmond,Richmond,276
+MCAR,19TH,ASHB,1,Red-N,0,SFO / SF / Richmond,Richmond,201
+MCAR,19TH,ROCK,3,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+MCAR,19TH,ROCK,3,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+MCAR,19TH,ROCK,3,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+MCAR,19TH,ROCK,3,Yellow-N,0,San Francisco / Antioch,Antioch,4
+MCAR,ASHB,19TH,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+MCAR,ASHB,19TH,2,Orange-S,1,OAK Airport / Union City,Union City,108
+MCAR,ASHB,19TH,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+MCAR,ROCK,19TH,4,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+MCAR,ROCK,19TH,4,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+MLBR,,SFIA,3,Red-N,0,SFO / SF / Richmond,Richmond,201
+MLBR,,SFIA,3,Yellow-N,0,SFO / SF / Antioch,Antioch,19
+MLBR,,SFIA,3,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,3
+MLBR,,SFIA,3,Yellow-N,1,SFO / SF / Antioch,Antioch,60
+MLPT,BERY,WARM,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,117
+MLPT,BERY,WARM,2,Orange-N,0,OAK Airport / Richmond,Richmond,263
+MLPT,WARM,BERY,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,132
+MLPT,WARM,BERY,1,Orange-S,1,Berryessa/North San Jose,Berryessa/North San Jose,116
+MLPT,WARM,BERY,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+MONT,EMBR,POWL,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+MONT,EMBR,POWL,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+MONT,EMBR,POWL,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+MONT,EMBR,POWL,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+MONT,EMBR,POWL,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+MONT,POWL,EMBR,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+MONT,POWL,EMBR,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+MONT,POWL,EMBR,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+MONT,POWL,EMBR,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+MONT,POWL,EMBR,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+MONT,POWL,EMBR,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+MONT,POWL,EMBR,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+NBRK,DBRK,PLZA,1,Orange-N,0,OAK Airport / Richmond,Richmond,276
+NBRK,DBRK,PLZA,1,Red-N,0,SFO / SF / Richmond,Richmond,201
+NBRK,PLZA,DBRK,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+NBRK,PLZA,DBRK,2,Orange-S,1,OAK Airport / Union City,Union City,108
+NBRK,PLZA,DBRK,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+NCON,CONC,PITT,1,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+NCON,CONC,PITT,1,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+NCON,CONC,PITT,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+NCON,CONC,PITT,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+NCON,PITT,CONC,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+NCON,PITT,CONC,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,304
+OAKL,,COLS,1,Grey-N,0,Coliseum,Coliseum,516
+ORIN,LAFY,ROCK,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+ORIN,LAFY,ROCK,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+ORIN,ROCK,LAFY,1,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+ORIN,ROCK,LAFY,1,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+ORIN,ROCK,LAFY,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+ORIN,ROCK,LAFY,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+PCTR,ANTC,PITT,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+PCTR,ANTC,PITT,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,261
+PCTR,PITT,ANTC,1,Yellow-N,0,SFO / SF / Antioch,Antioch,267
+PCTR,PITT,ANTC,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+PHIL,CONC,WCRK,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+PHIL,CONC,WCRK,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+PHIL,WCRK,CONC,1,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+PHIL,WCRK,CONC,1,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+PHIL,WCRK,CONC,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+PHIL,WCRK,CONC,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+PITT,,NCON,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,43
+PITT,NCON,PCTR,1,Yellow-N,0,SFO / SF / Antioch,Antioch,267
+PITT,NCON,PCTR,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+PITT,PCTR,NCON,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+PITT,PCTR,NCON,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,261
+PLZA,DELN,NBRK,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+PLZA,DELN,NBRK,2,Orange-S,1,OAK Airport / Union City,Union City,108
+PLZA,DELN,NBRK,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+PLZA,NBRK,DELN,1,Orange-N,0,OAK Airport / Richmond,Richmond,276
+PLZA,NBRK,DELN,1,Red-N,0,SFO / SF / Richmond,Richmond,201
+POWL,CIVC,MONT,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+POWL,CIVC,MONT,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+POWL,CIVC,MONT,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+POWL,CIVC,MONT,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+POWL,CIVC,MONT,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+POWL,CIVC,MONT,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+POWL,CIVC,MONT,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+POWL,MONT,CIVC,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+POWL,MONT,CIVC,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+POWL,MONT,CIVC,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+POWL,MONT,CIVC,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+POWL,MONT,CIVC,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+RICH,,DELN,2,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+RICH,,DELN,2,Orange-S,1,OAK Airport / Union City,Union City,108
+RICH,,DELN,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+ROCK,MCAR,ORIN,1,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+ROCK,MCAR,ORIN,1,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+ROCK,MCAR,ORIN,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+ROCK,MCAR,ORIN,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+ROCK,ORIN,MCAR,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+ROCK,ORIN,MCAR,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+SANL,BAYF,COLS,2,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+SANL,BAYF,COLS,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,125
+SANL,BAYF,COLS,2,Orange-N,0,OAK Airport / Richmond,Richmond,276
+SANL,COLS,BAYF,1,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+SANL,COLS,BAYF,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+SANL,COLS,BAYF,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+SANL,COLS,BAYF,1,Orange-S,1,OAK Airport / Union City,Union City,108
+SBRN,SFIA,SSAN,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+SBRN,SFIA,SSAN,2,Yellow-N,0,SFO / SF / Antioch,Antioch,270
+SBRN,SFIA,SSAN,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+SBRN,SSAN,MLBR,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+SBRN,SSAN,SFIA,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+SBRN,SSAN,SFIA,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+SFIA,,MLBR,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),60
+SFIA,,SBRN,1,Yellow-N,0,SFO / SF / Antioch,Antioch,251
+SFIA,,SBRN,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,39
+SFIA,MLBR,SBRN,1,Yellow-N,0,SFO / SF / Antioch,Antioch,19
+SFIA,MLBR,SBRN,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,3
+SFIA,MLBR,SBRN,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+SFIA,SBRN,MLBR,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,20
+SFIA,SBRN,MLBR,2,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+SHAY,,HAYW,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,8
+SHAY,,HAYW,2,Orange-N,0,OAK Airport / Richmond,Richmond,5
+SHAY,HAYW,UCTY,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,123
+SHAY,HAYW,UCTY,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+SHAY,HAYW,UCTY,1,Orange-S,1,OAK Airport / Union City,Union City,108
+SHAY,UCTY,HAYW,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,117
+SHAY,UCTY,HAYW,2,Orange-N,0,OAK Airport / Richmond,Richmond,271
+SSAN,COLM,SBRN,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+SSAN,COLM,SBRN,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+SSAN,COLM,SBRN,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+SSAN,SBRN,COLM,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+SSAN,SBRN,COLM,2,Yellow-N,0,SFO / SF / Antioch,Antioch,270
+SSAN,SBRN,COLM,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+UCTY,,FRMT,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,9
+UCTY,,SHAY,1,Orange-N,0,OAK Airport / Richmond,Richmond,106
+UCTY,FRMT,SHAY,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,117
+UCTY,FRMT,SHAY,2,Orange-N,0,OAK Airport / Richmond,Richmond,165
+UCTY,SHAY,FRMT,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,123
+UCTY,SHAY,FRMT,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+WARM,,MLPT,2,Orange-S,1,Berryessa/North San Jose,Berryessa/North San Jose,116
+WARM,FRMT,MLPT,1,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,132
+WARM,FRMT,MLPT,1,Orange-S,1,OAK Airport / Berryessa/North San Jose,Berryessa/North San Jose,168
+WARM,MLPT,FRMT,2,Green-S,1,OAK Airport / SF / Daly City,Daly City,117
+WARM,MLPT,FRMT,2,Orange-N,0,OAK Airport / Richmond,Richmond,162
+WCRK,LAFY,PHIL,1,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+WCRK,LAFY,PHIL,1,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+WCRK,LAFY,PHIL,1,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+WCRK,LAFY,PHIL,1,Yellow-N,0,San Francisco / Antioch,Antioch,4
+WCRK,PHIL,LAFY,2,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+WCRK,PHIL,LAFY,2,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+WDUB,CAST,DUBL,1,Blue-N,0,Dublin/Pleasanton,Dublin/Pleasanton,5
+WDUB,CAST,DUBL,1,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+WDUB,DUBL,CAST,2,Blue-S,1,Bay Fair,Bay Fair,5
+WDUB,DUBL,CAST,2,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+WOAK,12TH,EMBR,1,Red-S,1,SF / SFO Airport / Millbrae,Millbrae,201
+WOAK,12TH,EMBR,1,Yellow-S,1,Millbrae (Caltrain Transfer Platform),Millbrae (Caltrain Transfer Platform),5
+WOAK,12TH,EMBR,1,Yellow-S,1,San Francisco International Airport,San Francisco International Airport,314
+WOAK,EMBR,12TH,2,Red-N,0,SFO / SF / Richmond,Richmond,201
+WOAK,EMBR,12TH,2,Yellow-N,0,SF / Pittsburg/Bay Point,Pittsburg/Bay Point,1
+WOAK,EMBR,12TH,2,Yellow-N,0,SFO / SF / Antioch,Antioch,272
+WOAK,EMBR,12TH,2,Yellow-N,0,SFO / SF / Pittsburg/Bay Point,Pittsburg/Bay Point,42
+WOAK,EMBR,12TH,2,Yellow-N,0,San Francisco / Antioch,Antioch,4
+WOAK,EMBR,LAKE,2,Blue-N,0,SF / OAK Airport / Dublin/Pleasanton,Dublin/Pleasanton,266
+WOAK,EMBR,LAKE,2,Green-N,0,SF / OAK Airport / Berryessa,Berryessa,125
+WOAK,LAKE,EMBR,1,Blue-S,1,OAK Airport / SF / Daly City,Daly City,266
+WOAK,LAKE,EMBR,1,Green-S,1,OAK Airport / SF / Daly City,Daly City,125

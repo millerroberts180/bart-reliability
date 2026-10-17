@@ -10,6 +10,9 @@ database the queries run on.
 Features follow the training definitions in modeling/features.py exactly, but are
 computed for every trip-stop listed in the latest snapshot at or before `as_of`, from
 that trip-stop's listings up to the snapshot.
+
+Boards are grouped by boarding group, the way a train leaves the station, built from
+the schedule (api/boarding.py, docs/boarding_groups.md), never by GTFS direction_id.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ from zoneinfo import ZoneInfo
 
 import duckdb
 
+from bart_reliability.api.boarding import Boarding, group_boardings, group_label
 from bart_reliability.modeling.features import TRAILING_WINDOW_S
 from bart_reliability.warehouse.eta_revision import (
     CANCELLED_TRIP_VALUES,
@@ -152,7 +156,34 @@ class ReplayEngine:
         label = self.con.execute("SELECT min(archive_label) FROM static_feed_load").fetchone()[0]
         self.static_archive_label = label
         self.con.execute(_STOP_POSITIONS_SQL)
+        self._build_boarding_groups()
         self._stations: list[dict] | None = None
+
+    def _build_boarding_groups(self) -> None:
+        """Scheduled visits with the stations before and after them, and the boarding group
+        of every way out of every station. Built over the whole feed, so a group's ID never
+        depends on the service day."""
+        self.con.execute(_VISITS_SQL)
+        self.con.execute(
+            "CREATE TABLE static_trip_station_visits AS "
+            "SELECT trip_id, station_id, count(DISTINCT visit) AS visits, "
+            "any_value(next_station_id) AS next_station_id "
+            "FROM static_visits GROUP BY ALL"
+        )
+        boardings = self.con.execute(
+            "SELECT DISTINCT station_id, previous_station_id, next_station_id "
+            "FROM static_visits WHERE next_station_id IS NOT NULL"
+        ).fetchall()
+        mapping = group_boardings(Boarding(*b) for b in boardings)
+        self.con.execute(
+            "CREATE TABLE boarding_group_exits "
+            "(station_id VARCHAR, next_station_id VARCHAR, group_id VARCHAR)"
+        )
+        if mapping:
+            self.con.executemany(
+                "INSERT INTO boarding_group_exits VALUES (?, ?, ?)",
+                [(station, nxt, gid) for (station, nxt), gid in sorted(mapping.items())],
+            )
 
     def _cursor(self) -> duckdb.DuckDBPyConnection:
         """A connection of its own for one call, used as `with self._cursor() as con:` so
@@ -201,61 +232,113 @@ class ReplayEngine:
         return self._stations
 
     def _load_stations(self) -> list[dict]:
+        """Each station's boarding groups that have trains on the replay service date:
+        destinations, platform and GTFS direction ids as served that day."""
         with self._cursor() as con:
-            rows = con.execute(
+            groups = con.execute(
                 """
-                SELECT st.stop_id, st.stop_name, t.direction_id, list(DISTINCT t.trip_headsign
-                       ORDER BY t.trip_headsign) AS destinations
-                FROM static_stops st
-                JOIN static_stops platform ON platform.parent_station = st.stop_id
-                JOIN static_stop_times s ON s.stop_id = platform.stop_id
-                JOIN static_trips t ON t.trip_id = s.trip_id
-                JOIN static_service_days d ON d.service_id = t.service_id AND d.service_date = ?
-                WHERE st.location_type = 1 AND t.direction_id IS NOT NULL
-                GROUP BY st.stop_id, st.stop_name, t.direction_id
-                ORDER BY st.stop_name, st.stop_id, t.direction_id
+                WITH day AS (
+                    SELECT DISTINCT v.trip_id, v.visit, v.station_id, v.previous_station_id,
+                           v.next_station_id, v.departure_platform, t.trip_headsign,
+                           CAST(t.direction_id AS VARCHAR) AS direction_id
+                    FROM static_visits v
+                    JOIN static_trips t ON t.trip_id = v.trip_id
+                    JOIN static_service_days d
+                      ON d.service_id = t.service_id AND d.service_date = ?
+                )
+                SELECT day.station_id, st.stop_name, g.group_id,
+                       list(DISTINCT day.trip_headsign)
+                           FILTER (WHERE day.trip_headsign IS NOT NULL),
+                       list(DISTINCT day.departure_platform)
+                           FILTER (WHERE day.departure_platform IS NOT NULL),
+                       bool_or(day.departure_platform IS NULL),
+                       list(DISTINCT day.direction_id) FILTER (WHERE day.direction_id IS NOT NULL)
+                FROM day
+                JOIN boarding_group_exits g
+                  ON g.station_id = day.station_id AND g.next_station_id = day.next_station_id
+                JOIN static_stops st ON st.stop_id = day.station_id AND st.location_type = 1
+                GROUP BY ALL
                 """,
                 [self.service_date],
             ).fetchall()
-        stations: dict[str, dict] = {}
-        for stop_id, name, direction, headsigns in rows:
-            station = stations.setdefault(stop_id, {"id": stop_id, "name": name, "directions": []})
-            dests = sorted({destination(h) for h in headsigns if h})
-            station["directions"].append(
-                {"id": str(direction), "label": _direction_label(dests), "destinations": dests}
+            # A station is the end of the line when every train there starts or ends its
+            # trip there: no train passes through.
+            end_of_line = dict(
+                con.execute(
+                    """
+                    SELECT v.station_id,
+                           bool_and(v.previous_station_id IS NULL OR v.next_station_id IS NULL)
+                    FROM (SELECT DISTINCT trip_id, visit, station_id, previous_station_id,
+                                 next_station_id FROM static_visits) v
+                    JOIN static_trips t ON t.trip_id = v.trip_id
+                    JOIN static_service_days d
+                      ON d.service_id = t.service_id AND d.service_date = ?
+                    GROUP BY 1
+                    """,
+                    [self.service_date],
+                ).fetchall()
             )
-        return list(stations.values())
+        stations: dict[str, dict] = {}
+        for station_id, name, gid, headsigns, platforms, any_unknown, directions in groups:
+            station = stations.setdefault(
+                station_id,
+                {
+                    "id": station_id,
+                    "name": name,
+                    "end_of_line": bool(end_of_line.get(station_id)),
+                    "boarding_groups": [],
+                },
+            )
+            # list() over no rows is NULL.
+            dests = sorted({destination(h) for h in headsigns or []} - {""})
+            codes = sorted(platforms or [], key=_platform_order)
+            station["boarding_groups"].append(
+                {
+                    "id": gid,
+                    "label": group_label(dests),
+                    "destinations": dests,
+                    # A platform is named only when every train in the group that day
+                    # leaves from it.
+                    "platform": codes[0] if len(codes) == 1 and not any_unknown else None,
+                    "platforms": codes,
+                    "gtfs_direction_ids": sorted(directions or []),
+                }
+            )
+        for station in stations.values():
+            station["boarding_groups"].sort(
+                key=lambda g: (
+                    (_platform_order(g["platforms"][0]) if g["platforms"] else (1, "")) + (g["id"],)
+                )
+            )
+            for g in station["boarding_groups"]:
+                del g["platforms"]
+        return sorted(stations.values(), key=lambda s: (s["name"], s["id"]))
 
     # -- predictions board ----------------------------------------------------------
 
-    def board(self, station_id: str, direction_id: str) -> tuple[list[dict], int]:
-        """Trip-stops at the station and direction in the replay snapshot, with every
-        model feature computed from listings up to that snapshot. Also returns how many
-        listed trains at the station could not be placed (no static trip match)."""
+    def board(self, station_id: str, group_id: str) -> tuple[list[dict], int, int]:
+        """Trip-stops leaving the station in the boarding group in the replay snapshot,
+        with every model feature computed from listings up to that snapshot. Also counts
+        the trains listed at the station that cannot be placed (no scheduled visit to
+        place them by) and those whose trips end here (they cannot be boarded)."""
         if self.snapshot is None:
-            return [], 0
+            return [], 0, 0
         s = self.snapshot
-        params = {
-            "feed": s.feed_timestamp,
-            "collected": s.collected_at,
-            "station": station_id,
-            "direction": direction_id,
-        }
+        params = {"feed": s.feed_timestamp, "collected": s.collected_at, "station": station_id}
         with self._cursor() as con:
-            cur = con.execute(_BOARD_SQL, params)
+            cur = con.execute(_BOARD_SQL, params | {"group": group_id})
             names = [d[0] for d in cur.description]
             rows = [dict(zip(names, r, strict=True)) for r in cur.fetchall()]
-            unplaced = con.execute(
-                """
-                SELECT count(*) FROM asof_predictions p
-                JOIN static_stops st ON st.stop_id = p.stop_id
-                WHERE p.feed_timestamp = $feed AND p.collected_at = $collected
-                  AND st.parent_station = $station AND p.direction_id IS NULL
-                  AND epoch(p.predicted_arrival) - epoch(p.feed_timestamp) >= 0
+            unplaced, terminating = con.execute(
+                f"""
+                WITH {_PLACED_SQL}
+                SELECT count(*) FILTER (WHERE group_id IS NULL AND NOT ends_here),
+                       count(*) FILTER (WHERE ends_here)
+                FROM placed
                 """,
-                {"feed": s.feed_timestamp, "collected": s.collected_at, "station": station_id},
-            ).fetchone()[0]
-        return rows, int(unplaced)
+                params,
+            ).fetchone()
+        return rows, int(unplaced), int(terminating)
 
     # -- alerts ---------------------------------------------------------------------
 
@@ -347,13 +430,75 @@ def parse_prediction_id(value: str) -> tuple[date, str, int] | None:
         return None
 
 
-def _direction_label(destinations: list[str]) -> str:
-    if not destinations:
-        return "Toward unlisted destinations"
-    if len(destinations) == 1:
-        return f"Toward {destinations[0]}"
-    return f"Toward {', '.join(destinations[:-1])} and {destinations[-1]}"
+def _platform_order(code: str) -> tuple:
+    """Platform "2" before "10"; codes that are not numbers after those that are."""
+    return (0, int(code)) if code.isdigit() else (1, code)
 
+
+# A visit is a trip's consecutive scheduled stops at one station (SFO lists two: the
+# train arrives, reverses and leaves). One row per scheduled rail stop, with its visit's
+# previous and next stations and the platform the train leaves from.
+_VISITS_SQL = """
+CREATE TABLE static_visits AS
+WITH stops AS (
+    SELECT st.trip_id, st.stop_sequence, p.parent_station AS station_id, p.platform_code,
+           lag(p.parent_station) OVER w AS station_before
+    FROM static_stop_times st
+    JOIN static_stops p ON p.stop_id = st.stop_id
+    JOIN static_trips t ON t.trip_id = st.trip_id
+    JOIN static_routes r ON r.route_id = t.route_id
+    WHERE r.route_type = 1 AND p.parent_station IS NOT NULL  -- trains, not bus bridges
+    WINDOW w AS (PARTITION BY st.trip_id ORDER BY st.stop_sequence)
+),
+numbered AS (
+    SELECT *, sum(CASE WHEN station_before IS DISTINCT FROM station_id THEN 1 ELSE 0 END)
+                  OVER (PARTITION BY trip_id ORDER BY stop_sequence) AS visit
+    FROM stops
+),
+visits AS (
+    SELECT trip_id, visit, station_id,
+           arg_max_null(platform_code, stop_sequence) AS departure_platform
+    FROM numbered GROUP BY ALL
+),
+linked AS (
+    SELECT *, lag(station_id) OVER w AS previous_station_id,
+              lead(station_id) OVER w AS next_station_id
+    FROM visits WINDOW w AS (PARTITION BY trip_id ORDER BY visit)
+)
+SELECT n.trip_id, n.stop_sequence, n.station_id, n.visit, l.previous_station_id,
+       l.next_station_id, l.departure_platform
+FROM numbered n JOIN linked l USING (trip_id, visit, station_id)
+"""
+
+# Every upcoming train the replay snapshot lists at $station, placed by its schedule:
+# the matched scheduled stop gives its visit, and so where it goes next. A train listed
+# at a platform its schedule does not use at this station is placed by its only visit
+# to the station; with no such visit it is unplaced. GTFS direction_id is not used.
+_PLACED_SQL = """
+placed_rows AS (
+    SELECT p.*, coalesce(p.service_date, p.inferred_service_date) AS event_service_date,
+           st.parent_station AS station_id,
+           -- The listed platform is the scheduled one exactly when the stop matched.
+           CASE WHEN v.trip_id IS NOT NULL THEN st.platform_code END AS platform,
+           coalesce(v.next_station_id, u.next_station_id) AS next_station_id,
+           v.trip_id IS NOT NULL OR u.trip_id IS NOT NULL AS has_visit
+    FROM asof_predictions p
+    JOIN static_stops st ON st.stop_id = p.stop_id
+    LEFT JOIN static_visits v
+      ON v.trip_id = p.trip_id AND v.stop_sequence = p.scheduled_stop_sequence
+    LEFT JOIN static_trip_station_visits u
+      ON u.trip_id = p.trip_id AND u.station_id = st.parent_station AND u.visits = 1
+    WHERE p.feed_timestamp = $feed AND p.collected_at = $collected
+      AND st.parent_station = $station
+      AND epoch(p.predicted_arrival) - epoch(p.feed_timestamp) >= 0  -- upcoming only
+),
+placed AS (
+    SELECT r.*, g.group_id, r.has_visit AND r.next_station_id IS NULL AS ends_here
+    FROM placed_rows r
+    LEFT JOIN boarding_group_exits g
+      ON g.station_id = r.station_id AND g.next_station_id = r.next_station_id
+)
+"""
 
 _STOP_POSITIONS_SQL = """
 CREATE TABLE static_stop_positions AS
@@ -368,7 +513,8 @@ _EXCLUDED_STOPS = " OR ".join(f"c.stop_id LIKE '{p}%'" for p in EXCLUDED_STOP_PR
 # Feature definitions mirror modeling/features.py (_statements and _FEATURES_SQL), with the
 # event identified by (service date, trip, stop, stop sequence) as in the warehouse.
 _BOARD_SQL = f"""
-WITH obs AS (
+WITH {_PLACED_SQL},
+obs AS (
     SELECT coalesce(service_date, inferred_service_date) AS event_service_date,
            trip_id, stop_id, scheduled_stop_sequence AS stop_sequence,
            collected_at, feed_timestamp, predicted_arrival,
@@ -376,14 +522,7 @@ WITH obs AS (
     FROM asof_predictions
 ),
 cur AS (
-    SELECT p.*, coalesce(p.service_date, p.inferred_service_date) AS event_service_date,
-           st.parent_station AS station_id
-    FROM asof_predictions p
-    JOIN static_stops st ON st.stop_id = p.stop_id
-    WHERE p.feed_timestamp = $feed AND p.collected_at = $collected
-      AND st.parent_station = $station AND CAST(p.direction_id AS VARCHAR) = $direction
-      AND p.predicted_arrival IS NOT NULL
-      AND epoch(p.predicted_arrival) - epoch(p.feed_timestamp) >= 0  -- upcoming only
+    SELECT * FROM placed WHERE group_id = $group
 ),
 hist AS (
     SELECT o.*,
@@ -438,7 +577,7 @@ day_type AS (
 )
 SELECT c.event_service_date, c.trip_id, c.stop_id, c.scheduled_stop_sequence AS stop_sequence,
        c.station_id, c.stop_name, c.route_id, c.route_short_name, c.route_long_name,
-       c.trip_headsign, CAST(c.direction_id AS VARCHAR) AS direction_id,
+       c.trip_headsign, CAST(c.direction_id AS VARCHAR) AS gtfs_direction_id, c.platform,
        c.feed_timestamp, c.collected_at, c.predicted_arrival,
        CAST(epoch(c.predicted_arrival) - epoch(c.feed_timestamp) AS INTEGER)
            AS current_eta_seconds,
