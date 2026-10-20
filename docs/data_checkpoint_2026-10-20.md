@@ -183,9 +183,12 @@ excluded from primary metrics.
 **Alerts.** 27 alerts, each with one content version, in 31 visibility intervals. None
 has a cause, effect or structured active period, and every one applies system-wide.
 Alert state is known for 100% of revision examples, from snapshots at most 61 s old.
-Six versions carry manual categories (5 incident-like, 1 planned notice); the 21 later
-versions are `unclassified`. Suggested categories for them are drafted, pending
-manual review, in [alert_annotation_review_2026-10-20.md](alert_annotation_review_2026-10-20.md).
+In this warehouse six versions carry manual categories (5 incident-like, 1 planned
+notice), and the 21 later versions are `unclassified`, because it was built before they
+were reviewed. The project owner has since confirmed all 21 as `incident_like`
+([alert_annotation_review_2026-10-20.md](alert_annotation_review_2026-10-20.md)). The
+categories are in `config/alert_annotations.csv` and take effect on the next build. This
+warehouse is deliberately not rebuilt.
 The alert feed was empty all day on 2026-10-16.
 
 ## New in this data
@@ -264,7 +267,8 @@ processed directory.
   are weekday, Saturday and Sunday schedules, but each appears on only a few days.
 - **One collector.** No outage longer than 65 s happened, so gap handling is untested on
   real data. A server outage would cost intervals; there is no second collector.
-- **Unreviewed alerts.** 21 of 27 alert versions are `unclassified` until reviewed. This
+- **Alert categories lag the review.** All 27 versions are now reviewed, but this
+  warehouse predates the review of 21 of them and shows them as `unclassified`. This
   affects only descriptive alert context; the model features do not use alerts.
 - **Static archive.** Every day joins to the 2026-10-08 static GTFS. The Antioch extension
   and BART-added trips stay unmatched.

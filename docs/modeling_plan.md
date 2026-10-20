@@ -25,8 +25,9 @@ change what was registered.
 - **Population:** unchanged. Tier A only, published-time horizons 300 / 600 / 900 s
   within ±60 s, and the final-window rule. `config/eta_revision.toml` is unchanged.
 - **Alert annotations** do not enter the selected features. The evaluation uses this
-  warehouse as built, whatever the outcome of the
-  [pending alert review](alert_annotation_review_2026-10-20.md).
+  warehouse as built. It predates the
+  [completed alert review](alert_annotation_review_2026-10-20.md), so its 21 later alert
+  versions stay `unclassified` in it, and it is not rebuilt for the review.
 
 ### Split
 
@@ -96,7 +97,8 @@ a validation-only mode.
 **Primary comparison.** The selected model against the historical-revision baseline on
 2026-10-19. In PR #7 the selected regression and classification models were both trees.
 If validation selects a linear comparator instead, that selection stands and is
-reported as such. It is not replaced by the best tree after the fact.
+reported as such. It is not replaced by the best tree after the fact. The project owner
+confirmed this rule on 2026-10-20: validation decides the primary model.
 
 **Primary metrics,** each with its paired difference from the historical baseline:
 

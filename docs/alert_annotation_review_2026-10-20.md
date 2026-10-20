@@ -1,73 +1,80 @@
 # Alert annotation review: 2026-10-20 checkpoint
 
-> **Status: PENDING MANUAL REVIEW. Nothing here has been applied.**
-> Every category below is a suggestion awaiting the project owner's confirmation.
-> `config/alert_annotations.csv` is unchanged, and these 21 versions stay
-> `unclassified` in every warehouse until confirmed rows are added there.
+> **Status: REVIEW COMPLETE.** The project owner reviewed all 21 versions manually and
+> confirmed every one as `incident_like` on 2026-10-20. The rows are in
+> `config/alert_annotations.csv` with `reviewed_on` 2026-10-20, and they take effect on the
+> next warehouse build. The checkpoint warehouse (`19dd5cfc…`) was built before the review
+> and is deliberately not rebuilt, so it still shows these versions as `unclassified`.
 
 The [2026-10-20 checkpoint](data_checkpoint_2026-10-20.md) contains 27 alert versions.
-Six were reviewed on 2026-10-11. The 21 below appeared later and have no category.
+Six were reviewed on 2026-10-11. The 21 below appeared later.
 
-## How the suggestions were made
+## How the review was done
 
-- **From the published text only,** using the written rules in
-  [service_alerts.md](service_alerts.md#how-planned-and-incident-like-are-determined):
-  - `planned_notice`: the text announces scheduled work or a recurring planned service
-    change;
-  - `incident_like`: the text reports a current or recent unplanned delay with a
-    specific cause. The rule's examples include "recovering from an earlier problem".
-- **No ETA outcome was used.** No revision value, model result or alert-context
+- **Draft from the published text only.** Suggestions were drafted using the rules in
+  [service_alerts.md](service_alerts.md#how-planned-and-incident-like-are-determined) as
+  they stood. No ETA outcome was used: no revision value, model result or alert-context
   statistic was consulted. The query read only the alert tables (`alert_versions`,
   `alert_visibility`, `alert_annotations`, `alert_informed_entities`).
+- **Owner's manual confirmation, 2026-10-20.** The owner confirmed all 21 versions as
+  `incident_like` and widened the `incident_like` rule to cover all of these:
+  - active delays;
+  - skipped stations;
+  - stopped or suspended service;
+  - recovery messages;
+  - restoration-to-normal-service messages tied to an incident.
+
+  The earlier `incident_like` rows already fit the widened rule.
 - **What the feed gives.** Every version has the header "BART.gov Alert", the advisories
   URL, no cause, no effect and no structured active period. Each informs only agency
   `BART` (system-wide). The text is therefore the only evidence.
 - **Visible in feed** is the first to the last snapshot that listed the version, in
   Pacific time (PDT). Snapshots are 60 s apart.
 
-No version announces scheduled work, so none is suggested as `planned_notice`.
+No version announces scheduled work, so none is `planned_notice`.
 
-## Suggested categories
+## Confirmed categories
 
-| # | Alert | Visible in feed (PDT) | Published text | Suggested category | Rationale | Status |
+| # | Alert | Visible in feed (PDT) | Published text | Draft suggestion | Confirmed 2026-10-20 | Basis under the confirmed rule |
 |---|---|---|---|---|---|---|
-| 1 | `BSA_1604` | Mon 10-12 18:25 – 18:31 | "Trains are not stopping in the Richmond and Daly City directions at San Leandro." | `incident_like` (**borderline**) | Reports a current, unannounced service change. States neither a delay nor a cause, so it falls outside the written rule | Pending your confirmation |
-| 2 | `BSA_1605` | Mon 10-12 18:36 – 22:09 | "BART is recovering from an earlier problem.  Regular service has been restored to San Leandro station." | `incident_like` | "Recovering from an earlier problem" is the rule's own example. Follows `BSA_1604`. No delay length or cause is stated | Pending your confirmation |
-| 3 | `BSA_1607` | Tue 10-13 08:36 – 08:53 | "BART service has stopped between Antioch and Concord due to an equipment problem on the track between." | `incident_like` | Current unplanned stoppage with a specific cause (equipment problem). A stoppage rather than a delay (text truncated as published) | Pending your confirmation |
-| 4 | `BSA_1608` | Tue 10-13 08:54 – 09:16 | "There is a major delay on the Antioch line due to an equipment problem on the track. BART service has stopped between Antioch and Concord stations. Tri Delta Transit is providing bus service between Concord and Antioch at this time. County Connection is providing bus service between Concord and North Concord on Bus 17." | `incident_like` | Current major delay with a specific cause | Pending your confirmation |
-| 5 | `BSA_1611` | Tue 10-13 09:16 – 09:47 | "There is a major delay on the Antioch line in all directions due to an equipment problem on the track. Normal BART service has resumed between Antioch and Concord stations." | `incident_like` | Current major delay with a specific cause | Pending your confirmation |
-| 6 | `BSA_1612` | Tue 10-13 09:45 – 12:53 | "BART is recovering from an earlier problem. There is a 20-minute delay on the Antioch line in the SFO and Antioch directions due to an earlier equipment problem on the track." | `incident_like` | Recovery wording, delay and cause; same pattern as the reviewed `BSA_1550` | Pending your confirmation |
-| 7 | `BSA_1613` | Tue 10-13 12:58 – 13:10 and 14:33 – 15:32 | "There is a 20-minute delay on the Antioch line in the Antioch and SFO directions due to a PG&E power issue." | `incident_like` | Current delay with a specific cause. Visible twice, replaced by `BSA_1614` in between | Pending your confirmation |
-| 8 | `BSA_1614` | Tue 10-13 13:11 – 14:32 | "There is a major delay on the Antioch line in the Antioch and SFO directions due to a PG&E power issue." | `incident_like` | Current major delay with a specific cause | Pending your confirmation |
-| 9 | `BSA_1630` | Wed 10-14 06:21 – 06:24 | "There is a 20-minute delay in the SFO, Millbrae, and Berryessa directions due to an equipment problem on a train at 12th St. Oakland City Center." | `incident_like` | Current delay with a specific cause | Pending your confirmation |
-| 10 | `BSA_1631` | Wed 10-14 06:24 – 06:55 | "BART is recovering from an earlier problem. There is a 20-minute delay in the Berryessa, SFO, and Millbrae directions due to an earlier equipment problem on a train at 12th St. station." | `incident_like` | Recovery wording, delay and cause | Pending your confirmation |
-| 11 | `BSA_1673` | Thu 10-15 08:53 – 08:55 | "There is a 10-minute delay on the Berryessa line in the Daly City direction due to police activity at San Leandro and Coliseum stations." | `incident_like` | Current delay with a specific cause | Pending your confirmation |
-| 12 | `BSA_1674` | Thu 10-15 08:57 – 09:27 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Daly City direction due to earlier police activity at San Leandro and Coliseum stations." | `incident_like` | Recovery wording, delay and cause | Pending your confirmation |
-| 13 | `BSA_1679` | Thu 10-15 14:52 – 15:26 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Richmond, Daly City, and Berryessa directions due to earlier police activity." | `incident_like` | Recovery wording, delay and cause (no location given) | Pending your confirmation |
-| 14 | `BSA_1680` | Thu 10-15 15:27 – 15:53 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Richmond and Daly City directions due to earlier police activity at Fremont." | `incident_like` | Recovery wording, delay and cause | Pending your confirmation |
-| 15 | `BSA_1687` | Thu 10-15 18:33 – 19:14 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Berryessa and Dublin/Pleasanton directions due to earlier police activity at Bay Fair." | `incident_like` | Recovery wording, delay and cause | Pending your confirmation |
-| 16 | `BSA_1761` | Sat 10-17 05:49 – 06:10 | "There is a 20-minute delay on the Berryessa line in the Richmond, Berryessa, and Daly City directions due to an equipment problem on the track between Union City and South Hayward." | `incident_like` | Current delay with a specific cause | Pending your confirmation |
-| 17 | `BSA_1762` | Sat 10-17 06:12 – 07:19 | "BART is recovering from an earlier problem. There is a 20-minute delay on the Berryessa line in the Berryessa, Richmond, and Daly City directions due to an earlier equipment problem on the track." | `incident_like` | Recovery wording, delay and cause | Pending your confirmation |
-| 18 | `BSA_1838` | Tue 10-20 07:19 – 07:27 | "There is a 10-minute delay on the Berryessa line in the Richmond and Daly City directions due to police activity at Hayward." | `incident_like` | Current delay with a specific cause | Pending your confirmation |
-| 19 | `BSA_1839` | Tue 10-20 07:21 – 07:23 | "Trains are not stopping at Hayward Station in the Berryessa direction due to police activity." | `incident_like` (**borderline**) | Current unplanned skipped station with a specific cause. States no delay, so it falls outside the written rule | Pending your confirmation |
-| 20 | `BSA_1840` | Tue 10-20 07:26 – 07:44 | "Trains are now making normal stops at Hayward." | leave `unclassified` (**borderline**) | Restoration notice only: reports no current delay, cause or planned work, and lacks the recovery wording | Pending your confirmation |
-| 21 | `BSA_1841` | Tue 10-20 07:26 – 07:51 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Richmond and Daly City directions due to earlier police activity at Hayward." | `incident_like` | Recovery wording, delay and cause | Pending your confirmation |
+| 1 | `BSA_1604` | Mon 10-12 18:25 – 18:31 | "Trains are not stopping in the Richmond and Daly City directions at San Leandro." | `incident_like` (borderline) | `incident_like` | Skipped station (unplanned service change) |
+| 2 | `BSA_1605` | Mon 10-12 18:36 – 22:09 | "BART is recovering from an earlier problem.  Regular service has been restored to San Leandro station." | `incident_like` | `incident_like` | Recovery and restoration message, tied to the San Leandro incident of row 1 |
+| 3 | `BSA_1607` | Tue 10-13 08:36 – 08:53 | "BART service has stopped between Antioch and Concord due to an equipment problem on the track between." | `incident_like` | `incident_like` | Stopped service with a specific cause (equipment problem) |
+| 4 | `BSA_1608` | Tue 10-13 08:54 – 09:16 | "There is a major delay on the Antioch line due to an equipment problem on the track. BART service has stopped between Antioch and Concord stations. Tri Delta Transit is providing bus service between Concord and Antioch at this time. County Connection is providing bus service between Concord and North Concord on Bus 17." | `incident_like` | `incident_like` | Active major delay with a specific cause; stopped service |
+| 5 | `BSA_1611` | Tue 10-13 09:16 – 09:47 | "There is a major delay on the Antioch line in all directions due to an equipment problem on the track. Normal BART service has resumed between Antioch and Concord stations." | `incident_like` | `incident_like` | Active major delay with a specific cause |
+| 6 | `BSA_1612` | Tue 10-13 09:45 – 12:53 | "BART is recovering from an earlier problem. There is a 20-minute delay on the Antioch line in the SFO and Antioch directions due to an earlier equipment problem on the track." | `incident_like` | `incident_like` | Recovery message with delay and cause; same pattern as the reviewed `BSA_1550` |
+| 7 | `BSA_1613` | Tue 10-13 12:58 – 13:10 and 14:33 – 15:32 | "There is a 20-minute delay on the Antioch line in the Antioch and SFO directions due to a PG&E power issue." | `incident_like` | `incident_like` | Active delay with a specific cause. Visible twice, replaced by `BSA_1614` in between |
+| 8 | `BSA_1614` | Tue 10-13 13:11 – 14:32 | "There is a major delay on the Antioch line in the Antioch and SFO directions due to a PG&E power issue." | `incident_like` | `incident_like` | Active major delay with a specific cause |
+| 9 | `BSA_1630` | Wed 10-14 06:21 – 06:24 | "There is a 20-minute delay in the SFO, Millbrae, and Berryessa directions due to an equipment problem on a train at 12th St. Oakland City Center." | `incident_like` | `incident_like` | Active delay with a specific cause |
+| 10 | `BSA_1631` | Wed 10-14 06:24 – 06:55 | "BART is recovering from an earlier problem. There is a 20-minute delay in the Berryessa, SFO, and Millbrae directions due to an earlier equipment problem on a train at 12th St. station." | `incident_like` | `incident_like` | Recovery message with delay and cause |
+| 11 | `BSA_1673` | Thu 10-15 08:53 – 08:55 | "There is a 10-minute delay on the Berryessa line in the Daly City direction due to police activity at San Leandro and Coliseum stations." | `incident_like` | `incident_like` | Active delay with a specific cause |
+| 12 | `BSA_1674` | Thu 10-15 08:57 – 09:27 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Daly City direction due to earlier police activity at San Leandro and Coliseum stations." | `incident_like` | `incident_like` | Recovery message with delay and cause |
+| 13 | `BSA_1679` | Thu 10-15 14:52 – 15:26 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Richmond, Daly City, and Berryessa directions due to earlier police activity." | `incident_like` | `incident_like` | Recovery message with delay and cause (no location given) |
+| 14 | `BSA_1680` | Thu 10-15 15:27 – 15:53 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Richmond and Daly City directions due to earlier police activity at Fremont." | `incident_like` | `incident_like` | Recovery message with delay and cause |
+| 15 | `BSA_1687` | Thu 10-15 18:33 – 19:14 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Berryessa and Dublin/Pleasanton directions due to earlier police activity at Bay Fair." | `incident_like` | `incident_like` | Recovery message with delay and cause |
+| 16 | `BSA_1761` | Sat 10-17 05:49 – 06:10 | "There is a 20-minute delay on the Berryessa line in the Richmond, Berryessa, and Daly City directions due to an equipment problem on the track between Union City and South Hayward." | `incident_like` | `incident_like` | Active delay with a specific cause |
+| 17 | `BSA_1762` | Sat 10-17 06:12 – 07:19 | "BART is recovering from an earlier problem. There is a 20-minute delay on the Berryessa line in the Berryessa, Richmond, and Daly City directions due to an earlier equipment problem on the track." | `incident_like` | `incident_like` | Recovery message with delay and cause |
+| 18 | `BSA_1838` | Tue 10-20 07:19 – 07:27 | "There is a 10-minute delay on the Berryessa line in the Richmond and Daly City directions due to police activity at Hayward." | `incident_like` | `incident_like` | Active delay with a specific cause |
+| 19 | `BSA_1839` | Tue 10-20 07:21 – 07:23 | "Trains are not stopping at Hayward Station in the Berryessa direction due to police activity." | `incident_like` (borderline) | `incident_like` | Skipped station with a specific cause (police activity) |
+| 20 | `BSA_1840` | Tue 10-20 07:26 – 07:44 | "Trains are now making normal stops at Hayward." | leave `unclassified` (borderline) | `incident_like` | Restoration to normal stops, tied to the Hayward police incident of rows 18, 19 and 21. Treated like row 2 |
+| 21 | `BSA_1841` | Tue 10-20 07:26 – 07:51 | "BART is recovering from an earlier problem. There is a 10-minute delay on the Berryessa line in the Richmond and Daly City directions due to earlier police activity at Hayward." | `incident_like` | `incident_like` | Recovery message with delay and cause |
 
-Summary of the suggestions: 20 `incident_like` (two borderline), 1 left `unclassified`
-(borderline), 0 `planned_notice`.
+**Result:** 21 `incident_like`.
+- **Rows 1, 3 and 19** were borderline under the old rule, which mentioned only delays.
+  The widened rule covers them.
+- **Row 20** was drafted as `unclassified`. The owner classified it `incident_like` as a
+  restoration message tied to an incident, consistent with row 2.
 
-## Decisions needed
+In `config/alert_annotations.csv`, each row's `basis` is the full published text, quoted.
 
-1. **Confirm or change each row.** Only confirmed rows go into
-   `config/alert_annotations.csv`, with `reviewed_on` set to the confirmation date.
-2. **Service changes without a stated delay.** The written `incident_like` rule mentions
-   only delays. Rows 1, 3 and 19 report a stoppage or skipped station instead. Decide
-   whether `incident_like` covers unplanned service changes. If it does, reword the rule
-   in `service_alerts.md` and the CSV header to match. If not, rows 1 and 19 stay
-   `unclassified`.
-3. **Restoration notices.** Rows 2 and 20 both announce restored service. Row 2 uses the
-   "recovering from an earlier problem" wording, and row 20 does not. Decide whether that
-   wording, or the restoration itself, is what counts.
+## Decisions made
+
+1. **Every row confirmed** as `incident_like` by the project owner on 2026-10-20.
+2. **Service changes without a stated delay.** Skipped stations and stopped or suspended
+   service are `incident_like`. The rule in `service_alerts.md` and the CSV header now say
+   so.
+3. **Restoration notices.** A restoration-to-normal-service message tied to an incident
+   is `incident_like`, with or without the "recovering from an earlier problem" wording.
 
 ## Which days these touch
 
@@ -79,12 +86,12 @@ Summary of the suggestions: 20 `incident_like` (two borderline), 1 left `unclass
 - Excluded partial day 2026-10-20: rows 18 to 21.
 
 The selected model features do not use alerts
-([modeling_plan.md](modeling_plan.md#allowed-features)), so confirming these categories
-changes the descriptive alert context, not the preregistered evaluation.
+([modeling_plan.md](modeling_plan.md#allowed-features)). The review changes the
+descriptive alert context of later builds, not the preregistered evaluation.
 
 ## Fingerprints
 
-Needed for the `alert_fingerprint` column when rows are confirmed:
+As recorded in `config/alert_annotations.csv`:
 
 | # | Alert | `alert_fingerprint` |
 |---|---|---|
