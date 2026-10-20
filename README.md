@@ -20,6 +20,8 @@ BART GTFS-RT feeds --bart-collect--> data/raw/gtfs_rt/<feed>/<date>/<HHMMSS>Z.pb
                                        data/processed/alert_*/ (normalized alerts)
 static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
 warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, models, metrics)
+warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle/ (inference bundle)
+warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historical replay, local only)
 ```
 
 - **Collector** (`src/bart_reliability/collector/`): polls trip updates and alerts every
@@ -55,6 +57,20 @@ warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, m
   revisions over 60 s, with structural leakage checks and a paired, trip-clustered
   bootstrap for test-day uncertainty. Settings live in `config/eta_model.toml`. Current results are
   provisional: [docs/modeling_plan.md](docs/modeling_plan.md).
+- **Inference bundle** (`src/bart_reliability/serving/`): the selected models exported with
+  verified metadata, one strict single-record entry point, exact parity with the
+  modeling pipeline, and a provisional horizon-aware revision interval. Inputs with a
+  category unseen in training return `fallback_required` (use BART's published ETA). It is rebuilt
+  with `bart-eta-bundle build`; settings live in `config/eta_model_bundle.toml` and the
+  committed metadata schema `config/eta_model_bundle.schema.json`:
+  [docs/model_serving.md](docs/model_serving.md).
+- **Local prediction API** (`src/bart_reliability/api/`): FastAPI in historical-replay
+  mode, answering as of a configured past moment with features, history and alerts cut
+  off at that moment, through the website's `PredictionClient` contract. It binds to
+  127.0.0.1 with localhost-only CORS. Boards are grouped by boarding group, the way a
+  train leaves the station, built from the schedule's platforms rather than GTFS
+  `direction_id`: [docs/boarding_groups.md](docs/boarding_groups.md). The website can read
+  it locally (below): [docs/local_api.md](docs/local_api.md).
 
 ## Setup
 
@@ -62,6 +78,7 @@ warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, m
 python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/pip install -e '.[dev,model]'   # also pandas and scikit-learn, for bart-eta-model
+.venv/bin/pip install -e '.[dev,model,serve]'   # also FastAPI and uvicorn, for bart-serve-local
 ```
 
 ## Usage
@@ -76,6 +93,9 @@ Run from the repository root.
 .venv/bin/bart-eta-sensitivity    # ETA revision parameter sensitivity (read-only)
 .venv/bin/bart-alert-sensitivity  # alert-state staleness sensitivity (read-only)
 .venv/bin/bart-eta-model          # features, baselines, models, metrics (warehouse read-only)
+.venv/bin/bart-eta-bundle build   # rebuild the inference bundle (runs bart-eta-model first)
+.venv/bin/bart-eta-bundle predict --record record.json   # one prediction from the bundle
+.venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # local replay API
 ```
 
 Query the warehouse with DuckDB, e.g.
@@ -87,6 +107,42 @@ To run the collector continuously on a server with systemd, see
 
 Collector logs are JSON lines on stdout and in `logs/collector.log`. Malformed inputs
 found by the transformer are listed in `data/processed/trip_updates/_quarantine.jsonl`.
+
+## Website prototype
+
+**Live demo (simulated data): <https://millerroberts180.github.io/bart-reliability/>**
+
+The demo is the simulated build. `.github/workflows/deploy-pages.yml` builds it with
+`VITE_DATA_MODE=mock` on every push to `main` and publishes it to GitHub Pages. Every
+value it shows is simulated and nothing is live. The historical-replay API is not deployed.
+
+`web/` holds a React + TypeScript prototype of the public site, "ETA Reliability". By
+default it runs on simulated data. Stack, data contracts, the mock client and the HTTP
+client are described in [docs/website_architecture.md](docs/website_architecture.md).
+
+```bash
+cd web
+npm install
+npm run dev      # http://localhost:5173/ (simulated data)
+npm run test && npm run lint && npm run build
+```
+
+To run it against the local historical-replay API, set the API address once in the
+ignored `web/.env.local`:
+
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+then start two processes from the repository root, each in its own terminal:
+
+```bash
+.venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # API: http://127.0.0.1:8000
+cd web && VITE_DATA_MODE=http npm run dev                                 # site: http://localhost:5173/
+```
+
+Every value the site then shows is labelled as a historical replay of recorded BART data
+as of the API's replay time. Nothing is live.
 
 ## Checks
 

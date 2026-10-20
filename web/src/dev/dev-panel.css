@@ -1,0 +1,44 @@
+/*
+ * Development-only preview control, deliberately unlike the product UI. It sits in
+ * normal flow after the page content so it can never cover anything.
+ */
+.dev-panel {
+  max-width: var(--page-max);
+  margin: 0 auto var(--space-6);
+  padding: 0.5rem var(--gutter);
+  border-block: 1px dashed #6b21a8;
+  background: #faf5ff;
+  color: #3b0764;
+  font: 500 0.8125rem/1.4 ui-monospace, Menlo, monospace;
+}
+
+.dev-panel summary {
+  cursor: pointer;
+}
+
+.dev-panel fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.dev-panel legend {
+  width: 100%;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.dev-panel label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.75rem;
+  cursor: pointer;
+}
+
+.dev-panel input {
+  accent-color: #6b21a8;
+}

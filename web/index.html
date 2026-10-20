@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      Describes the historical-replay site. A simulated (mock) build replaces the
+      description text at build time (vite.config.ts), so neither build misstates its data.
+      The canonical URL and a social image belong to deployment (docs/website_architecture.md).
+    -->
+    <meta
+      name="description"
+      content="A historical replay of recorded BART data, with a model of how BART revises a train’s published arrival estimate before it arrives. Not live, and not a prediction of physical arrival."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ETA Reliability" />
+    <meta property="og:title" content="ETA Reliability · How stable are BART’s published arrival estimates?" />
+    <meta
+      property="og:description"
+      content="A historical replay of recorded BART data, with a model of how BART revises a train’s published arrival estimate before it arrives. Not live, and not a prediction of physical arrival."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="ETA Reliability · How stable are BART’s published arrival estimates?" />
+    <meta
+      name="twitter:description"
+      content="A historical replay of recorded BART data, with a model of how BART revises a train’s published arrival estimate before it arrives. Not live, and not a prediction of physical arrival."
+    />
+    <meta name="theme-color" content="#f3f1ea" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231c2226'/%3E%3Crect x='6' y='19' width='20' height='3' fill='%23f3f1ea'/%3E%3Crect x='6' y='10' width='12' height='3' fill='%23f3f1ea'/%3E%3C/svg%3E"
+    />
+    <title>ETA Reliability · How stable are BART’s published arrival estimates?</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

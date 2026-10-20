@@ -26,7 +26,7 @@ The project should demonstrate:
 - SQL joins, window functions, aggregations, and temporal analysis
 - Data-quality testing
 - Leakage-safe machine-learning evaluation
-- Clear communication through an interactive dashboard
+- Clear communication through an interactive public website
 
 ## Data sources
 
@@ -135,7 +135,8 @@ The finished project must:
 - Include rider-weighted reliability analysis
 - Provide reproducible Python and SQL code
 - Include automated tests and data-quality checks
-- Present the findings in a public Streamlit dashboard
+- Present the findings on a public website: a custom React and TypeScript frontend, served
+  as a static site that deploys separately from a future Python prediction API
 - Document assumptions, exclusions, limitations, and unsuccessful approaches
 
 ## Out of scope for version one

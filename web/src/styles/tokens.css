@@ -1,0 +1,87 @@
+/*
+ * Design tokens. Components use these roles, never raw values.
+ *
+ * Breakpoints (media queries cannot read custom properties, so they are
+ * written out where used; keep these two values in sync):
+ *   --bp-medium: 40rem   (640px)  single column → two-column controls
+ *   --bp-wide:   64rem   (1024px) opening prose beside the disclosure
+ */
+
+:root {
+  /* Color roles. Contrast ratios are against --color-ground; every text pairing used, including on --color-ground-sunk and the washes, stays at or above 5.0:1. */
+  --color-ground: #f3f1ea; /* warm off-white page */
+  --color-ground-sunk: #e9e6dc; /* placeholders, scale track */
+  --color-surface: #fbfaf6; /* readout panel */
+  --color-ink: #1c2226; /* blue-tinted charcoal, 14.2:1 */
+  --color-ink-secondary: #3e474d; /* 8.4:1 */
+  --color-ink-muted: #586167; /* 5.6:1, labels and metadata */
+  --color-rule: #d3cfc3; /* hairline dividers (non-text) */
+  --color-rule-strong: #1c2226;
+
+  --color-signal: #1a5694; /* links, selection, focus; 6.6:1 */
+  --color-signal-wash: #e1e8ef; /* selected row */
+
+  /* Stability and freshness states. Always paired with a text label and a shape. */
+  --color-hold: #2c6a4c; /* 5.7:1 */
+  --color-watch: #85570a; /* 5.5:1 */
+  --color-revise: #a13a28; /* 5.9:1 */
+  --color-watch-wash: #f3e7cf;
+
+  /* Typography */
+  --font-display: 'Schibsted Grotesk Variable', 'Helvetica Neue', Arial, sans-serif;
+  --font-text: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --text-label: 0.8125rem; /* 13px mono labels: the floor for any text */
+  --text-small: 0.9375rem; /* 15px */
+  --text-body: 1.0625rem; /* 17px reading text */
+  --text-lede: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  --text-heading: clamp(1.625rem, 1.35rem + 1.1vw, 2.125rem);
+  --text-value: clamp(1.625rem, 1.4rem + 0.8vw, 2rem);
+  --text-value-strong: clamp(2.25rem, 1.85rem + 1.5vw, 3rem);
+  --text-display: clamp(2.75rem, 1.4rem + 5.6vw, 5.75rem);
+
+  --leading-tight: 1.02;
+  --leading-snug: 1.25;
+  --leading-lede: 1.35;
+  --leading-body: 1.6;
+  --tracking-display: -0.035em;
+  --tracking-label: 0.06em;
+
+  /* Spacing (4px base) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 6.5rem;
+
+  /* Layout */
+  --page-max: 75rem;
+  --measure: 64ch;
+  --gutter: clamp(1rem, 0.5rem + 2.5vw, 3rem);
+
+  /* Borders */
+  --border-hair: 1px solid var(--color-rule);
+  --border-strong: 1px solid var(--color-rule-strong);
+  --radius-small: 2px;
+
+  /* Focus */
+  --focus-ring: 3px solid var(--color-signal);
+  --focus-offset: 3px;
+
+  /* Motion: only for state feedback, never decoration. */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}

@@ -18,6 +18,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "httpx>=0.27",
+    # Starlette's TestClient (FastAPI's) runs on httpx2; with only httpx it warns.
+    "httpx2>=2.0.0",
     "pytest>=8",
     "responses>=0.25",
     "ruff>=0.6",
@@ -26,6 +29,12 @@ dev = [
 model = [
     "pandas>=2.2",
     "scikit-learn>=1.5",
+]
+# Local prediction API (bart-serve-local). Optional, like the model extra.
+serve = [
+    "fastapi>=0.110",
+    "pydantic>=2.6",
+    "uvicorn>=0.29",
 ]
 
 [project.scripts]
@@ -37,6 +46,8 @@ bart-alert-sensitivity = "bart_reliability.warehouse.alerts:staleness_main"
 bart-511-download = "bart_reliability.open511.download:main"
 bart-511-audit = "bart_reliability.open511.audit:main"
 bart-eta-model = "bart_reliability.modeling.main:main"
+bart-eta-bundle = "bart_reliability.serving.main:main"
+bart-serve-local = "bart_reliability.api.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
