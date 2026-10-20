@@ -3,8 +3,155 @@
 This milestone builds a leakage-safe pipeline that predicts how much BART's published ETA
 will still be revised. It is **not** an arrival-accuracy model. The reference endpoint is
 BART's own final stable published estimate ([observed_arrival_proxy.md](observed_arrival_proxy.md)),
-so every target here is an *ETA revision*. Results from the current snapshot are
-**provisional development results** and do not describe BART performance in general.
+so every target here is an *ETA revision*. The results below come from the PR #7
+development run on the 2026-10-15 snapshot. They are **provisional development
+results** and do not describe BART performance in general. The next evaluation is
+preregistered in the next section.
+
+## Preregistered evaluation: 2026-10-20 checkpoint
+
+**Registered on 2026-10-20, before any model was fitted or scored on this checkpoint.**
+This section fixes the data, split, method and reading of the next model evaluation. Git
+history records when it was committed. Editing it after the test day is scored does not
+change what was registered.
+
+### Data
+
+- **Warehouse:** `data/warehouse/bart_checkpoint_2026-10-20.duckdb`, SHA-256
+  `19dd5cfc686bed4f223adbfe5c5d26ef8385e5d1a152da5aa2be7af9378e55cc`, built from the
+  verified export with cutoff 2026-10-20 19:40 UTC
+  ([data_checkpoint_2026-10-20.md](data_checkpoint_2026-10-20.md)). The hash is checked
+  before the run and reported with the results.
+- **Population:** unchanged. Tier A only, published-time horizons 300 / 600 / 900 s
+  within ±60 s, and the final-window rule. `config/eta_revision.toml` is unchanged.
+- **Alert annotations** do not enter the selected features. The evaluation uses this
+  warehouse as built, whatever the outcome of the
+  [pending alert review](alert_annotation_review_2026-10-20.md).
+
+### Split
+
+Chronological by service date (Pacific, inclusive). Only complete service days are
+used:
+
+| Split | Service dates | Days | Tier-A events |
+|---|---|---|---|
+| training | 2026-10-10 to 2026-10-15 | Sat, Sun, Mon (holiday, weekday service), Tue, Wed, Thu | 60,352 |
+| validation and model selection | 2026-10-16 to 2026-10-18 | Fri, Sat, Sun | 27,732 |
+| **sealed test** | **2026-10-19** | Mon | 11,291 |
+| excluded | 2026-10-09 (late-night tail), 2026-10-20 (partial, ends at the cutoff) | | |
+
+Tier-A events are counts of `observed_arrival_proxy` events. The run reports the
+modeling examples per split. Split isolation is unchanged: events whose label is
+confirmed after the next split's first prediction are purged and counted.
+
+`config/eta_model.toml` still holds the PR #7 split, so an accidental run cannot reach
+2026-10-19. The retraining milestone sets `[split]` to exactly `train =
+["2026-10-10", "2026-10-15"]`, `validation = ["2026-10-16", "2026-10-18"]` and `test =
+["2026-10-19", "2026-10-19"]` before fitting, and `run_manifest.json` records it.
+
+### The sealed test day
+
+- **Sealed from this commit on.** Before the single evaluation, nothing computes,
+  queries or displays any ETA-revision outcome for 2026-10-19. That covers revision
+  values, `large_revision`, final estimates, residuals, predictions scored against
+  labels, and metrics. The pipeline's own structural checks may run over every split.
+- **Evaluated exactly once.** One run of the frozen pipeline produces every test number:
+  the retrained selected models, both baselines with the predeclared baseline
+  sensitivity, and the locked PR #7 models. Rerunning the identical configuration to
+  reproduce the result is allowed, because the pipeline is deterministic. A run with any
+  change is a new analysis, not a second test evaluation.
+- **Failures before scoring.** A point-in-time check, split check or the single-feature
+  alarm stops the run before any model is fitted or scored. A fix may use only training
+  and validation data and the check output, and it is recorded here before the run is
+  repeated.
+- **After scoring the day is spent,** whatever the result. No later model, feature,
+  hyperparameter, threshold, baseline or metric choice may be justified by it. A further
+  version needs a later untouched service day.
+- **Already seen (a limitation, recorded honestly).** The checkpoint build's standard log
+  printed pooled ETA-revision summaries by horizon over all 12 service dates. 2026-10-19
+  contributes 10.8% of their tier-A events. That summary was seen. Per-day counts of
+  snapshots, events, eligibility, exclusions, joins, alerts and cancellations were also
+  computed for 2026-10-19. No daily 2026-10-19 revision value, distribution, prediction or
+  metric was examined, and nothing seen was used to choose the split or this plan
+  ([details](data_checkpoint_2026-10-20.md#what-has-been-seen-of-the-later-days)).
+
+### Frozen method
+
+Everything below stays as described in the rest of this document. A change is allowed
+only if it is justified with training and validation data alone, written here and
+committed before the test run. Engineering work that changes none of these choices is
+allowed: setting the split, preserving and scoring the locked PR #7 models, and adding
+a validation-only mode.
+
+| Element | Frozen setting |
+|---|---|
+| Feature contract | The 15 selected features of [Allowed features](#allowed-features) (`feature_schema_version` `eta-revision-features-1`). Alert and gap features stay computed but unselected |
+| Leakage protections | Every primary control and the 0.95 single-feature alarm in [Leakage controls](#leakage-controls) |
+| Model families | `HuberRegressor` (α ∈ {0.01, 1, 100}) and L2 `LogisticRegression` (C ∈ {0.01, 0.1, 1}) as linear comparators. `HistGradientBoosting` regressor (absolute-error loss) and classifier, max leaf nodes ∈ {15, 31}, learning rate 0.05, 300 iterations, minimum leaf 50, no L2 penalty, no early stopping |
+| Fitting and selection | Fitted on training rows only. Regression selected by validation MAE, classification by validation Brier score, ties to the earlier candidate. No refit on training plus validation. Only selected candidates are scored on test |
+| Baselines | No revision, and the historical baseline (training rows only, fallback levels as in [Baselines](#baselines), `min_group_size` 30). Sizes 15 / 30 / 60 / 100 are reported as sensitivity and never used to choose |
+| Targets | `eta_revision_seconds` and `large_revision` (absolute revision > 60 s). The 0.5 operating point is descriptive only |
+| Seed | 20261015 |
+
+**Primary comparison.** The selected model against the historical-revision baseline on
+2026-10-19. In PR #7 the selected regression and classification models were both trees.
+If validation selects a linear comparator instead, that selection stands and is
+reported as such. It is not replaced by the best tree after the fact.
+
+**Primary metrics,** each with its paired difference from the historical baseline:
+
+- MAE overall;
+- MAE at the 5, 10 and 15 minute published-time horizons;
+- Brier score;
+- PR-AUC.
+
+The pipeline's other metrics (median absolute error, RMSE, ROC-AUC, precision and recall
+at 0.5, calibration error and table) are reported as secondary. None is dropped or
+promoted after the result is seen.
+
+**Uncertainty:** the existing deterministic paired bootstrap. 2,000 replicates, seed
+20261015, 95% percentile intervals. The primary unit is the trip run (service date +
+`trip_id`), and event-level resampling is a labelled sensitivity.
+
+**Locked PR #7 comparison.** The PR #7 models are scored on 2026-10-19 beside the
+retrained candidate. Neither is changed after the result is seen.
+
+- **Identity:** bundle `cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9`,
+  model version `0.1.0+8d942e17429c`. Regression `tree_hgb_leaves=31`,
+  `regression.joblib` SHA-256
+  `98d54d3e5954363d2d184e1cebb14e955bab4113f4dc55d01a15e5f117bf3d09`. Classification
+  `tree_hgb_leaves=15`, `classification.joblib` SHA-256
+  `f62e5a37333b0b2cefccf9d778c3ecd78b73ac6088ea7ee792aa2a9fba3cb4e0`. Trained on
+  2026-10-10 to 10-12 and selected on 10-13.
+- **Preservation:** `bart-eta-model` and `bart-eta-bundle build` replace
+  `data/models/eta_revision*` on every run. The locked files are copied elsewhere under
+  the ignored `data/models/` and their hashes verified before retraining.
+- **Scoring:** batch prediction on the same 2026-10-19 feature rows, built by the same
+  SQL. Test examples with a category unseen in a model's training data are counted. If
+  there are any, the comparison is also reported on examples known to both models.
+- **Reported:** the primary metrics for the PR #7 models, and the paired trip-clustered
+  differences, retrained minus PR #7, with the same bootstrap settings.
+
+**Serving interval.** If the bundle is rebuilt, the interval keeps its predeclared rule
+([model_serving.md](model_serving.md)): calibrated on validation residuals; served only
+with at least 1,000 calibration examples per horizon and test coverage within 0.05 of
+the nominal 0.80, overall and per horizon. Its test coverage is part of the single
+evaluation.
+
+### Reading the result
+
+- A difference counts as an improvement on 2026-10-19 only if its trip-clustered 95%
+  interval excludes zero in the model's favour. If an interval includes zero, the test
+  day does not establish a difference. Each metric is read separately, and the intervals
+  are not adjusted for multiple comparisons.
+- Every primary difference is reported, whatever its direction.
+- **One test day cannot establish long-term generalization.** The bootstrap is
+  conditional on Monday 2026-10-19. It does not capture day-to-day variability or
+  system-wide conditions shared by many trips. Validation is mostly weekend service
+  (Friday, Saturday, Sunday), while test is a weekday. The planned notice `BSA_560` was
+  visible all day on 10-19 but not on 10-16.
+- The labels remain circular. A better revision forecast says nothing about physical
+  arrival accuracy.
 
 ## Development snapshot
 
@@ -97,7 +244,7 @@ the configuration can only select from it.
 |---|---|
 | `missing_snapshots_so_far` | Snapshots since first seen in which this stop was not listed. Always 0 under tier A, which requires no missing snapshots over the whole event. It becomes informative only if tier B is modeled |
 | `snapshot_gap_before_s`, `max_snapshot_gap_last_15min_s` | Eligibility already removes events with gaps over 90 s, and the snapshot has no gap over 90 s, so these barely vary |
-| `has_applicable_visible_alert`, `alert_context_group` | Point-in-time alert state, using the same rule as [service_alerts.md](service_alerts.md). In this sample it mostly identifies the date (no alert on Oct 10–11; one planned notice on 97% of Oct 14). New alert versions stay `unclassified` until manually reviewed, so the categories also depend on review timing. |
+| `has_applicable_visible_alert`, `alert_context_group` | Point-in-time alert state, using the same rule as [service_alerts.md](service_alerts.md). In the development sample it mostly identifies the date: an alert was visible for 11% of Oct 10 examples, 72% of Oct 11 and about 100% of Oct 12–14, where the planned notice `BSA_560` stayed up almost continuously (97% of Oct 14). New alert versions stay `unclassified` until manually reviewed, so the categories also depend on review timing. |
 
 **Considered and not built:**
 
@@ -180,6 +327,9 @@ break falls between service dates, so boundaries cross no running service. An ev
 is confirmed after the next split's first prediction is purged (`crosses_split_boundary`)
 and counted.
 
+The PR #7 development run used this split, which is still the one in
+`config/eta_model.toml`:
+
 | Split | Service dates (config) | Days |
 |---|---|---|
 | train | 2026-10-10 to 2026-10-12 | Sat, Sun, Mon (Mon ran weekday service) |
@@ -190,13 +340,16 @@ and counted.
 One test day cannot support a credible final test, so **all metrics are provisional**.
 Only complete service dates are used, to keep each split's time-of-day mix whole. When
 more data exists, the boundaries are edited in `config/eta_model.toml`, and the run
-records them.
+records them. The next split is
+[preregistered](#preregistered-evaluation-2026-10-20-checkpoint) on the 2026-10-20
+checkpoint.
 
 **The test day is spent.** 2026-10-14 has been used to evaluate the selected models,
 and later to decide whether the serving interval is available
 ([model_serving.md](model_serving.md#the-test-day-is-no-longer-untouched)). It is no
 longer an untouched holdout. Later model versions must be evaluated on later service
-days, not on any date up to 2026-10-14.
+days, not on any date up to 2026-10-14. The next version's sealed test day is
+2026-10-19.
 
 ## Baselines
 
@@ -289,6 +442,9 @@ Every block reports its examples, events, service dates and prediction-time rang
   interval includes zero, the test day does not establish an improvement.
 
 ## Sample limitations
+
+These describe the PR #7 development run. The preregistered evaluation adds days but
+keeps the single test day ([Reading the result](#reading-the-result)).
 
 - About five complete service days: three for training, one for validation, one for test.
   Each split has one weather, incident and alert history.

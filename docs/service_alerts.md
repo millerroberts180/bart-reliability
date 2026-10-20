@@ -139,7 +139,10 @@ can lag by up to about a minute.
 - **Unlisted versions are `unclassified`.** A version whose content changes, or a new
   alert, stays unclassified until someone reviews it.
 - **Review status.** The six listed versions were manually reviewed on 2026-10-11
-  (Pacific). New or changed versions remain unclassified until reviewed.
+  (Pacific). New or changed versions remain unclassified until reviewed. The 21 versions
+  that appeared later, through 2026-10-20, are unclassified. Suggested categories for
+  them are drafted, pending manual review, in
+  [alert_annotation_review_2026-10-20.md](alert_annotation_review_2026-10-20.md).
 - **Validation.** The loader rejects unknown categories, malformed fingerprints, and
   duplicate fingerprints. The build checks that each annotation's `entity_id` matches
   the observations.
@@ -150,7 +153,9 @@ alerts.
 
 ## Results on the real export (2026-10-12)
 
-The verified server export: 2026-10-10 08:11 UTC to 2026-10-12 02:35 UTC.
+The verified server export: 2026-10-10 08:11 UTC to 2026-10-12 02:35 UTC. The 10.5-day
+export through 2026-10-20 has 27 alerts, still none with a cause, effect or structured
+active period ([data_checkpoint_2026-10-20.md](data_checkpoint_2026-10-20.md)).
 
 | | Value |
 |---|---|

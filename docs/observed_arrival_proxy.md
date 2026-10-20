@@ -160,6 +160,12 @@ quantities:
 
 ## Results on the real export (2026-10-12)
 
+These results describe only the 42-hour 2026-10-12 export. Counts for the 10.5-day
+export are in [data_checkpoint_2026-10-20.md](data_checkpoint_2026-10-20.md). Revision
+statistics for that later export are deliberately not summarized: they would include
+the sealed test day of the
+[preregistered evaluation](modeling_plan.md#preregistered-evaluation-2026-10-20-checkpoint).
+
 **Data:**
 - **Snapshots:** 2,546 trip-update snapshots from the verified server export, 2026-10-10
   08:11:07 UTC to 2026-10-12 02:35:23 UTC (about 42.4 hours, Saturday morning to Sunday
@@ -192,10 +198,15 @@ quantities:
 | `unmatched_trip_not_found` | 4 | |
 | `no_horizon_history` | 2 | |
 
-`collection_gap`, `cancelled_trip`, and `skipped_or_no_data_stop` did not occur. The
-export has no gap over 60 s, and BART sent no `CANCELED`, `SKIPPED`, or `NO_DATA`
-values; stop-level `schedule_relationship` is never populated. These rules are covered
-by synthetic tests only.
+`collection_gap`, `cancelled_trip`, and `skipped_or_no_data_stop` excluded no events in
+this export, which has no gap over 60 s and no cancelled trip.
+
+**BART does cancel trips.** The 10.5-day export through 2026-10-20 has trip-level
+`CANCELED` trips on 9 of 12 service dates, 29 of them on 2026-10-13, and
+`cancelled_trip` excludes 726 events there. Through that export, stop-level
+`schedule_relationship` was still never populated (no `SKIPPED` or `NO_DATA`), and no
+gap exceeded 90 s. `skipped_or_no_data_stop` and `collection_gap` therefore remain
+covered by synthetic tests only.
 
 ### Horizon coverage
 
@@ -312,8 +323,9 @@ Exclusion counts that changed (all others identical across scenarios):
 What the sensitivity analysis can and cannot show:
 
 - **The gap threshold is untested by this data.** The export has no gap over 60 s, so
-  75, 90, and 120 s give identical results. A longer collection with real outages is
-  needed to exercise it.
+  75, 90, and 120 s give identical results. A collection with real outages is needed to
+  exercise it. The 10.5-day export has none either: its largest gap between polling
+  cycles is 64.7 s.
 - **The stability threshold cannot move tier A by construction**, because tier A already
   requires a spread of at most 30 s. Its effect shows in the eligible count and the
   all-eligible statistics.
@@ -329,8 +341,9 @@ What the sensitivity analysis can and cannot show:
   physical arrival accuracy.
 - **Terminal approaches are unobservable,** and the last listed stop of each trip is
   mostly excluded, so line ends are under-represented.
-- **One weekend.** Weekday peaks, disruptions, holidays, and DST changeovers are not
-  covered, and no `CANCELED` or `SKIPPED` record has been seen.
+- **One weekend.** The results above cover no weekday peaks, holidays, or DST
+  changeovers. Later data adds weekdays, disruptions and `CANCELED` trips (see above),
+  but still no `SKIPPED` stop or DST changeover.
 - **60 s sampling** limits how precisely disappearance can be placed and makes the
   tolerance and gap parameters nearly inert.
 - **Frozen estimates during holds** (e.g. MacArthur) can make the endpoint too early.

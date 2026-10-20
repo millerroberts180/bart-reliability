@@ -3,7 +3,13 @@
 **Result: PASS.** 1,440 of 1,440 polling intervals completed, both feeds were saved in
 every cycle, and every one of the 2,882 snapshots is a valid, unmodified GTFS-Realtime
 file. One automatic service restart (an OS security update) occurred and caused no
-missed interval or lost data.
+missed interval or lost data. The `PROJECT_SPEC.md` initial success criterion is
+achieved.
+
+This report covers only the original 24-hour window, audited on 2026-10-12. The later
+audit of the first 10.5 days (to 2026-10-20) is a separate checkpoint:
+[data_checkpoint_2026-10-20.md](data_checkpoint_2026-10-20.md). It found 15,088 of 15,088
+intervals completed, and 27 temporary fetch failures all recovered on retry.
 
 ## Test interval
 
@@ -149,7 +155,7 @@ changed. The backup is under the git-ignored `data/raw/`.
 | ≥ 99% of expected polling intervals (≥ 1,426 of 1,440) | **Pass**: 1,440 (100%) |
 | Avoid overwriting snapshots | **Pass**: 0 collisions, 0 modified files |
 | Every stored protobuf file validates | **Pass**: 2,882 of 2,882 |
-| Recover automatically from temporary network failures | **Not exercised**: no network failure occurred (0 retries). Covered by unit tests only |
+| Recover automatically from temporary network failures | **Not exercised in this window**: no network failure occurred (0 retries). Covered by unit tests here; exercised later (27 recovered retries, see the [2026-10-20 checkpoint](data_checkpoint_2026-10-20.md#collection)) |
 | Logging sufficient to identify missing intervals and failures | **Pass**: every cycle and the restart are visible in the logs |
 | Restart without corrupting previously collected data | **Pass**: one live restart, no corruption or loss |
 
@@ -157,10 +163,13 @@ changed. The backup is under the git-ignored `data/raw/`.
 
 ## Limitations
 
-- **Network-failure recovery was not exercised.** No fetch failed during the window,
-  so retries and backoff are verified only by the test suite.
+- **Network-failure recovery was not exercised in this window.** No fetch failed, so
+  here retries and backoff are verified only by the test suite. The 10.5-day checkpoint
+  later recorded 27 first-attempt failures, every one saved on the second attempt.
 - **One window.** Saturday 01:17 PDT to Sunday 01:17 PDT. Weekday service levels,
-  holidays, BART outages, and daylight-saving changeovers were not covered.
+  holidays, BART outages, and daylight-saving changeovers were not covered. The 10.5-day
+  checkpoint adds weekdays and one holiday, but still no daylight-saving change or long
+  outage.
 - **Automatic security restarts remain possible.** `needrestart` will restart the
   collector after future library updates unless it is excluded (see
   `deployment.md`). Each restart costs at most part of one interval.

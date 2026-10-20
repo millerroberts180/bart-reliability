@@ -56,7 +56,8 @@ warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historica
   trees, selected on validation and never refitted on it. They predict the revision and
   revisions over 60 s, with structural leakage checks and a paired, trip-clustered
   bootstrap for test-day uncertainty. Settings live in `config/eta_model.toml`. Current results are
-  provisional: [docs/modeling_plan.md](docs/modeling_plan.md).
+  provisional, and the next evaluation (sealed test day 2026-10-19) is preregistered:
+  [docs/modeling_plan.md](docs/modeling_plan.md).
 - **Inference bundle** (`src/bart_reliability/serving/`): the selected models exported with
   verified metadata, one strict single-record entry point, exact parity with the
   modeling pipeline, and a provisional horizon-aware revision interval. Inputs with a
@@ -103,7 +104,9 @@ Query the warehouse with DuckDB, e.g.
 `SELECT * FROM rt_predictions_enriched WHERE include_in_primary_metrics`.
 
 To run the collector continuously on a server with systemd, see
-[docs/deployment.md](docs/deployment.md).
+[docs/deployment.md](docs/deployment.md). The 24-hour production test is in
+[docs/collection_validation.md](docs/collection_validation.md), and the 10.5-day data
+checkpoint (to 2026-10-20) in [docs/data_checkpoint_2026-10-20.md](docs/data_checkpoint_2026-10-20.md).
 
 Collector logs are JSON lines on stdout and in `logs/collector.log`. Malformed inputs
 found by the transformer are listed in `data/processed/trip_updates/_quarantine.jsonl`.

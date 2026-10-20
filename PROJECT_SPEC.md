@@ -125,6 +125,14 @@ The collector must run continuously for 24 hours and:
 - Produce enough logging to identify missing intervals and failures
 - Restart without corrupting previously collected data
 
+**Status: achieved.**
+- **24-hour test** (2026-10-10 to 10-11, [docs/collection_validation.md](docs/collection_validation.md)):
+  passed with 1,440 of 1,440 intervals and every snapshot valid. No network failure
+  occurred, so recovery was not exercised in that window.
+- **10.5-day checkpoint** (to 2026-10-20, [docs/data_checkpoint_2026-10-20.md](docs/data_checkpoint_2026-10-20.md)):
+  15,088 of 15,088 intervals, all 30,180 snapshots valid. 27 temporary fetch failures
+  were all recovered automatically on retry.
+
 ## Final success criterion
 
 The finished project must:
