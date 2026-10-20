@@ -133,6 +133,18 @@ retrained candidate. Neither is changed after the result is seen.
   there are any, the comparison is also reported on examples known to both models.
 - **Reported:** the primary metrics for the PR #7 models, and the paired trip-clustered
   differences, retrained minus PR #7, with the same bootstrap settings.
+- **Implementation (committed before fitting):**
+  - The `[locked_comparison]` table in `config/eta_model.toml` names the read-only copy
+    `data/models/locked/pr7_bundle_cd267407/` and pins its `bundle_id`.
+  - `bart-eta-model` verifies that bundle through the bundle loader before it builds any
+    feature, and only predicts with it. It never fits or calibrates the locked pair.
+  - Category support uses each model's fitted encoders, the same rule that makes the
+    bundle return `fallback_required`.
+  - Results go to the versioned `data/models/eta_revision_2026-10-20/`.
+  - A rehearsal on the 2026-10-15 warehouse with the PR #7 split (spent days only)
+    reproduced the PR #7 run exactly: same frame fingerprint, selection, predictions,
+    metrics and bootstrap replicates. The locked predictions equalled the retrained ones,
+    so every retrained-minus-locked difference was 0.
 
 **Serving interval.** If the bundle is rebuilt, the interval keeps its predeclared rule
 ([model_serving.md](model_serving.md)): calibrated on validation residuals; served only
@@ -571,13 +583,15 @@ Full tables, including the calibration bins, are in `report.md` in the run direc
 
 ## Artifact locations
 
-Everything generated goes under the ignored `data/models/` (default
-`data/models/eta_revision/`, replaced atomically on each run):
+Everything generated goes under the ignored `data/models/`, in the run's `output_dir`
+(replaced atomically on each run). The PR #7 run is in `data/models/eta_revision/`, and
+the 2026-10-20 evaluation writes to `data/models/eta_revision_2026-10-20/`. Locked
+copies of the PR #7 bundle and run are read-only under `data/models/locked/`.
 
 | File | Contents |
 |---|---|
 | `features.duckdb` | `eta_model_examples`, `eta_model_features`, alert context, `eta_model_feature_checks`, and `eta_model_frame` (split and exclusion per example) |
-| `predictions.parquet` | Validation and test predictions from every scored model and baseline |
+| `predictions.parquet` | Validation and test predictions from every scored model and baseline, the locked pair's test predictions, and category-support flags |
 | `historical_baseline.parquet` | Fitted groups, by level (primary setting) |
 | `historical_baseline_sensitivity.parquet` | Fitted groups for every predeclared minimum group size |
 | `bootstrap_replicates.parquet` | Per-replicate metric values, trip-clustered (primary) and event-clustered (sensitivity) |

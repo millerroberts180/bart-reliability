@@ -22,11 +22,56 @@ def cfg():
 
 
 def test_repository_config_loads(cfg):
-    assert cfg.split["train"] == (date(2026, 10, 10), date(2026, 10, 12))
     assert cfg.large_revision_threshold_s == 60
     assert cfg.quality_tiers == ("A",)
     assert "published_horizon_bucket_s" in cfg.categorical_features
     assert set(cfg.features).isdisjoint(PROHIBITED_COLUMNS)
+
+
+def test_repository_split_is_the_preregistered_one(cfg):
+    # docs/modeling_plan.md, "Preregistered evaluation: 2026-10-20 checkpoint".
+    assert cfg.split == {
+        "train": (date(2026, 10, 10), date(2026, 10, 15)),
+        "validation": (date(2026, 10, 16), date(2026, 10, 18)),
+        "test": (date(2026, 10, 19), date(2026, 10, 19)),
+    }
+    assert cfg.seed == 20261015
+    assert cfg.output_dir == Path("data/models/eta_revision_2026-10-20")
+
+
+def test_repository_locked_comparison_is_pinned(cfg):
+    locked = cfg.locked_comparison
+    assert locked.name == "locked_pr7"
+    assert locked.bundle_id == ("cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9")
+    assert locked.bundle_dir == Path("data/models/locked/pr7_bundle_cd267407")
+
+
+def _without_locked_table(text: str) -> str:
+    start = text.index("\n[locked_comparison]\n") + 1
+    return text[:start] + text[text.index("\n[", start) + 1 :]
+
+
+def test_locked_comparison_table_is_optional(tmp_path):
+    path = tmp_path / "m.toml"
+    path.write_text(_without_locked_table(REPO_CONFIG.read_text()))
+    assert load_model_config(path).locked_comparison is None
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ('name = "locked_pr7"\n', "", "missing keys"),
+        ('name = "locked_pr7"', 'name = "pr7"', "locked_<label>"),
+        ('bundle_id = "cd26', 'bundle_id = "zz26', "SHA-256"),
+    ],
+)
+def test_locked_comparison_keys_are_required_and_checked(tmp_path, old, new, message):
+    text = REPO_CONFIG.read_text()
+    assert old in text
+    path = tmp_path / "m.toml"
+    path.write_text(text.replace(old, new, 1))
+    with pytest.raises(ModelConfigError, match=message):
+        load_model_config(path)
 
 
 def test_repository_audit_settings(cfg):

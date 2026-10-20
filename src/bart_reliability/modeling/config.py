@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import asdict, dataclass
 from datetime import date
@@ -11,6 +12,8 @@ from bart_reliability.modeling.features import FEATURE_KINDS, PROHIBITED_COLUMNS
 
 DEFAULT_CONFIG_PATH = Path("config/eta_model.toml")
 SPLITS = ("train", "validation", "test")
+# Tables that may be left out entirely; when present, every key is still required.
+OPTIONAL_TABLES = frozenset({"locked_comparison"})
 QUALITY_TIERS = ("A", "B")
 
 
@@ -40,6 +43,15 @@ class TreeConfig:
 
 
 @dataclass(frozen=True)
+class LockedComparisonConfig:
+    """An earlier, locked model pair scored on the test rows beside the retrained models."""
+
+    name: str
+    bundle_dir: Path
+    bundle_id: str
+
+
+@dataclass(frozen=True)
 class ModelConfig:
     seed: int
     large_revision_threshold_s: int
@@ -57,6 +69,8 @@ class ModelConfig:
     calibration_bins: int
     bootstrap_replicates: int
     bootstrap_confidence_level: float
+    # Optional: without it no locked model is loaded or scored.
+    locked_comparison: LockedComparisonConfig | None = None
 
     @property
     def features(self) -> tuple[str, ...]:
@@ -97,6 +111,8 @@ class ModelConfig:
             problems.append("calibration.bins must be at least 2")
         if not (self.linear.huber_alpha and self.linear.logistic_c and self.tree.max_leaf_nodes):
             problems.append("every model grid needs at least one value")
+        if self.locked_comparison is not None:
+            problems += validate_locked_comparison(self.locked_comparison)
         if problems:
             leaks = [p for p in problems if p.startswith("leakage:")]
             raise (LeakageError if leaks else ModelConfigError)("; ".join(problems))
@@ -105,6 +121,8 @@ class ModelConfig:
         d = asdict(self)
         d["output_dir"] = str(self.output_dir)
         d["split"] = {k: [str(a), str(b)] for k, (a, b) in self.split.items()}
+        if self.locked_comparison is not None:
+            d["locked_comparison"]["bundle_dir"] = str(self.locked_comparison.bundle_dir)
         return d
 
 
@@ -128,6 +146,15 @@ def validate_features(numeric: tuple[str, ...], categorical: tuple[str, ...]) ->
         problems.append("features must not repeat")
     if not selected:
         problems.append("at least one feature is required")
+    return problems
+
+
+def validate_locked_comparison(locked: LockedComparisonConfig) -> list[str]:
+    problems = []
+    if not re.fullmatch(r"locked_[a-z0-9_]+", locked.name):
+        problems.append("locked_comparison.name must look like 'locked_<label>'")
+    if not re.fullmatch(r"[0-9a-f]{64}", locked.bundle_id):
+        problems.append("locked_comparison.bundle_id must be a SHA-256 hex digest")
     return problems
 
 
@@ -171,6 +198,7 @@ def load_model_config(path: Path = DEFAULT_CONFIG_PATH) -> ModelConfig:
             "uncertainty",
         },
         "split": set(SPLITS),
+        "locked_comparison": {"name", "bundle_dir", "bundle_id"},
         "features": {"numeric", "categorical"},
         "historical_baseline": {"levels", "min_group_size", "sensitivity_min_group_sizes"},
         "linear": {"huber_alpha", "huber_epsilon", "logistic_c", "max_iter"},
@@ -185,10 +213,13 @@ def load_model_config(path: Path = DEFAULT_CONFIG_PATH) -> ModelConfig:
         "uncertainty": {"replicates", "confidence_level"},
     }
     for section, keys in expected.items():
+        if section in OPTIONAL_TABLES and section not in raw:
+            continue
         table = raw if not section else raw.get(section)
         if not isinstance(table, dict):
             raise ModelConfigError(f"missing table [{section}]")
-        missing, unknown = sorted(keys - table.keys()), sorted(table.keys() - keys)
+        top = keys | (OPTIONAL_TABLES & raw.keys()) if not section else keys
+        missing, unknown = sorted(keys - table.keys()), sorted(table.keys() - top)
         if missing or unknown:
             where = f"[{section}]" if section else "top level"
             raise ModelConfigError(f"{where}: missing keys {missing}, unknown keys {unknown}")
@@ -235,11 +266,22 @@ def load_model_config(path: Path = DEFAULT_CONFIG_PATH) -> ModelConfig:
             calibration_bins=_int(raw["calibration"]["bins"], "calibration.bins"),
             bootstrap_replicates=_int(raw["uncertainty"]["replicates"], "uncertainty.replicates"),
             bootstrap_confidence_level=float(raw["uncertainty"]["confidence_level"]),
+            locked_comparison=_locked(raw.get("locked_comparison")),
         )
     except ModelConfigError:
         raise
     except (TypeError, ValueError) as e:
         raise ModelConfigError(f"invalid model config: {e}") from e
+
+
+def _locked(table: dict | None) -> LockedComparisonConfig | None:
+    if table is None:
+        return None
+    return LockedComparisonConfig(
+        name=str(table["name"]),
+        bundle_dir=Path(table["bundle_dir"]),
+        bundle_id=str(table["bundle_id"]),
+    )
 
 
 def _int(value, name: str) -> int:

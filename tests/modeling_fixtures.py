@@ -180,5 +180,6 @@ def synthetic_config(out_dir: Path, **overrides) -> ModelConfig:
             min_samples_leaf=5,
             l2_regularization=0.0,
         ),
-        **overrides,
+        # The repository config names a local, ignored locked bundle; tests opt in.
+        **({"locked_comparison": None} | overrides),
     )

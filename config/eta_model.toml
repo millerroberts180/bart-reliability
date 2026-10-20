@@ -1,5 +1,6 @@
 # ETA revision models: splits, features, baselines and the small model comparison.
-# Documented in docs/modeling_plan.md. Every key is required.
+# Documented in docs/modeling_plan.md. Every key is required; only the
+# [locked_comparison] table may be left out as a whole.
 # Published-time horizon targets and tolerance come from the warehouse build
 # (config/eta_revision.toml), recorded in its eta_revision_config table.
 
@@ -15,19 +16,30 @@ decision_threshold = 0.5
 # Label-quality tiers of the observed-arrival proxy to model.
 quality_tiers = ["A"]
 
-# Generated files only; this directory is git-ignored and replaced on each run.
-output_dir = "data/models/eta_revision"
+# Generated files only; this directory is git-ignored and replaced on each run. Versioned
+# per evaluation, so the PR #7 run (data/models/eta_revision) and earlier reports are
+# never replaced.
+output_dir = "data/models/eta_revision_2026-10-20"
 
 [split]
 # Inclusive service-date ranges (Pacific), chronological and non-overlapping. Every
 # horizon of an event shares its service date, so an event never spans two splits.
-# Only complete service dates are used: 2026-10-09 is a late-night tail and 2026-10-15
-# was still being collected at the snapshot cutoff.
-# 2026-10-14 has been used to evaluate the models and to decide interval availability:
-# it is not an untouched test day for later model versions, which need later dates.
-train = ["2026-10-10", "2026-10-12"]
-validation = ["2026-10-13", "2026-10-13"]
-test = ["2026-10-14", "2026-10-14"]
+# Preregistered on the 2026-10-20 checkpoint (docs/modeling_plan.md) before any fitting.
+# Only complete service dates are used: 2026-10-09 (late-night tail) and 2026-10-20
+# (partial, ends at the export cutoff) are excluded. 2026-10-19 is the sealed test day,
+# evaluated exactly once. 2026-10-14 was the PR #7 test day and is now training data.
+train = ["2026-10-10", "2026-10-15"]
+validation = ["2026-10-16", "2026-10-18"]
+test = ["2026-10-19", "2026-10-19"]
+
+[locked_comparison]
+# The locked PR #7 models (trained 2026-10-10 to 10-12, selected on 10-13), scored on the
+# same test rows beside the retrained models. Loaded through the bundle verifier with this
+# pinned bundle_id, before anything is fitted; only used to predict, never refitted. The
+# directory is a read-only, ignored copy of the PR #7 bundle.
+name = "locked_pr7"
+bundle_dir = "data/models/locked/pr7_bundle_cd267407"
+bundle_id = "cd267407788558dd4776a6b7c86b6448c1a075f9f56c2ff7aa35300137d2fee9"
 
 [features]
 # Selected from the point-in-time catalog in src/bart_reliability/modeling/features.py.
