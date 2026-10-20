@@ -512,10 +512,10 @@ def test_staleness_sensitivity_is_reproducible(tmp_path):
 
 def test_repository_annotation_file_is_valid_and_manual():
     con = duckdb.connect()
-    assert load_alert_annotations(con, REPO_ANNOTATIONS) == 6
+    assert load_alert_annotations(con, REPO_ANNOTATIONS) == 27
     assert dict(
         con.execute("SELECT category, count(*) FROM alert_annotations GROUP BY 1").fetchall()
-    ) == {"incident_like": 5, "planned_notice": 1}
+    ) == {"incident_like": 26, "planned_notice": 1}
     assert "NOT an automated classifier" in REPO_ANNOTATIONS.read_text()
 
 

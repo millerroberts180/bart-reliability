@@ -133,13 +133,30 @@ can lag by up to about a minute.
 - **Rules applied by the reviewer:**
   - `planned_notice`: the text announces scheduled work or a recurring planned service
     change ("Expect … due to planned … construction work").
-  - `incident_like`: the text reports a current or recent unplanned delay with a specific
-    cause ("There is a 20-minute delay … due to a disabled train", "recovering from an
-    earlier problem").
+  - `incident_like`: the text reports an unplanned incident or its aftermath. That
+    includes:
+    - an active delay ("There is a 20-minute delay … due to a disabled train");
+    - a skipped station ("Trains are not stopping at Hayward Station …");
+    - stopped or suspended service ("BART service has stopped between Antioch and
+      Concord …");
+    - a recovery message ("BART is recovering from an earlier problem");
+    - a restoration-to-normal-service message tied to an incident ("Trains are now
+      making normal stops at Hayward").
+
+    The project owner widened this rule on 2026-10-20 from "an unplanned delay with a
+    specific cause". The six earlier `incident_like` rows already fit both versions.
 - **Unlisted versions are `unclassified`.** A version whose content changes, or a new
   alert, stays unclassified until someone reviews it.
-- **Review status.** The six listed versions were manually reviewed on 2026-10-11
-  (Pacific). New or changed versions remain unclassified until reviewed.
+- **Review status.** All 27 versions seen through the 2026-10-20 checkpoint are
+  reviewed. Six were reviewed on 2026-10-11 (Pacific). The 21 later versions were
+  confirmed by the project owner on 2026-10-20, all as `incident_like`; the review is
+  recorded in [alert_annotation_review_2026-10-20.md](alert_annotation_review_2026-10-20.md).
+  New or changed versions remain unclassified until reviewed.
+- **Takes effect on the next build.** A warehouse records the annotations it was built
+  with. The 2026-10-20 checkpoint warehouse was built before this review, so its 21
+  later versions are still `unclassified`. It is deliberately not rebuilt, because the
+  preregistered evaluation uses that exact file and the model features do not use
+  alerts.
 - **Validation.** The loader rejects unknown categories, malformed fingerprints, and
   duplicate fingerprints. The build checks that each annotation's `entity_id` matches
   the observations.
@@ -150,7 +167,9 @@ alerts.
 
 ## Results on the real export (2026-10-12)
 
-The verified server export: 2026-10-10 08:11 UTC to 2026-10-12 02:35 UTC.
+The verified server export: 2026-10-10 08:11 UTC to 2026-10-12 02:35 UTC. The 10.5-day
+export through 2026-10-20 has 27 alerts, still none with a cause, effect or structured
+active period ([data_checkpoint_2026-10-20.md](data_checkpoint_2026-10-20.md)).
 
 | | Value |
 |---|---|
@@ -222,8 +241,9 @@ The verified server export: 2026-10-10 08:11 UTC to 2026-10-12 02:35 UTC.
 - **Scope lives in the text.** Line, direction, and station information appears only in
   descriptions. Text is not parsed, so every real alert is system-wide and route- or
   stop-level applicability is understated. Those paths are tested synthetically only.
-- **Manual categories.** Six versions were reviewed by hand. There is no automated
-  classifier, and new or changed alerts are `unclassified` until reviewed.
+- **Manual categories.** Every version is reviewed by hand (27 through 2026-10-20).
+  There is no automated classifier, and new or changed alerts are `unclassified` until
+  reviewed.
 - **A short sample.** About 42 hours, 6 alerts, one long-running planned notice.
 - **Up to a minute of alert lag** under the strict no-future rule.
 - **Rider visibility is approximated** by the feed at 60 s sampling.

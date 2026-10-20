@@ -267,7 +267,9 @@ untouched holdout for any later model version. A new model, feature set, interva
 or availability rule needs evaluation on **later service days** that played no part in
 those decisions. The interval stays provisional for two reasons: its calibration reused
 the model-selection day (2026-10-13), and its evaluation covers only October 14. Each
-bundle records this in `training_data.test_day_status`.
+bundle records this in `training_data.test_day_status`. The next version's sealed test
+day, 2026-10-19, and the rule for this interval there are
+[preregistered](modeling_plan.md#preregistered-evaluation-2026-10-20-checkpoint).
 
 ## Parity and determinism
 

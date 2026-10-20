@@ -154,7 +154,10 @@ collector runs, list the files on the server first and compare exactly that list
 - **Automatic security updates.** Ubuntu's unattended upgrades run daily, and
   `needrestart` restarts services that use an upgraded library. This happened once
   during the 24-hour test (an OpenSSL update) and cost no interval; see
-  [collection_validation.md](collection_validation.md). To keep the collector from being restarted
+  [collection_validation.md](collection_validation.md). Through the 10.5-day checkpoint it
+  stayed the only automatic restart. Kernel updates need a reboot instead, and automatic reboot is
+  off: one was pending on 2026-10-20
+  ([data_checkpoint_2026-10-20.md](data_checkpoint_2026-10-20.md)). To keep the collector from being restarted
   automatically, for example during a timed test:
   `echo '$nrconf{override_rc}{qr(^bart-collector\.service$)} = 0;' > /etc/needrestart/conf.d/bart-collector.conf`.
   Then restart it yourself after security updates.

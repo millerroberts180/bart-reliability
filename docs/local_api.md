@@ -28,8 +28,10 @@ The host must be a loopback address (`127.0.0.1` by default, `::1` or `localhost
 Anything else is refused, so this command cannot bind publicly. There is no
 authentication and there are no secrets.
 
-The default `as_of` is 2026-10-15 17:00 UTC (10:00 PDT). That service date was not used
-for training, validation or testing. Choose any time the warehouse covers. A time outside
+The default `as_of` is 2026-10-15 17:00 UTC (10:00 PDT). The served PR #7 models did not
+use that service date for training, validation or testing. It has been inspected through
+the replay, and the preregistered next model trains on it
+([modeling_plan.md](modeling_plan.md#preregistered-evaluation-2026-10-20-checkpoint)). Choose any time the warehouse covers. A time outside
 the collected range gets `feed_stale` or `feed_unavailable`.
 
 ## Point-in-time replay
