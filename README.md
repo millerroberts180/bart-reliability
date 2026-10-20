@@ -110,6 +110,12 @@ found by the transformer are listed in `data/processed/trip_updates/_quarantine.
 
 ## Website prototype
 
+**Live demo (simulated data): <https://millerroberts180.github.io/bart-reliability/>**
+
+The demo is the simulated build. `.github/workflows/deploy-pages.yml` builds it with
+`VITE_DATA_MODE=mock` on every push to `main` and publishes it to GitHub Pages. Every
+value it shows is simulated and nothing is live. The historical-replay API is not deployed.
+
 `web/` holds a React + TypeScript prototype of the public site, "ETA Reliability". By
 default it runs on simulated data. Stack, data contracts, the mock client and the HTTP
 client are described in [docs/website_architecture.md](docs/website_architecture.md).

@@ -555,7 +555,11 @@ The API answers as of its default replay time (2026-10-15T17:00:00Z, see
 `VITE_BASE_PATH` (for example `VITE_BASE_PATH=/ npm run build` for a root or custom
 domain). Components do not hard-code paths: in-page links are fragments, fonts and CSS go
 through Vite's asset pipeline, and any future static asset should use
-`import.meta.env.BASE_URL`. No deployment workflow exists yet.
+`import.meta.env.BASE_URL`.
+
+`.github/workflows/deploy-pages.yml` publishes the simulated build (`VITE_DATA_MODE=mock`,
+`VITE_BASE_PATH=/bart-reliability/`) to <https://millerroberts180.github.io/bart-reliability/>
+on every push to `main`, or when run by hand. The API is not deployed.
 
 ## Page metadata
 
@@ -568,11 +572,11 @@ description are given as Open Graph (`og:type`, `og:site_name`, `og:title`,
 swaps all three descriptions for a simulated-data one in mock mode; the HTTP build keeps
 the replay text. `metadata.test.ts` checks the tags.
 
-Deployment tasks, deliberately not done here because no production address exists yet:
-- add `<link rel="canonical">` and `og:url` with the real production URL;
+The deployed build is the simulated one, so it carries the simulated description. Not done
+yet for the deployed site:
+- add `<link rel="canonical">` and `og:url` with its address;
 - design a social image and add `og:image`, `og:image:alt`, `twitter:image` and
-  `twitter:card` "summary_large_image";
-- decide which build is deployed, and make its description match its data.
+  `twitter:card` "summary_large_image".
 
 ## Design principles
 
@@ -633,7 +637,6 @@ Recorded during the correction pass and deliberately not implemented:
   independence notice: "Independent project using BART open data. Not affiliated with or
   endorsed by BART."
 - A live (not replayed) API, and hosting the API anywhere but the developer's machine
-- Deployment workflow (GitHub Pages)
 - Dark color scheme
 - "Use my location" in the station picker (no geolocation is requested today)
 
