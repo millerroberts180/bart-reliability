@@ -39,6 +39,12 @@ def main(argv: list[str] | None = None) -> int:
     build.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
     build.add_argument("--bundle-config", type=Path, default=DEFAULT_BUNDLE_CONFIG_PATH)
     build.add_argument("--run-dir", type=Path, help="modeling run (default: from the config)")
+    build.add_argument(
+        "--from-run",
+        type=Path,
+        help="package this finished modeling run instead of running the pipeline: no refit, "
+        "reselection or re-evaluation (--db and --run-dir are not used)",
+    )
     build.add_argument("--out-dir", type=Path, help="bundle (default: from the bundle config)")
     for name in ("verify", "predict"):
         p = sub.add_parser(name)
@@ -56,15 +62,17 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging(None)
     try:
         if args.command == "build":
-            from bart_reliability.serving.bundle import build_bundle
+            from bart_reliability.serving.bundle import build_bundle, build_bundle_from_run
 
-            result = build_bundle(
-                args.db,
-                load_model_config(args.config),
-                load_bundle_config(args.bundle_config),
-                out_dir=args.out_dir,
-                run_dir=args.run_dir,
-            )
+            cfg, bcfg = load_model_config(args.config), load_bundle_config(args.bundle_config)
+            if args.from_run is not None:
+                if args.run_dir is not None:
+                    parser.error("--from-run packages an existing run; do not also pass --run-dir")
+                result = build_bundle_from_run(args.from_run, cfg, bcfg, out_dir=args.out_dir)
+            else:
+                result = build_bundle(
+                    args.db, cfg, bcfg, out_dir=args.out_dir, run_dir=args.run_dir
+                )
             meta = result.metadata
             logger.info(
                 "eta_bundle_built",

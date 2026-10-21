@@ -29,7 +29,9 @@ Anything else is refused, so this command cannot bind publicly. There is no
 authentication and there are no secrets.
 
 The default `as_of` is 2026-10-15 17:00 UTC (10:00 PDT). The served PR #7 models did not
-use that service date for training, validation or testing. It has been inspected through
+use that service date for training, validation or testing. The 2026-10-20 bundle did
+train on it, so a replay with that bundle needs an `as_of` after 2026-10-16 08:55 UTC
+([model_serving.md](model_serving.md#the-2026-10-20-bundle)). It has been inspected through
 the replay, and the preregistered next model trains on it
 ([modeling_plan.md](modeling_plan.md#preregistered-evaluation-2026-10-20-checkpoint)). Choose any time the warehouse covers. A time outside
 the collected range gets `feed_stale` or `feed_unavailable`.

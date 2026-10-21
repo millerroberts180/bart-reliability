@@ -1,11 +1,19 @@
 # Local model serving: the inference bundle
 
 The bundle packages the selected ETA revision models
-([modeling_plan.md](modeling_plan.md)) for local inference. It is **not** an API, and
-nothing connects it to the website yet. Every prediction is **provisional**. The models
-were trained on three service days and evaluated on one. They predict how BART's
-published ETA will still be revised: `predicted_final_published_eta` is BART's own final
-published estimate, not a physical arrival time.
+([modeling_plan.md](modeling_plan.md)) for local inference. It is **not** an API; the
+local replay API ([local_api.md](local_api.md)) loads one. Every prediction is
+**provisional**. Two bundles exist:
+
+- **PR #7 bundle** `0.1.0+8d942e17429c` (`data/models/eta_revision_bundle/`). Trained on
+  three service days and evaluated on 2026-10-14. The local API still serves it.
+- **2026-10-20 bundle** `0.2.0+886fcd260732` (`data/models/eta_revision_bundle_2026-10-20/`).
+  The retrained models, packaged from the frozen evaluation run
+  ([below](#the-2026-10-20-bundle)). It is not yet connected to the API.
+
+The models predict how BART's published ETA will still be revised:
+`predicted_final_published_eta` is BART's own final published estimate, not a physical
+arrival time.
 
 ## Rebuilding
 
@@ -16,7 +24,7 @@ bart-eta-bundle build --db data/warehouse/<snapshot>.duckdb
 The build runs these steps:
 
 1. Runs the modeling pipeline (`bart-eta-model`, the same code and
-   `config/eta_model.toml`) into `data/models/eta_revision/`.
+   `config/eta_model.toml`) into the model config's `output_dir`.
 2. Copies the two selected fitted pipelines byte for byte. Each pipeline includes its
    encoders and scaler.
 3. Calibrates the provisional interval on validation residuals ([below](#revision-interval)).
@@ -25,7 +33,7 @@ The build runs these steps:
 6. Checks parity with the pipeline's own `predictions.parquet`:
    - in batch for every validation and test row;
    - one record at a time for 500 evenly spaced rows.
-7. Replaces `data/models/eta_revision_bundle/` atomically.
+7. Replaces the output directory atomically.
 
 Any mismatch stops the build. Nothing in `bundle.json` depends on paths or wall-clock
 time, and the fitted models are byte-identical for a given seed. Rebuilding from the same
@@ -36,17 +44,36 @@ warehouse and configs therefore reproduces the bundle exactly.
 | `--config` | `config/eta_model.toml` (models, features, splits) |
 | `--bundle-config` | `config/eta_model_bundle.toml` (name, version, interval rule) |
 | `--run-dir` | the config's `output_dir` |
-| `--out-dir` | `data/models/eta_revision_bundle` |
+| `--out-dir` | the bundle config's `output_dir` (`data/models/eta_revision_bundle_2026-10-20`) |
+| `--from-run` | none: run the pipeline (below) |
 
 Both output directories are git-ignored. Only the code, the configs and the committed
 schema are versioned.
+
+### Packaging a frozen run
+
+```bash
+bart-eta-bundle build --from-run data/models/eta_revision_2026-10-20
+```
+
+`--from-run` skips step 1. It packages a finished modeling run as it is: nothing is
+refitted, reselected or re-evaluated, and nothing is written to the run directory, which
+may be read-only. Steps 2 to 7 are the same, and parity is checked against that run's
+`predictions.parquet`.
+
+The run's recorded model configuration must equal `config/eta_model.toml`, except where
+the run was written and which locked models it was compared with. Otherwise the build
+stops, so the metadata always describes the run being packaged.
+
+The interval's test coverage is computed in this step, from the run's stored test
+predictions.
 
 ## Bundle contents
 
 | File | Contents |
 |---|---|
-| `regression.joblib` | Selected regression pipeline (`tree_hgb_leaves=31`), with preprocessing |
-| `classification.joblib` | Selected large-revision classifier (`tree_hgb_leaves=15`), with preprocessing |
+| `regression.joblib` | Selected regression pipeline, with preprocessing (`tree_hgb_leaves=31` in both bundles) |
+| `classification.joblib` | Selected large-revision classifier, with preprocessing (`tree_hgb_leaves=15` in PR #7, `tree_hgb_leaves=31` in 2026-10-20) |
 | `bundle.json` | Metadata, validated against `config/eta_model_bundle.schema.json` |
 
 The committed schema is the contract. Its constants pin:
@@ -223,7 +250,8 @@ the bounds are the predicted revision plus the 10th and 90th percentiles of the 
 regression model's residuals (actual minus predicted revision). The lower tail takes the
 observed residual at or below that percentile, and the upper tail the one at or above it.
 
-**Calibration data:**
+**Calibration data** (PR #7 bundle; for the 2026-10-20 bundle see
+[below](#the-2026-10-20-bundle)):
 
 - The **validation** split (service date 2026-10-13): 30,623 examples, about 10,200 per
   horizon.
@@ -292,10 +320,106 @@ On the 2026-10-15 snapshot (bundle format 2, model version `0.1.0+8d942e17429c`,
 The model version hashes only the artifacts and the feature contract. Descriptive
 metadata, calibration or policy changes alter `bundle_id` but not the model version.
 
+## The 2026-10-20 bundle
+
+These are the retrained models, approved for promotion after the preregistered evaluation
+([eta_model_evaluation_2026-10-20.md](eta_model_evaluation_2026-10-20.md)).
+- **How it was built.** It was packaged from the frozen run
+  `data/models/eta_revision_2026-10-20/` with `bart-eta-bundle build --from-run`. Nothing
+  was refitted, reselected or re-evaluated, and the run directory was not written. Its
+  model files are byte-identical to the run's selected models.
+- **Not yet in use.** The local API still loads the PR #7 bundle.
+
+| | |
+|---|---|
+| Directory | `data/models/eta_revision_bundle_2026-10-20/` (ignored, read-only) |
+| Model version | `0.2.0+886fcd260732` |
+| Bundle ID | `db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087` |
+| Bundle format / feature schema | 2 / `eta-revision-features-1`, both unchanged |
+| Regression | `tree_hgb_leaves=31` (`HistGradientBoostingRegressor`), `regression.joblib`: 1,427,289 bytes, SHA-256 `cdfaa60609eeb15745133a77e62f74a73f3825e60250d4edf861b2e2f24ee917` |
+| Classification | `tree_hgb_leaves=31` (`HistGradientBoostingClassifier`), `classification.joblib`: 1,489,289 bytes, SHA-256 `a89547ce41224f997280ec72b4ba32bd9a51f7ae9a1a3199d14fb31856de950d` |
+| `bundle.json` | 14,547 bytes, SHA-256 `60f14143548fb4f1911ca051807e8ee4c8f165f3ee52f41f4736c803ee2aab30` |
+| Training | 2026-10-10 to 10-15. Last label 2026-10-16 08:55:23 UTC (`trainedThrough`) |
+| Validation (selection and interval calibration) | 2026-10-16 to 10-18. Last label 2026-10-19 08:52:23 UTC |
+| Test | 2026-10-19, used once by the evaluation and by this interval check, and now spent |
+| Environment | Python 3.13.3, scikit-learn 1.9.1, numpy 2.5.4, pandas 3.0.6, joblib 1.6.0, DuckDB 1.5.6 |
+
+**Interval decision.** The method and availability rule are unchanged from
+[above](#revision-interval):
+- **Method:** 10th and 90th percentile residuals on validation (83,012 examples).
+- **Rule:** served only with at least 1,000 calibration examples per horizon, and test
+  coverage within 0.05 of 0.80 overall and per horizon.
+- **The check:** the permitted 2026-10-19 coverage check was computed once, in this
+  build.
+
+| Published-time horizon | Calibration examples | Residual quantiles (s) | Mean width (s) | Validation coverage | 2026-10-19 coverage | Trip-clustered 95% interval |
+|---|---|---|---|---|---|---|
+| 5 min | 27,686 | −19.2 to +21.9 | 41.1 | 0.8000 | 0.8299 | 0.8200 to 0.8392 |
+| 10 min | 27,669 | −26.5 to +40.4 | 66.8 | 0.8001 | 0.8307 | 0.8183 to 0.8429 |
+| 15 min | 27,657 | −30.3 to +61.9 | 92.2 | 0.8001 | 0.8345 | 0.8209 to 0.8473 |
+| Overall | 83,012 | | | | 0.8317 | 0.8207 to 0.8421 |
+
+Every coverage is within 0.05 of 0.80, so the interval is **available, with provisional
+status**. On the test day it over-covered: at about 0.83, the trip-clustered intervals
+exclude 0.80. The bounds were somewhat wider than needed on a day with smaller revisions.
+The rule was applied as written, and nothing was adjusted after the coverage was seen.
+
+**Verification:**
+
+- **Batch parity.** Bundle predictions equal the frozen run's `predictions.parquet` for
+  all 116,842 validation and test rows. The maximum absolute difference is 0 for both
+  models, and every row has only known categories.
+- **Single record.** All 500 evenly spaced rows give identical predictions, and none
+  needed fallback.
+- **Known categories return `ok`.**
+  - All 116,842 validation and test records validate with no unseen category.
+  - An evenly spaced sample of 3,000 returns `status: "ok"`, with the frozen predictions
+    and an interval.
+  - The bundle knows 84 stops, 10 routes, 23 Pacific hours (all but 03), 3 service-day
+    types and 3 horizons.
+- **Unseen categories fall back.** Each of these was checked on a real test record:
+  - an unseen route (`Purple-N`);
+  - an unseen stop (`Z99-1`);
+  - hour 3, the only in-domain Pacific hour absent from training;
+  - service-day type `holiday`;
+  - all four at once.
+
+  Each returns `fallback_required`, with null revision, probability and final ETA, no
+  interval, the unseen features listed, and BART's published ETA as the fallback. A
+  horizon outside 300 / 600 / 900 is rejected as invalid instead.
+- **Backward compatible with the website.**
+  - The committed bundle schema is unchanged.
+  - The local API ran in-process against the checkpoint warehouse and this bundle, at the
+    website fixture's replay time (2026-10-15 17:00 UTC).
+  - It answered all 50 requests recorded in `web/src/data/fixtures/apiReplay.json` with
+    200. The response shapes equal the fixture's, and every response passes the
+    TypeScript contract check the API tests use.
+- **The packaging path.** Packaging the PR #7 run the same way reproduced the PR #7
+  bundle's model version, artifacts, interval and parity. Only `bundle_id` differed,
+  because of the configuration's new `locked_comparison` key and the parity reference
+  label.
+
+**Before the API uses this bundle.** The API's default replay time, 2026-10-15 17:00 UTC,
+falls inside this bundle's training period (`trainedThrough` 2026-10-16 08:55 UTC). A
+replay there would show a model trained on that day. When switching bundles, move `as_of`
+after 2026-10-16 08:55 UTC, for example to 2026-10-20, which no model used.
+
+**Limitations of this bundle:**
+- **One test day.** The evaluation and the interval coverage both come from Monday
+  2026-10-19 alone. They do not establish long-term generalization.
+- **Classifier calibration.** The retrained classifier was less well calibrated than PR
+  #7's on the test day (expected calibration error 0.0263 against 0.0137). It predicted
+  somewhat too high below 0.5.
+- **Calibration not independent.** The interval was calibrated on the model-selection
+  days.
+
 ## Limitations
 
-- **Provisional.** Three training days, one validation day and one test day, and the test
-  day has now been used (see [above](#the-test-day-is-no-longer-untouched)).
+- **Provisional.**
+  - PR #7: three training days, one validation day and one test day, and the test day
+    has been used (see [above](#the-test-day-is-no-longer-untouched)).
+  - 2026-10-20: six training days, three validation days and one spent test day
+    (see [above](#the-2026-10-20-bundle)).
 - **ETA revision only.** The target is BART's final published estimate, not physical
   arrival.
 - **Narrow domain.** Only published-time horizons near 5, 10 and 15 minutes are served,
