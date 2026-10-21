@@ -66,6 +66,23 @@ class ApiError(Exception):
         self.status, self.code, self.client_code, self.message = status, code, client_code, message
 
 
+def replay_inside_model_data(metadata: dict, as_of: datetime) -> list[str]:
+    """A replay must come after every outcome the models or their interval used.
+
+    Before the calibration cutoff, the replayed period was used for training, model
+    selection or interval calibration, so its predictions would be in-sample.
+    """
+    training = metadata["training_data"]
+    cutoff = datetime.fromisoformat(training["calibration_data_cutoff_utc"])
+    if as_of >= cutoff:
+        return []
+    return [
+        f"model: as_of {iso(as_of)} is inside the data this model used (training through "
+        f"{training['training_data_cutoff_utc']}, selection and interval calibration through "
+        f"{training['calibration_data_cutoff_utc']}); replay a later time"
+    ]
+
+
 @dataclass
 class ApiState:
     config: LocalApiConfig
@@ -84,7 +101,8 @@ class ApiState:
         except WarehouseUnavailable as e:
             engine_error = str(e)
         try:
-            predictor = load_predictor(config.bundle, expected_bundle_id)
+            pinned = expected_bundle_id if expected_bundle_id is not None else config.bundle_id
+            predictor = load_predictor(config.bundle, pinned)
         except (BundleError, FileNotFoundError, OSError) as e:
             predictor_error = str(e)
         if predictor is not None:
@@ -113,6 +131,8 @@ class ApiState:
             ]
         if self.predictor_error:
             out.append(f"model bundle: {self.predictor_error}")
+        elif self.predictor is not None:
+            out += replay_inside_model_data(self.predictor.metadata, self.config.as_of)
         if self.schema_error:
             out.append(f"feature schema: {self.schema_error}")
         return out

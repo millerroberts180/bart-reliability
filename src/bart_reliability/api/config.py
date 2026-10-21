@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ipaddress
+import re
 import tomllib
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -40,6 +41,8 @@ class LocalApiConfig:
     as_of: datetime
     warehouse: Path
     bundle: Path
+    # The only bundle build this API loads (None: any verified bundle at `bundle`).
+    bundle_id: str | None
     stale_after_seconds: int
     history_lookback_seconds: int
     stability_may_be_revised: float
@@ -51,6 +54,8 @@ class LocalApiConfig:
         problems = []
         if self.as_of.tzinfo is None:
             problems.append("as_of must be timezone-aware")
+        if self.bundle_id is not None and not re.fullmatch(r"[0-9a-f]{64}", self.bundle_id):
+            problems.append("bundle_id must be the bundle's 64-character SHA-256 bundle_id")
         if self.stale_after_seconds <= 0:
             problems.append("stale_after_seconds must be positive")
         if self.history_lookback_seconds < 3600:
@@ -84,6 +89,7 @@ def load_api_config(path: Path = DEFAULT_API_CONFIG_PATH) -> LocalApiConfig:
         "as_of",
         "warehouse",
         "bundle",
+        "bundle_id",
         "stale_after_seconds",
         "history_lookback_seconds",
         "stability_may_be_revised",
@@ -101,6 +107,7 @@ def load_api_config(path: Path = DEFAULT_API_CONFIG_PATH) -> LocalApiConfig:
         as_of=parse_utc(str(raw["as_of"])),
         warehouse=Path(raw["warehouse"]),
         bundle=Path(raw["bundle"]),
+        bundle_id=str(raw["bundle_id"]),
         stale_after_seconds=raw["stale_after_seconds"],
         history_lookback_seconds=raw["history_lookback_seconds"],
         stability_may_be_revised=float(raw["stability_may_be_revised"]),

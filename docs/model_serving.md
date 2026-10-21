@@ -6,10 +6,12 @@ local replay API ([local_api.md](local_api.md)) loads one. Every prediction is
 **provisional**. Two bundles exist:
 
 - **PR #7 bundle** `0.1.0+8d942e17429c` (`data/models/eta_revision_bundle/`). Trained on
-  three service days and evaluated on 2026-10-14. The local API still serves it.
+  three service days and evaluated on 2026-10-14. It is kept unchanged; the local API no
+  longer loads it.
 - **2026-10-20 bundle** `0.2.0+886fcd260732` (`data/models/eta_revision_bundle_2026-10-20/`).
   The retrained models, packaged from the frozen evaluation run
-  ([below](#the-2026-10-20-bundle)). It is not yet connected to the API.
+  ([below](#the-2026-10-20-bundle)). The local replay API loads it, pinned by
+  `bundle_id`.
 
 The models predict how BART's published ETA will still be revised:
 `predicted_final_published_eta` is BART's own final published estimate, not a physical
@@ -328,7 +330,8 @@ These are the retrained models, approved for promotion after the preregistered e
   `data/models/eta_revision_2026-10-20/` with `bart-eta-bundle build --from-run`. Nothing
   was refitted, reselected or re-evaluated, and the run directory was not written. Its
   model files are byte-identical to the run's selected models.
-- **Not yet in use.** The local API still loads the PR #7 bundle.
+- **In use locally.** The local replay API loads it, pinned by `bundle_id`, at the
+  2026-10-20 17:00 UTC replay ([local_api.md](local_api.md)). Nothing is deployed.
 
 | | |
 |---|---|
@@ -399,10 +402,11 @@ The rule was applied as written, and nothing was adjusted after the coverage was
   because of the configuration's new `locked_comparison` key and the parity reference
   label.
 
-**Before the API uses this bundle.** The API's default replay time, 2026-10-15 17:00 UTC,
-falls inside this bundle's training period (`trainedThrough` 2026-10-16 08:55 UTC). A
-replay there would show a model trained on that day. When switching bundles, move `as_of`
-after 2026-10-16 08:55 UTC, for example to 2026-10-20, which no model used.
+**Replay time.** The API's earlier replay time, 2026-10-15 17:00 UTC, falls inside this
+bundle's training period (`trainedThrough` 2026-10-16 08:55 UTC). A replay there would
+show a model trained on that day. So the API replays 2026-10-20 17:00 UTC, which no model
+used, and `/api/v1/health` reports a problem if `as_of` is set before the bundle's
+calibration cutoff.
 
 **Limitations of this bundle:**
 - **One test day.** The evaluation and the interval coverage both come from Monday

@@ -502,7 +502,8 @@ historical-replay API (`docs/local_api.md`), one endpoint per method:
 
 `web/src/clientContract.test.tsx` renders the whole page with the mock client and with the
 HTTP client over a fake `fetch` serving recorded API responses
-(`data/fixtures/apiReplay.json`, recorded at as-of 2026-10-15T17:00:00Z). The same checks
+(`data/fixtures/apiReplay.json`, recorded at as-of 2026-10-15T17:00:00Z with model
+`0.1.0+8d942e17429c`, and kept as a fixed contract recording). The same checks
 cover a forecast with and without a range, a train with no forecast, loading, no trains, a
 stale snapshot, a failed request and its retry, missing history and a failed history request.
 They also check that changing the station, boarding group and train requests the matching
@@ -541,12 +542,13 @@ To run the site against the local historical-replay API, start two processes fro
 repository root, each in its own terminal:
 
 ```bash
-.venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # API on http://127.0.0.1:8000
-cd web && VITE_DATA_MODE=http npm run dev                                 # site on http://localhost:5173/
+.venv/bin/bart-serve-local                     # API on http://127.0.0.1:8000
+cd web && VITE_DATA_MODE=http npm run dev       # site on http://localhost:5173/
 ```
 
-The API answers as of its default replay time (2026-10-15T17:00:00Z, see
-`docs/local_api.md`), and the page shows that time in its replay banner.
+The API answers as of its default replay time, 2026-10-20T17:00:00Z (10:00 AM Pacific),
+with model `0.2.0+886fcd260732` (see `docs/local_api.md`). The page shows that time in
+its replay banner. The GitHub Pages build is the simulated one and never calls this API.
 
 ## GitHub Pages base path
 

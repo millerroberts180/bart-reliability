@@ -11,16 +11,17 @@ The website reads it locally when started with `VITE_DATA_MODE=http`
 
 ```bash
 .venv/bin/pip install -e '.[model,serve]'
-.venv/bin/bart-serve-local --warehouse data/warehouse/server_export_2026-10-15.duckdb
+.venv/bin/bart-serve-local
 # serves http://127.0.0.1:8000/api/v1/health
 ```
 
 Settings come from `config/local_api.toml`, and `--config` selects another file. Flags
 override single values:
 
-- `--as-of 2026-10-15T17:00:00Z`;
+- `--as-of 2026-10-20T17:00:00Z`;
 - `--warehouse`;
 - `--bundle`;
+- `--bundle-id` (the only bundle build to load; `bart-eta-bundle verify` prints it);
 - `--host`;
 - `--port`.
 
@@ -28,13 +29,26 @@ The host must be a loopback address (`127.0.0.1` by default, `::1` or `localhost
 Anything else is refused, so this command cannot bind publicly. There is no
 authentication and there are no secrets.
 
-The default `as_of` is 2026-10-15 17:00 UTC (10:00 PDT). The served PR #7 models did not
-use that service date for training, validation or testing. The 2026-10-20 bundle did
-train on it, so a replay with that bundle needs an `as_of` after 2026-10-16 08:55 UTC
-([model_serving.md](model_serving.md#the-2026-10-20-bundle)). It has been inspected through
-the replay, and the preregistered next model trains on it
-([modeling_plan.md](modeling_plan.md#preregistered-evaluation-2026-10-20-checkpoint)). Choose any time the warehouse covers. A time outside
-the collected range gets `feed_stale` or `feed_unavailable`.
+**The local historical replay is 2026-10-20 at 17:00 UTC (10:00 AM PDT).**
+- **Data:** the 2026-10-20 checkpoint warehouse
+  (`data/warehouse/bart_checkpoint_2026-10-20.duckdb`). Its SHA-256 is
+  `19dd5cfc686bed4f223adbfe5c5d26ef8385e5d1a152da5aa2be7af9378e55cc`.
+- **Model:** `0.2.0+886fcd260732`, pinned by `bundle_id`
+  ([model_serving.md](model_serving.md#the-2026-10-20-bundle)).
+- **Snapshot:** the replay snapshot is the one collected at 16:59:23 UTC, 37 s before the
+  replay time.
+- **Why that day:** October 20 comes after every outcome this model used. Its training
+  data runs through 2026-10-16 08:55 UTC, and its selection and interval calibration
+  through 2026-10-19 08:52 UTC. It is also a partial service day that no model was
+  trained, selected or tested on.
+
+**Why October 15 is no longer appropriate.** The earlier default, 2026-10-15 17:00 UTC,
+suited the PR #7 models, which never used that day. Model 0.2.0 trained on it, so a replay
+there would show in-sample predictions. `/api/v1/health` now reports a `model:` problem,
+with status `degraded`, whenever `as_of` falls before the bundle's calibration cutoff.
+
+Choose any time the warehouse covers after that cutoff. A time outside the collected
+range gets `feed_stale` or `feed_unavailable`.
 
 ## Point-in-time replay
 
@@ -197,8 +211,15 @@ interval is `null`.
 not fill a `null` model field. A train without a model forecast shows BART's ETA and
 nothing else.
 
-**Most trains being unsupported is expected.** On the 2026-10-15 10:00 PDT replay board
-(Embarcadero, toward the East Bay), 2 of 20 trains have a model forecast. The models were
+**Most trains being unsupported is expected.** At the 2026-10-20 10:00 PDT replay, 79 of
+the 1,057 trains on the 95 boards have a model forecast. At Embarcadero, toward the East
+Bay, it is 1 of 18. The others break down as follows:
+- 949 are `outside_model_horizon`;
+- 27 are `outside_model_population` (23 trip origins and 4 repeated stops at SFO);
+- 2 are `fallback_required`. Their platforms, `C80-1` at Pittsburg/Bay Point and `L20-1`
+  at West Dublin/Pleasanton, never appeared in training, so they get BART's ETA only.
+
+The models were
 trained only at published-time horizons of 5, 10 and 15 minutes (within 60 s), so at any
 moment only trains whose ETA falls in those windows are supported. Trains closer, farther
 or between the windows are `outside_model_horizon`. This is the documented model domain,
@@ -268,8 +289,8 @@ built:
 ## Limitations
 
 - **Few trains get predictions.** The models serve only BART ETAs near 5, 10 and 15
-  minutes. At a typical moment most trains on a board are `outside_model_horizon`: 18 of
-  20 at Embarcadero toward the East Bay at 10:00 PDT on 2026-10-15.
+  minutes. At a typical moment most trains on a board are `outside_model_horizon`: 17 of
+  18 at Embarcadero toward the East Bay at 10:00 PDT on 2026-10-20.
 - **Edge horizons.** Within those horizons, training used each trip-stop's single
   closest snapshot, so ETAs 30 to 60 s from a target are rarer in training than in
   serving.
@@ -279,7 +300,7 @@ built:
 - **Unplaced and terminating trains.** Trains the feed lists without a schedule match have
   no known way out; they are counted in `unplacedTrainCount`, not shown. Trains listed at
   the last stop of their trip cannot be boarded; they are counted in
-  `terminatingTrainCount` (2 across all 50 stations at the default `as_of`).
+  `terminatingTrainCount` (4 across all 50 stations at the default `as_of`).
 - **Empty boards.** At the default `as_of`, 5 of the 95 boards are empty. Every train
   listed at those stations is on another board or counted as unplaced, so no query or
   mapping drops trains.
@@ -332,6 +353,11 @@ changed for it yet. Possible approaches:
 - an incremental live window instead of a historical copy.
 
 ## Example (2026-10-15, 10:00 PDT, abridged)
+
+This was recorded under the earlier default, with the PR #7 bundle (`0.1.0+8d942e17429c`),
+as was the website's recorded fixture. With model 0.2.0 at the 2026-10-20 replay, every
+response has the same shape. The 50 recorded requests were replayed and compared field by
+field ([model_serving.md](model_serving.md#the-2026-10-20-bundle)).
 
 `GET /api/v1/stations/EMBR/predictions?boarding_group=to-WOAK`:
 
