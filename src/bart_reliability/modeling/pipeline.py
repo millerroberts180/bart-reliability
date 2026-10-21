@@ -1,8 +1,9 @@
 """Run the ETA revision modeling pipeline end to end and write its artifacts.
 
-Steps: build point-in-time features (SQL) -> assign chronological splits -> fit baselines
-and candidates on training rows -> compare candidates on validation -> score the selected
-models once on test -> write everything to an ignored output directory, atomically.
+Steps: verify the optional locked model pair -> build point-in-time features (SQL) ->
+assign chronological splits -> fit baselines and candidates on training rows -> compare
+candidates on validation -> score the selected models (and the locked pair) once on test
+-> write everything to an ignored output directory, atomically.
 """
 
 from __future__ import annotations
@@ -34,6 +35,13 @@ from bart_reliability.modeling.leakage import (
     SUSPICIOUS_SINGLE_FEATURE_AUC,
     check_model_inputs,
     single_feature_alarm,
+)
+from bart_reliability.modeling.locked import (
+    LockedModels,
+    load_locked_models,
+    outside_support,
+    pair_categories,
+    support_report,
 )
 from bart_reliability.modeling.metrics import (
     classification_metrics,
@@ -83,6 +91,8 @@ class RunResult:
 
 
 def run_pipeline(db_path: Path, cfg: ModelConfig, out_dir: Path | None = None) -> RunResult:
+    # Verified before anything else, so a wrong bundle fails before any test prediction.
+    locked = load_locked_models(cfg)
     out_dir = out_dir or cfg.output_dir
     out_dir.parent.mkdir(parents=True, exist_ok=True)
     tmp = out_dir.with_name(f".{out_dir.name}.building")
@@ -104,9 +114,10 @@ def run_pipeline(db_path: Path, cfg: ModelConfig, out_dir: Path | None = None) -
         finally:
             con.close()
         bounds = check_split_integrity(frame)
-        metrics, artifacts = fit_and_evaluate(frame, cfg)
+        metrics, artifacts = fit_and_evaluate(frame, cfg, locked)
         metrics["exclusions"] = exclusions
         manifest = _manifest(db_path, cfg, feature_report, warehouse, bounds, frame, artifacts)
+        manifest["locked_comparison"] = locked.describe() if locked else None
         _write(tmp, metrics, manifest, artifacts)
     except BaseException:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -164,7 +175,9 @@ def load_frame(con: duckdb.DuckDBPyConnection, cfg: ModelConfig) -> pd.DataFrame
     return frame
 
 
-def fit_and_evaluate(frame: pd.DataFrame, cfg: ModelConfig) -> tuple[dict, dict]:
+def fit_and_evaluate(
+    frame: pd.DataFrame, cfg: ModelConfig, locked: LockedModels | None = None
+) -> tuple[dict, dict]:
     parts = {name: frame[frame["split"] == name].reset_index(drop=True) for name in SPLITS}
     train, val, test = parts["train"], parts["validation"], parts["test"]
     features = list(cfg.features)
@@ -220,6 +233,21 @@ def fit_and_evaluate(frame: pd.DataFrame, cfg: ModelConfig) -> tuple[dict, dict]
     test_prob = {k: v[1] for k, v in test_base.items()} | {
         best_cls: predict(cls_est, CLASSIFICATION, test[features])
     }
+    # The locked pair: predictions only, on the same test rows, never refitted.
+    lname = [locked.name] if locked else []
+    if locked:
+        if locked.name in test_reg or locked.name in reg_scores or locked.name in cls_scores:
+            raise ValueError(f"locked model name {locked.name!r} collides with another model")
+        test_reg[locked.name] = predict(locked.regression, REGRESSION, test[features])
+        test_prob[locked.name] = predict(locked.classification, CLASSIFICATION, test[features])
+
+    # Category support (the serving fallback rule) on validation and test.
+    categorical = list(cfg.categorical_features)
+    known = {"selected": pair_categories(reg_est, cls_est, categorical)}
+    if locked:
+        known[locked.name] = pair_categories(locked.regression, locked.classification, categorical)
+    test_support, shared = support_report(test, known)
+    val_support, _ = support_report(val, {"selected": known["selected"]})
 
     # Predeclared baseline sensitivity, and paired event-bootstrap intervals on test for
     # the selected models minus each baseline setting (same resamples for all).
@@ -229,39 +257,63 @@ def fit_and_evaluate(frame: pd.DataFrame, cfg: ModelConfig) -> tuple[dict, dict]
     primary = cfg.baseline_min_group_size
     if not np.array_equal(sens_preds["test"][primary][0], test_reg["historical"]):
         raise RuntimeError("sensitivity run of the primary setting differs from the baseline")
-    boot_reg = {best_reg: test_reg[best_reg]} | {
-        baseline_name(k, primary): v[0] for k, v in sens_preds["test"].items()
-    }
-    boot_prob = {best_cls: test_prob[best_cls]} | {
-        baseline_name(k, primary): v[1] for k, v in sens_preds["test"].items()
-    }
+    boot_reg = (
+        {best_reg: test_reg[best_reg]}
+        | {baseline_name(k, primary): v[0] for k, v in sens_preds["test"].items()}
+        | {k: test_reg[k] for k in lname}
+    )
+    boot_prob = (
+        {best_cls: test_prob[best_cls]}
+        | {baseline_name(k, primary): v[1] for k, v in sens_preds["test"].items()}
+        | {k: test_prob[k] for k in lname}
+    )
     # Primary: trip-clustered. Sensitivity: event-clustered, primary baseline only.
     draws = bootstrap_draws(
         test, boot_reg, boot_prob, cfg.bootstrap_replicates, cfg.seed, cluster=TRIP
     )
     observed = observed_values(test, boot_reg, boot_prob)
-    pair_reg = {k: boot_reg[k] for k in (best_reg, "historical")}
-    pair_prob = {k: boot_prob[k] for k in (best_cls, "historical")}
+    pair_reg = {k: boot_reg[k] for k in (best_reg, "historical", *lname)}
+    pair_prob = {k: boot_prob[k] for k in (best_cls, "historical", *lname)}
     event_draws = bootstrap_draws(
         test, pair_reg, pair_prob, cfg.bootstrap_replicates, cfg.seed, cluster=EVENT
     )
 
-    def uncertainty_block(unit, cluster, clusters_draws, note):
-        return {
+    def uncertainty_block(unit, cluster, clusters_draws, note, rows=test, obs=observed):
+        block = {
             "resampling_unit": unit,
             "cluster_column": cluster,
-            "clusters": int(test[cluster].nunique()),
+            "clusters": int(rows[cluster].nunique()),
             "note": note,
-            "selected_minus_historical": compare(
-                test,
+        }
+        for other in ("historical", *lname):
+            block[f"selected_minus_{other}"] = compare(
+                rows,
                 clusters_draws,
-                observed,
+                obs,
                 best_reg,
                 best_cls,
-                "historical",
+                other,
                 cfg.bootstrap_confidence_level,
-            ),
-        }
+            )
+        return block
+
+    trip_unit = (
+        "trip run (service date + trip_id): every stop-arrival event of the trip "
+        "and all of their published-time horizons"
+    )
+    event_unit = "stop-arrival event: all of its published-time horizons"
+    subset = _shared_support_subset(
+        test,
+        shared,
+        test_reg,
+        test_prob,
+        best_reg,
+        best_cls,
+        lname,
+        cfg,
+        uncertainty_block,
+        (trip_unit, event_unit),
+    )
 
     metrics = {
         "provisional": True,
@@ -300,20 +352,14 @@ def fit_and_evaluate(frame: pd.DataFrame, cfg: ModelConfig) -> tuple[dict, dict]
             "service_dates": _date_range(test),
             "models": names,
             "baseline": f"historical (min_group_size={primary})",
-            "primary_trip_clustered": uncertainty_block(
-                "trip run (service date + trip_id): every stop-arrival event of the trip "
-                "and all of their published-time horizons",
-                TRIP,
-                draws,
-                TRIP_SCOPE_NOTE,
-            ),
+            "primary_trip_clustered": uncertainty_block(trip_unit, TRIP, draws, TRIP_SCOPE_NOTE),
             "sensitivity_event_clustered": uncertainty_block(
-                "stop-arrival event: all of its published-time horizons",
-                EVENT,
-                event_draws,
-                EVENT_SENSITIVITY_NOTE,
+                event_unit, EVENT, event_draws, EVENT_SENSITIVITY_NOTE
             ),
         },
+        "locked_comparison": locked.describe() if locked else None,
+        "category_support": {"test": test_support, "validation_selected_only": val_support},
+        "shared_support_subset": subset,
         "historical_baseline_sensitivity": sensitivity_report(
             evaluated,
             sens_preds,
@@ -365,11 +411,13 @@ def fit_and_evaluate(frame: pd.DataFrame, cfg: ModelConfig) -> tuple[dict, dict]
         ),
     }
 
-    predictions = _predictions(val, val_reg, val_prob, val_levels, "validation")
-    predictions = pd.concat(
-        [predictions, _predictions(test, test_reg, test_prob, test_levels, "test")],
-        ignore_index=True,
-    )
+    val_out = _predictions(val, val_reg, val_prob, val_levels, "validation")
+    val_out["outside_support__selected"] = outside_support(val, known["selected"])
+    test_out = _predictions(test, test_reg, test_prob, test_levels, "test")
+    for name, cats in known.items():
+        test_out[f"outside_support__{name}"] = outside_support(test, cats)
+    test_out["inside_shared_support"] = shared
+    predictions = pd.concat([val_out, test_out], ignore_index=True)
     artifacts = {
         "predictions": predictions,
         "historical_groups": hist.fitted_groups(),
@@ -385,6 +433,42 @@ def fit_and_evaluate(frame: pd.DataFrame, cfg: ModelConfig) -> tuple[dict, dict]
         ),
     }
     return metrics, artifacts
+
+
+def _shared_support_subset(
+    test, shared, test_reg, test_prob, best_reg, best_cls, lname, cfg, block, units
+) -> dict:
+    """The same comparisons restricted to rows inside every model's category support.
+
+    Computed only when some test rows fall outside it; otherwise the full test set already
+    is the shared-support population.
+    """
+    if shared.all():
+        return {"computed": False, "reason": "every test example is inside the shared support"}
+    if not shared.any():
+        return {"computed": False, "reason": "no test example is inside the shared support"}
+    rows = test[shared].reset_index(drop=True)
+    reg = {k: np.asarray(v)[shared] for k, v in test_reg.items()}
+    prob = {k: np.asarray(v)[shared] for k, v in test_prob.items()}
+    b_reg = {k: reg[k] for k in (best_reg, "historical", *lname)}
+    b_prob = {k: prob[k] for k in (best_cls, "historical", *lname)}
+    obs = observed_values(rows, b_reg, b_prob)
+    reps, seed = cfg.bootstrap_replicates, cfg.seed
+    trip = bootstrap_draws(rows, b_reg, b_prob, reps, seed, cluster=TRIP)
+    event = bootstrap_draws(rows, b_reg, b_prob, reps, seed, cluster=EVENT)
+    return {
+        "computed": True,
+        "description": (
+            "Test rows whose categorical values every scored model saw in training (the "
+            "rows the bundles would serve). Same metrics and bootstrap as the full test set."
+        ),
+        "sample": _sample(rows),
+        "metrics": _evaluate(rows, reg, prob, cfg),
+        "primary_trip_clustered": block(units[0], TRIP, trip, TRIP_SCOPE_NOTE, rows, obs),
+        "sensitivity_event_clustered": block(
+            units[1], EVENT, event, EVENT_SENSITIVITY_NOTE, rows, obs
+        ),
+    }
 
 
 def _flatten_draws(draws: dict) -> pd.DataFrame:
@@ -442,6 +526,7 @@ def _sample(rows: pd.DataFrame) -> dict:
     return {
         "examples": int(len(rows)),
         "events": int(rows["event_id"].nunique()),
+        "trips": int(rows[TRIP].nunique()),
         "service_dates": _date_range(rows),
         "predictions_from_utc": _iso(rows["prediction_collected_at"].min()),
         "predictions_to_utc": _iso(rows["prediction_collected_at"].max()),

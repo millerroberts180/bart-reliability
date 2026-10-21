@@ -33,6 +33,9 @@ def _sample_cols(block: dict) -> list:
 
 def _role(name: str, task: str, metrics: dict) -> str:
     selection = metrics["selection"][task]
+    locked = metrics.get("locked_comparison")
+    if locked and name == locked["name"]:
+        return f"locked earlier model `{locked[task]}`, never refitted"
     if name in ("no_revision", "historical"):
         return "baseline"
     if name == selection["selected"]:
@@ -83,6 +86,7 @@ def write_report(path: Path, metrics: dict, manifest: dict) -> None:
             "Service dates",
             "Predictions (UTC)",
             "Events",
+            "Trips",
             "Examples",
             "5 / 10 / 15 min (published-time)",
             "Large-revision prevalence",
@@ -93,6 +97,7 @@ def write_report(path: Path, metrics: dict, manifest: dict) -> None:
                 " to ".join(s["service_dates"]),
                 f"{s['predictions_from_utc']} to {s['predictions_to_utc']}",
                 s["events"],
+                s.get("trips", "n/a"),
                 s["examples"],
                 " / ".join(str(v) for v in s["examples_by_horizon"].values()),
                 s["large_revision_prevalence"],
@@ -210,8 +215,8 @@ def write_report(path: Path, metrics: dict, manifest: dict) -> None:
     unc = metrics["uncertainty"]
     level = f"{int(unc['confidence_level'] * 100)}% interval"
 
-    def uncertainty_table(block):
-        d = block["selected_minus_historical"]
+    def uncertainty_table(block, key="selected_minus_historical"):
+        d = block[key]
         rows = [["MAE (s), overall", d["mae_s"]["overall"]]]
         rows += [
             [f"MAE (s), {int(h) // 60}-min published-time horizon", v]
@@ -261,6 +266,112 @@ def write_report(path: Path, metrics: dict, manifest: dict) -> None:
         "",
     ]
     lines += uncertainty_table(event)
+
+    locked = metrics.get("locked_comparison")
+    if locked:
+        key = f"selected_minus_{locked['name']}"
+        lines += [
+            f"## Test: retrained models minus the locked models (`{locked['name']}`)",
+            "",
+            f"Locked bundle `{locked['bundle_id']}` (model version `{locked['model_version']}`): "
+            f"regression `{locked['regression']}`, classification `{locked['classification']}`, "
+            f"trained on {' to '.join(locked['train_service_dates'])} and selected on "
+            f"{' to '.join(locked['validation_service_dates'])}. Loaded through the bundle "
+            "verifier and only used to predict on the test rows; never refitted. Same paired "
+            "resamples as above. Negative MAE and Brier differences and positive PR-AUC "
+            "differences favor the retrained model.",
+            "",
+            "**Primary: trip-clustered**",
+            "",
+        ]
+        lines += uncertainty_table(trip, key)
+        lines += ["**Sensitivity: event-clustered**", ""]
+        lines += uncertainty_table(event, key)
+
+    support = metrics.get("category_support")
+    if support:
+        t = support["test"]
+        lines += ["## Category support and fallback (test)", "", t["rule"], ""]
+        rows = []
+        for model, d in t["outside_support"].items():
+            unseen = "; ".join(
+                f"{f}: " + ", ".join(f"{v} ({n})" for v, n in vals.items())
+                for f, vals in d["unseen_values_by_feature"].items()
+            )
+            rows.append(
+                [
+                    model,
+                    d["examples"],
+                    _pct(d["share_of_examples"]),
+                    d["events"],
+                    d["trips"],
+                    unseen or "none",
+                ]
+            )
+        sh = t["shared_support"]
+        rows.append(
+            [
+                "inside every model's support (shared)",
+                sh["examples"],
+                _pct(sh["share_of_examples"]),
+                sh["events"],
+                sh["trips"],
+                "",
+            ]
+        )
+        lines += _table(
+            [
+                "Model",
+                "Examples outside support",
+                "Share of test examples",
+                "Events",
+                "Trips",
+                "Unseen values (examples)",
+            ],
+            rows,
+        )
+        v = support["validation_selected_only"]["outside_support"]["selected"]
+        lines += [
+            f"Validation rows outside the selected models' support: {v['examples']} "
+            f"({_pct(v['share_of_examples'])}).",
+            "",
+        ]
+    subset = metrics.get("shared_support_subset")
+    if subset and subset["computed"]:
+        sm = subset["metrics"]
+        lines += [
+            "## Shared-support subset (test)",
+            "",
+            subset["description"],
+            "",
+        ]
+        lines += _table(
+            ["Model", "MAE", "MAE at 5 / 10 / 15 min", "Examples", "Events", "Service dates"],
+            [
+                [
+                    name,
+                    r["overall"]["mae_s"],
+                    " / ".join(_fmt(r["by_horizon"][h]["mae_s"]) for h in r["by_horizon"]),
+                    *_sample_cols(r["overall"]),
+                ]
+                for name, r in sm["regression"].items()
+            ],
+        )
+        lines += _table(
+            ["Model", "Brier", "PR-AUC"],
+            [
+                [name, c["overall"]["brier"], c["overall"]["pr_auc"]]
+                for name, c in sm["classification"].items()
+            ],
+        )
+        keys = [k for k in subset["primary_trip_clustered"] if k.startswith("selected_minus_")]
+        for k in keys:
+            lines += [f"**{k.replace('_', ' ')}: trip-clustered (primary)**", ""]
+            lines += uncertainty_table(subset["primary_trip_clustered"], k)
+            lines += [f"**{k.replace('_', ' ')}: event-clustered (sensitivity)**", ""]
+            lines += uncertainty_table(subset["sensitivity_event_clustered"], k)
+    elif subset:
+        lines += ["## Shared-support subset (test)", "", f"Not computed: {subset['reason']}.", ""]
 
     sens = metrics["historical_baseline_sensitivity"]
     lines += [

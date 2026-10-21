@@ -56,8 +56,9 @@ warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historica
   trees, selected on validation and never refitted on it. They predict the revision and
   revisions over 60 s, with structural leakage checks and a paired, trip-clustered
   bootstrap for test-day uncertainty. Settings live in `config/eta_model.toml`. Current results are
-  provisional, and the next evaluation (sealed test day 2026-10-19) is preregistered:
-  [docs/modeling_plan.md](docs/modeling_plan.md).
+  provisional: [docs/modeling_plan.md](docs/modeling_plan.md). The preregistered
+  evaluation on the sealed test day 2026-10-19 is in
+  [docs/eta_model_evaluation_2026-10-20.md](docs/eta_model_evaluation_2026-10-20.md).
 - **Inference bundle** (`src/bart_reliability/serving/`): the selected models exported with
   verified metadata, one strict single-record entry point, exact parity with the
   modeling pipeline, and a provisional horizon-aware revision interval. Inputs with a
