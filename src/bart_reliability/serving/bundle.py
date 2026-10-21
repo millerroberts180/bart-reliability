@@ -1,12 +1,16 @@
-"""Build the inference bundle deterministically from a warehouse (the training snapshot).
+"""Build the inference bundle deterministically from a modeling run.
 
-Steps: run the modeling pipeline (deterministic for a warehouse and config) -> copy the
-two selected fitted pipelines byte for byte -> calibrate the provisional interval on
-validation residuals -> write bundle.json -> load the bundle through the full
-verification path -> confirm exact parity with the pipeline's own predictions, in batch
-for every validation and test row and one record at a time for a fixed sample -> replace
-the output directory atomically. Nothing in bundle.json depends on paths or wall-clock
-time, so rebuilding from the same warehouse and config gives identical bytes.
+Steps: run the modeling pipeline (deterministic for a warehouse and config), or load a
+frozen run that already exists -> copy the two selected fitted pipelines byte for byte
+-> calibrate the provisional interval on validation residuals -> write bundle.json ->
+load the bundle through the full verification path -> confirm exact parity with the
+run's own predictions, in batch for every validation and test row and one record at a
+time for a fixed sample -> replace the output directory atomically. Nothing in
+bundle.json depends on paths or wall-clock time, so packaging the same run with the
+same config gives identical bytes.
+
+`build_bundle_from_run` packages a frozen run without refitting, reselecting or
+re-evaluating anything: it reads the run's files and never writes to its directory.
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ import numpy as np
 import pandas as pd
 
 from bart_reliability.modeling.config import ModelConfig
-from bart_reliability.modeling.pipeline import load_frame, run_pipeline
+from bart_reliability.modeling.pipeline import RunResult, load_frame, run_pipeline
 from bart_reliability.serving.config import BundleConfig
 from bart_reliability.serving.interval import calibrate_interval
 from bart_reliability.serving.predictor import BundleError, Predictor, runtime_environment
@@ -112,6 +116,11 @@ def to_record(row: pd.Series, fields: list[str]) -> dict:
     return out
 
 
+# Model-config keys that do not affect the fitted models: where a run was written, and
+# which locked models it was compared with.
+NON_MODEL_CONFIG_KEYS = ("output_dir", "locked_comparison")
+
+
 def build_bundle(
     db_path: Path,
     cfg: ModelConfig,
@@ -120,13 +129,72 @@ def build_bundle(
     run_dir: Path | None = None,
     schema_path: Path = SCHEMA_PATH,
 ) -> BuildResult:
+    """Run the modeling pipeline on a warehouse, then package the run."""
+    check_feature_contract(cfg, constant(load_schema(schema_path), "features"))
+    run = run_pipeline(db_path, cfg, run_dir)
+    return _package(
+        run, cfg, bcfg, out_dir, schema_path, "the modeling run built in the same build"
+    )
+
+
+def build_bundle_from_run(
+    run_dir: Path,
+    cfg: ModelConfig,
+    bcfg: BundleConfig,
+    out_dir: Path | None = None,
+    schema_path: Path = SCHEMA_PATH,
+) -> BuildResult:
+    """Package an existing modeling run: no refit, no reselection, no re-evaluation.
+
+    The run's recorded configuration must equal `cfg` in everything that affects the
+    fitted models, so the metadata describes exactly the run being packaged.
+    """
+    check_feature_contract(cfg, constant(load_schema(schema_path), "features"))
+    run = load_run(run_dir)
+    # Both sides through JSON, as the run recorded its config (tuples become lists).
+    recorded = json.loads(json.dumps(run.manifest["config"]))
+    current = json.loads(json.dumps(cfg.as_dict()))
+    for key in NON_MODEL_CONFIG_KEYS:
+        recorded.pop(key, None)
+        current.pop(key, None)
+    if recorded != current:
+        differing = sorted(
+            k for k in recorded.keys() | current.keys() if recorded.get(k) != current.get(k)
+        )
+        raise BundleError(f"the run was made with a different model configuration: {differing}")
+    if run.manifest["selected_models"] != {
+        task: run.metrics["selection"][task]["selected"] for task in ROLES
+    }:
+        raise BundleError("the run's manifest and metrics disagree on the selected models")
+    return _package(run, cfg, bcfg, out_dir, schema_path, "the frozen modeling run")
+
+
+def load_run(run_dir: Path) -> RunResult:
+    """A finished modeling run, read from its directory (nothing is written there)."""
+    run_dir = Path(run_dir)
+    files = ["metrics.json", "run_manifest.json", "predictions.parquet", "features.duckdb"]
+    missing = [f for f in files if not (run_dir / f).is_file()]
+    if missing:
+        raise BundleError(f"{run_dir} is not a finished modeling run: missing {missing}")
+    return RunResult(
+        run_dir,
+        json.loads((run_dir / "metrics.json").read_text()),
+        json.loads((run_dir / "run_manifest.json").read_text()),
+    )
+
+
+def _package(
+    run: RunResult,
+    cfg: ModelConfig,
+    bcfg: BundleConfig,
+    out_dir: Path | None,
+    schema_path: Path,
+    reference: str,
+) -> BuildResult:
     schema = load_schema(schema_path)
     contract = constant(schema, "features")
-    check_feature_contract(cfg, contract)
     version = constant(schema, "feature_schema_version")
     domain = constant(schema, "domain")
-
-    run = run_pipeline(db_path, cfg, run_dir)
     built = run.manifest["feature_build"]
     if (built["horizon_targets_s"], built["horizon_tolerance_s"]) != (
         domain["published_horizon_buckets_s"],
@@ -198,7 +266,7 @@ def build_bundle(
         _write(tmp, metadata)
         # Verify through the same path a consumer uses, then record the parity results.
         predictor = Predictor.load(tmp, schema_path=schema_path)
-        metadata["verification"] = _verify(predictor, keyed, records, cfg, bcfg)
+        metadata["verification"] = _verify(predictor, keyed, records, cfg, bcfg, reference)
         metadata["bundle_id"] = bundle_id(metadata)
         _write(tmp, metadata)
         Predictor.load(tmp, expected_bundle_id=metadata["bundle_id"], schema_path=schema_path)
@@ -299,8 +367,8 @@ def _metadata(schema, cfg, bcfg, run, names, artifacts, interval, contract) -> d
     }
 
 
-def _verify(predictor, keyed, records, cfg, bcfg) -> dict:
-    """Exact parity with the modeling pipeline's predictions.parquet."""
+def _verify(predictor, keyed, records, cfg, bcfg, reference) -> dict:
+    """Exact parity with the modeling run's predictions.parquet."""
     reg, prob = predictor._predict_frame(keyed[list(cfg.features)])
     reg_ref = keyed["predicted_revision_s"].to_numpy()
     prob_ref = keyed["predicted_probability"].to_numpy()
@@ -351,7 +419,7 @@ def _verify(predictor, keyed, records, cfg, bcfg) -> dict:
             f"bundle predictions differ from the modeling pipeline: {batch}, {single}"
         )
     return {
-        "reference": "predictions.parquet of the modeling run built in the same build",
+        "reference": f"predictions.parquet of {reference}",
         "batch_parity": batch,
         "single_record_parity": single,
     }

@@ -4,11 +4,13 @@
 
 model_name = "bart_eta_revision"
 # Bumped by hand when the served model line changes. The bundle version appends a
-# content hash, so every distinct bundle has a distinct version.
-model_line_version = "0.1.0"
+# content hash, so every distinct bundle has a distinct version. 0.1.0 was the PR #7
+# models; 0.2.0 is the models retrained and evaluated on the 2026-10-20 checkpoint.
+model_line_version = "0.2.0"
 
-# Generated files only; git-ignored and replaced atomically on each build.
-output_dir = "data/models/eta_revision_bundle"
+# Generated files only; git-ignored and replaced atomically on each build. Versioned per
+# promoted model, so the PR #7 bundle (data/models/eta_revision_bundle) is never replaced.
+output_dir = "data/models/eta_revision_bundle_2026-10-20"
 
 [interval]
 # Horizon-aware residual interval: per published-time horizon bucket, empirical

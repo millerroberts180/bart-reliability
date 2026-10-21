@@ -96,6 +96,7 @@ Run from the repository root.
 .venv/bin/bart-alert-sensitivity  # alert-state staleness sensitivity (read-only)
 .venv/bin/bart-eta-model          # features, baselines, models, metrics (warehouse read-only)
 .venv/bin/bart-eta-bundle build   # rebuild the inference bundle (runs bart-eta-model first)
+.venv/bin/bart-eta-bundle build --from-run data/models/<run>   # package a frozen run, no refit
 .venv/bin/bart-eta-bundle predict --record record.json   # one prediction from the bundle
 .venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # local replay API
 ```

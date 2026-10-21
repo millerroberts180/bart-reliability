@@ -317,9 +317,9 @@ shasum -a 256 data/warehouse/bart_checkpoint_2026-10-20.duckdb   # must be 19dd5
 ## Next steps
 
 Promotion is the project owner's decision, and nothing has been promoted.
-- **Bundle rebuild.** Rebuilding the bundle with `bart-eta-bundle build` would rerun this
-  configuration, so pass `--run-dir` to a new directory.
-- **Its interval check.** That rebuild would also compute the serving interval's
-  2026-10-19 coverage, under the availability rule predeclared in
-  [model_serving.md](model_serving.md).
+- **Bundle.** The serving bundle `0.2.0+886fcd260732` has since been packaged from this
+  frozen run without refitting, using `bart-eta-bundle build --from-run`. Its
+  predeclared interval check on 2026-10-19 passed (coverage 0.8317 overall)
+  ([model_serving.md](model_serving.md#the-2026-10-20-bundle)). It is not yet connected
+  to the local API.
 - **Later models.** Any later model needs service days after 2026-10-20.
