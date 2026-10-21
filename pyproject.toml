@@ -48,6 +48,7 @@ bart-511-audit = "bart_reliability.open511.audit:main"
 bart-eta-model = "bart_reliability.modeling.main:main"
 bart-eta-bundle = "bart_reliability.serving.main:main"
 bart-serve-local = "bart_reliability.api.main:main"
+bart-static-replay = "bart_reliability.static_replay.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

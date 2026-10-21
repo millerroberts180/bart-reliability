@@ -1,0 +1,20 @@
+# Static historical replay export (docs/static_replay.md): `bart-static-replay export`
+# writes the local API's answers at the replay time (config/local_api.toml) as static
+# JSON files. Every key is required. The export is refused unless the local API and its
+# inputs match every pin below.
+
+# The replay time, which must equal as_of in config/local_api.toml (10:00 PDT).
+as_of = "2026-10-20T17:00:00Z"
+# Feed time of the trip-update snapshot the replay answers from: the latest collected at
+# or before as_of.
+source_feed_timestamp = "2026-10-20T16:59:23Z"
+
+# The serving bundle: its model version and full bundle_id (bart-eta-bundle verify).
+model_version = "0.2.0+886fcd260732"
+bundle_id = "db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087"
+
+# SHA-256 of the checkpoint warehouse named in config/local_api.toml.
+warehouse_sha256 = "19dd5cfc686bed4f223adbfe5c5d26ef8385e5d1a152da5aa2be7af9378e55cc"
+
+# Ignored output root. Each export goes to <output_dir>/v1-<as_of>/.
+output_dir = "data/static_replay"

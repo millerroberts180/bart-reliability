@@ -5,7 +5,9 @@ A local-only HTTP API that serves the ETA revision models through the website's
 were a configured past moment, using the ignored local warehouse and the exported model
 bundle ([model_serving.md](model_serving.md)). It never contacts BART and is never live.
 The website reads it locally when started with `VITE_DATA_MODE=http`
-([website_architecture.md](website_architecture.md#http-client-local-api)).
+([website_architecture.md](website_architecture.md#http-client-local-api)). Its answers
+at the replay time can also be exported as static JSON files
+([static_replay.md](static_replay.md)).
 
 ## Start
 

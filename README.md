@@ -22,6 +22,7 @@ static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
 warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, models, metrics)
 warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle_<date>/ (inference bundle)
 warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historical replay, local only)
+local API answers --bart-static-replay--> data/static_replay/v1-<as_of>/ (static replay files)
 ```
 
 - **Collector** (`src/bart_reliability/collector/`): polls trip updates and alerts every
@@ -74,6 +75,12 @@ warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historica
   `direction_id`: [docs/boarding_groups.md](docs/boarding_groups.md). By default it
   replays 2026-10-20 10:00 AM Pacific with model `0.2.0+886fcd260732`. The website can
   read it locally (below): [docs/local_api.md](docs/local_api.md).
+- **Static replay export** (`src/bart_reliability/static_replay/`): the local API's
+  answers at that fixed moment, one compact JSON file per request the website can make,
+  reduced to the fields the site reads. It has a manifest of hashes and provenance, is
+  deterministic and atomic, and is verified file by file against a freshly loaded API.
+  It is a fixed historical replay, never live data. The website does not read it yet,
+  and the generated export is ignored by Git: [docs/static_replay.md](docs/static_replay.md).
 
 ## Setup
 
@@ -100,6 +107,8 @@ Run from the repository root.
 .venv/bin/bart-eta-bundle build --from-run data/models/<run>   # package a frozen run, no refit
 .venv/bin/bart-eta-bundle predict --record record.json   # one prediction from the bundle
 .venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # local replay API
+.venv/bin/bart-static-replay export   # static replay files (config/static_replay.toml)
+.venv/bin/bart-static-replay verify   # re-check them against a freshly loaded API
 ```
 
 Query the warehouse with DuckDB, e.g.
