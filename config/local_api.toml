@@ -2,13 +2,20 @@
 # it binds to the loopback interface and has no authentication. Every key is required.
 
 # Historical "as of" time (UTC). The API answers as if it were this moment: features,
-# history and alerts use only what had been collected by then. 2026-10-15 was not used
-# for training, validation or testing.
-as_of = "2026-10-15T17:00:00Z"
+# history and alerts use only what had been collected by then. 2026-10-20 10:00 PDT is
+# after every outcome model 0.2.0 used (training through 2026-10-16 08:55 UTC, selection
+# and interval calibration through 2026-10-19 08:52 UTC), on a partial service day that
+# no model trained, selected or was tested on. 2026-10-15, the earlier replay day, is
+# inside 0.2.0's training data, so the API reports a problem if as_of is set before the
+# bundle's calibration cutoff.
+as_of = "2026-10-20T17:00:00Z"
 
 # Ignored local inputs. The warehouse must cover as_of (see stale_after_seconds).
-warehouse = "data/warehouse/bart.duckdb"
-bundle = "data/models/eta_revision_bundle"
+warehouse = "data/warehouse/bart_checkpoint_2026-10-20.duckdb"
+bundle = "data/models/eta_revision_bundle_2026-10-20"
+# The only bundle build this API loads; any other is refused (bart-eta-bundle verify
+# prints the ID). Model 0.2.0+886fcd260732.
+bundle_id = "db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087"
 
 # A feed snapshot older than this at as_of is stale (two collector polls; the website
 # uses the same limit).

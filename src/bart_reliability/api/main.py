@@ -25,6 +25,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--as-of", help="replay time, e.g. 2026-10-15T17:00:00Z")
     parser.add_argument("--warehouse", type=Path)
     parser.add_argument("--bundle", type=Path)
+    parser.add_argument("--bundle-id", help="the bundle_id to require (bart-eta-bundle verify)")
     parser.add_argument("--host", help="loopback address only (default from config)")
     parser.add_argument("--port", type=int)
     args = parser.parse_args(argv)
@@ -35,6 +36,7 @@ def main(argv: list[str] | None = None) -> int:
             as_of=args.as_of,
             warehouse=args.warehouse,
             bundle=args.bundle,
+            bundle_id=args.bundle_id,
             host=args.host,
             port=args.port,
         )

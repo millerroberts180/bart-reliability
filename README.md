@@ -20,7 +20,7 @@ BART GTFS-RT feeds --bart-collect--> data/raw/gtfs_rt/<feed>/<date>/<HHMMSS>Z.pb
                                        data/processed/alert_*/ (normalized alerts)
 static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
 warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, models, metrics)
-warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle/ (inference bundle)
+warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle_<date>/ (inference bundle)
 warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historical replay, local only)
 ```
 
@@ -71,8 +71,9 @@ warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historica
   off at that moment, through the website's `PredictionClient` contract. It binds to
   127.0.0.1 with localhost-only CORS. Boards are grouped by boarding group, the way a
   train leaves the station, built from the schedule's platforms rather than GTFS
-  `direction_id`: [docs/boarding_groups.md](docs/boarding_groups.md). The website can read
-  it locally (below): [docs/local_api.md](docs/local_api.md).
+  `direction_id`: [docs/boarding_groups.md](docs/boarding_groups.md). By default it
+  replays 2026-10-20 10:00 AM Pacific with model `0.2.0+886fcd260732`. The website can
+  read it locally (below): [docs/local_api.md](docs/local_api.md).
 
 ## Setup
 
@@ -142,8 +143,8 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 then start two processes from the repository root, each in its own terminal:
 
 ```bash
-.venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # API: http://127.0.0.1:8000
-cd web && VITE_DATA_MODE=http npm run dev                                 # site: http://localhost:5173/
+.venv/bin/bart-serve-local                     # API: http://127.0.0.1:8000 (config/local_api.toml)
+cd web && VITE_DATA_MODE=http npm run dev       # site: http://localhost:5173/
 ```
 
 Every value the site then shows is labelled as a historical replay of recorded BART data

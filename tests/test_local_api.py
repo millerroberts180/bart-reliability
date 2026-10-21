@@ -61,8 +61,13 @@ def bundle(warehouse, tmp_path_factory):
 
 
 def api_config(warehouse, bundle_dir, as_of=AS_OF, **overrides):
+    # The repository config pins the real local bundle; synthetic bundles opt in.
     return replace(
-        load_api_config(), as_of=as_of, warehouse=warehouse, bundle=bundle_dir, **overrides
+        load_api_config(),
+        as_of=as_of,
+        warehouse=warehouse,
+        bundle=bundle_dir,
+        **({"bundle_id": None} | overrides),
     )
 
 
@@ -806,6 +811,42 @@ def test_non_browser_requests_still_work(client):
         assert r.status_code == 200, path
         assert r.headers["x-data-mode"] == "historical-replay"
         assert not any(k.startswith("access-control-") for k in r.headers)
+
+
+def test_repository_config_replays_october_20_with_model_0_2():
+    cfg = load_api_config()
+    assert cfg.as_of == datetime.fromisoformat("2026-10-20T17:00:00+00:00")
+    assert str(cfg.warehouse) == "data/warehouse/bart_checkpoint_2026-10-20.duckdb"
+    assert str(cfg.bundle) == "data/models/eta_revision_bundle_2026-10-20"
+    assert cfg.bundle_id == "db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087"
+
+
+def test_pinned_bundle_id_accepts_only_that_build(warehouse, bundle):
+    pinned = api_config(warehouse, bundle.bundle_dir, bundle_id=bundle.metadata["bundle_id"])
+    health = TestClient(create_app(pinned)).get("/api/v1/health").json()
+    assert health["status"] == "ok" and health["bundleId"] == bundle.metadata["bundle_id"]
+    other = api_config(warehouse, bundle.bundle_dir, bundle_id="0" * 64)
+    health = TestClient(create_app(other)).get("/api/v1/health").json()
+    assert health["status"] == "degraded" and health["modelVersion"] is None
+    assert any("not the pinned build" in p for p in health["problems"])
+
+
+def test_bundle_id_must_be_a_full_sha256(warehouse, bundle):
+    with pytest.raises(ApiConfigError, match="64-character"):
+        api_config(warehouse, bundle.bundle_dir, bundle_id="db2382848a9f")
+
+
+def test_replay_inside_the_models_data_is_reported(warehouse, bundle):
+    """Before the calibration cutoff the models or their interval used the replayed
+    period, so predictions there would be in-sample."""
+    cutoff = bundle.metadata["training_data"]["calibration_data_cutoff_utc"]
+    inside = api_config(warehouse, bundle.bundle_dir, as_of=local(DAYS[2], 8, 16, 30))
+    assert inside.as_of < datetime.fromisoformat(cutoff)
+    problems = TestClient(create_app(inside)).get("/api/v1/health").json()["problems"]
+    assert len(problems) == 1 and problems[0].startswith("model: as_of")
+    assert cutoff in problems[0]
+    after = TestClient(create_app(api_config(warehouse, bundle.bundle_dir)))
+    assert after.get("/api/v1/health").json()["problems"] == []
 
 
 def test_only_loopback_hosts_are_accepted(warehouse, bundle):
