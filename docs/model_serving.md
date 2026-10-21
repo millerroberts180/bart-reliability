@@ -268,8 +268,11 @@ or availability rule needs evaluation on **later service days** that played no p
 those decisions. The interval stays provisional for two reasons: its calibration reused
 the model-selection day (2026-10-13), and its evaluation covers only October 14. Each
 bundle records this in `training_data.test_day_status`. The next version's sealed test
-day, 2026-10-19, and the rule for this interval there are
-[preregistered](modeling_plan.md#preregistered-evaluation-2026-10-20-checkpoint).
+day, 2026-10-19, and the rule for this interval there were
+[preregistered](modeling_plan.md#preregistered-evaluation-2026-10-20-checkpoint). The
+retrained models have been evaluated on it once
+([eta_model_evaluation_2026-10-20.md](eta_model_evaluation_2026-10-20.md)). The bundle
+has not been rebuilt, so the served models are still the PR #7 ones.
 
 ## Parity and determinism
 

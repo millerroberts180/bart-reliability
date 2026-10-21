@@ -224,7 +224,9 @@ There was no daylight-saving change (PDT throughout).
 | 10-19 Mon | 1,440 | complete | 13,751 / 12,022 / 11,291 | none | **sealed test** |
 | 10-20 Tue | 580 (40.3%) | partial: ends at the cutoff | 6,986 / 5,168 / 4,842 | none | excluded |
 
-Before this checkpoint, 2026-10-16 to 10-19 were in no warehouse.
+Before this checkpoint, 2026-10-16 to 10-19 were in no warehouse. The preregistered
+evaluation used 2026-10-19 once on 2026-10-20, so it is now spent
+([eta_model_evaluation_2026-10-20.md](eta_model_evaluation_2026-10-20.md)).
 
 ### What has been seen of the later days
 

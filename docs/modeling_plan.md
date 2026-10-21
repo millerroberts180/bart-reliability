@@ -10,6 +10,10 @@ preregistered in the next section.
 
 ## Preregistered evaluation: 2026-10-20 checkpoint
 
+> **Status: evaluated once, 2026-10-20 (17:00 PDT), from commit `c2d504e`. 2026-10-19 is
+> now spent.** Results: [eta_model_evaluation_2026-10-20.md](eta_model_evaluation_2026-10-20.md).
+> The text below is the preregistration as committed before the run, unchanged.
+
 **Registered on 2026-10-20, before any model was fitted or scored on this checkpoint.**
 This section fixes the data, split, method and reading of the next model evaluation. Git
 history records when it was committed. Editing it after the test day is scored does not
@@ -362,8 +366,10 @@ checkpoint.
 and later to decide whether the serving interval is available
 ([model_serving.md](model_serving.md#the-test-day-is-no-longer-untouched)). It is no
 longer an untouched holdout. Later model versions must be evaluated on later service
-days, not on any date up to 2026-10-14. The next version's sealed test day is
-2026-10-19.
+days, not on any date up to 2026-10-14. The next version's sealed test day was
+2026-10-19. It has now been used once
+([eta_model_evaluation_2026-10-20.md](eta_model_evaluation_2026-10-20.md)) and is spent
+too, so any later version needs service days after 2026-10-20.
 
 ## Baselines
 
