@@ -13,8 +13,10 @@ import { PredictionClientProvider } from './data/PredictionClientContext';
 const DevStateSelector = import.meta.env.DEV ? lazy(() => import('./dev/DevStateSelector')) : null;
 
 const DATA_MODE = resolveDataMode(import.meta.env.VITE_DATA_MODE);
-// Read only in HTTP mode, so a simulated build never carries a local API address.
+// Read only in HTTP mode, so a simulated or static build never carries a local API address.
 const API_BASE_URL = import.meta.env.VITE_DATA_MODE === 'http' ? (import.meta.env.VITE_API_BASE_URL ?? '') : '';
+// The published replay is served with the site, under Vite's base path (e.g. /bart-reliability/).
+const STATIC_REPLAY_ROOT = `${import.meta.env.BASE_URL}replay/`;
 const SIMULATED_LATENCY_MS = 350;
 
 export function App({ client: injectedClient }: { client?: PredictionClient }) {
@@ -27,6 +29,7 @@ export function App({ client: injectedClient }: { client?: PredictionClient }) {
       createPredictionClient({
         mode: DATA_MODE,
         apiBaseUrl: API_BASE_URL,
+        staticReplayRoot: STATIC_REPLAY_ROOT,
         scenario,
         historyScenario,
         network,

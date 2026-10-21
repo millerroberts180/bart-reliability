@@ -8,6 +8,7 @@ import {
   describeTimeAway,
   formatClockSince,
   formatDuration,
+  formatLongMoment,
   formatMoment,
   formatSignedDuration,
   formatSpokenDuration,
@@ -112,6 +113,9 @@ describe('describeAwayGlance', () => {
 describe('dated clock times', () => {
   it('names the replay moment with its date in Pacific time', () => {
     expect(formatMoment('2026-10-15T17:00:00Z')).toBe('Thu, Oct 15, 2026, 10:00 AM');
+    expect(formatLongMoment('2026-10-20T17:00:00Z')).toBe('Tuesday, October 20, 2026 at 10:00 AM');
+    // Pacific, whatever the visitor's time zone: 03:30 UTC is still the previous evening.
+    expect(formatLongMoment('2026-10-21T03:30:00Z')).toBe('Tuesday, October 20, 2026 at 8:30 PM');
   });
 
   it('adds the date only when a time falls on another Pacific day than the reference', () => {

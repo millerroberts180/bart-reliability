@@ -1,4 +1,4 @@
-import { formatMoment } from '../domain/eta';
+import { formatLongMoment } from '../domain/eta';
 import { useDataSource, type DataSource } from '../hooks/useDataSource';
 import { ExampleLink } from './ExampleLink';
 
@@ -12,17 +12,18 @@ const DISCLOSURE: Record<DataSource['kind'], { label: string; body: (asOf: strin
   replay: {
     label: 'Historical replay of recorded BART data',
     body: (asOf) =>
-      `This page replays BART’s recorded feeds as they stood at ${asOf} Pacific. Forecasts use only what was known at that moment. Nothing here is live, and every forecast is provisional.`,
+      `This page replays BART’s recorded feeds as they stood on ${asOf} Pacific. The data is fixed at that moment: it is not live, and nothing on the page updates or counts down. Forecasts use only what was known then, and every forecast is provisional.`,
     cta: 'Try a historical replay',
   },
+  // Worded for any source of recorded data: the local API or the published static replay.
   checking: {
-    label: 'Connecting to the prediction API',
+    label: 'Loading the data',
     body: () => 'Checking which data this page is showing…',
     cta: 'Try an ETA forecast',
   },
   unavailable: {
-    label: 'Prediction API unavailable',
-    body: () => 'The prediction API did not answer, so no BART data or forecasts can be shown.',
+    label: 'Data unavailable',
+    body: () => 'The page could not load its data, so no BART data or forecasts can be shown.',
     cta: 'Try an ETA forecast',
   },
 };
@@ -30,7 +31,7 @@ const DISCLOSURE: Record<DataSource['kind'], { label: string; body: (asOf: strin
 export function Opening() {
   const { source, retry } = useDataSource();
   const disclosure = DISCLOSURE[source.kind];
-  const asOf = source.kind === 'replay' ? formatMoment(source.asOf) : '';
+  const asOf = source.kind === 'replay' ? formatLongMoment(source.asOf) : '';
 
   return (
     <section className="opening" aria-labelledby="page-title">

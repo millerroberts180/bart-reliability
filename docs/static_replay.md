@@ -1,17 +1,53 @@
-# Static historical replay export
+# Static historical replay
 
 `bart-static-replay export` writes the local API's answers at one fixed past moment as
 static JSON files. It covers **2026-10-20 at 17:00 UTC (10:00 AM PDT)**, the local
-historical replay ([local_api.md](local_api.md)).
+historical replay ([local_api.md](local_api.md)). `bart-static-replay publish` copies a
+verified export into the website. The public GitHub Pages site reads it there, in
+`VITE_DATA_MODE=static`.
 
 **This is a fixed historical replay of recorded BART data, not live data.** Every file
 answers as of that one moment, and nothing in it changes or ticks. The website labels it
 as a replay through each answer's `dataMode: "historical_replay"` and `asOf`.
 
-**Status:** exporter only.
-- The website does not read the export yet, and the GitHub Pages build is unchanged.
-- The generated export is ignored by Git (`data/static_replay/`) until its contents and
-  size are reviewed.
+**Status:** published, and served by GitHub Pages.
+- **Tracked public copy:** the reviewed export is in `web/public/replay/`. It is the only
+  replay data tracked by Git (see "The published replay").
+- **Ignored working export:** the exporter's output in `data/static_replay/` stays
+  ignored.
+- **Offline check:** CI and the Pages workflow check the published copy without the
+  warehouse or the bundle.
+
+## Zero-cost architecture
+
+```text
+collector (Droplet) --> raw GTFS-RT --> Parquet --> DuckDB warehouse    offline, on this machine
+                                                         |
+                       model bundle --> local FastAPI replay (bart-serve-local, 127.0.0.1)
+                                                         |
+                      bart-static-replay export + verify (byte parity with the API)
+                                                         |
+                      bart-static-replay publish --> web/public/replay/   tracked in Git
+                                                         |
+         GitHub Actions: bart-static-replay check (offline) --> vite build (static) --> GitHub Pages
+                                                         |
+                                     React site in the visitor's browser: same-origin JSON files
+```
+
+Everything that needs data, a model or a database runs offline, on the developer's
+machine:
+- **Machine:** the pipeline, the DuckDB warehouse, the model bundle and the FastAPI service.
+- **Public:** only the reduced answers are published, as static files beside the site.
+- **Cost:** GitHub Pages serves them with the site, so there is no API host, server or
+  database to pay for. The Droplet only collects.
+
+| | Local FastAPI service (`bart-serve-local`) | Public static replay (`web/public/replay/`) |
+|---|---|---|
+| Where | 127.0.0.1 only, never deployed | GitHub Pages, with the site |
+| Data | Computed on request from the warehouse and the model bundle | Precomputed answers, reduced to the fields the site reads |
+| Replay time | Any configured `as_of` after the model's data | 2026-10-20 at 10:00 AM Pacific only |
+| Needs | Warehouse, bundle, Python with the model and serve extras | A browser |
+| Use | Development, other replay times, producing and verifying exports | The public site |
 
 ## Why a static export
 
@@ -37,17 +73,26 @@ data, or answer a request outside the exported set.
 
 ```bash
 .venv/bin/pip install -e '.[model,serve]'
-.venv/bin/bart-static-replay export   # writes data/static_replay/v1-20261020T170000Z/
-.venv/bin/bart-static-replay verify   # re-checks that export against a freshly loaded API
+.venv/bin/bart-static-replay export    # writes data/static_replay/v1-20261020T170000Z/
+.venv/bin/bart-static-replay verify    # re-checks that export against a freshly loaded API
+.venv/bin/bart-static-replay publish   # verifies it, then copies it to web/public/replay/
+.venv/bin/bart-static-replay check     # checks web/public/replay offline (no warehouse or bundle)
 ```
 
-Both commands print a JSON summary: counts, the parity result and the sizes.
+`export`, `verify` and `publish` print a JSON summary: counts, the parity result and the
+sizes.
 - `--spec` selects another spec file and `--api-config` another API config.
 - `export --out <dir>` writes to another root.
-- `verify <dir>` checks another export.
+- `verify <dir>` and `publish <dir>` take another export.
+- `publish --public <dir>` writes somewhere other than `web/public/replay`.
 
-Exit codes: 0 when the export is complete and identical to the API, 1 when it was
-refused or differs, and 2 when the spec or config is invalid. Each run takes about 20 s.
+Exit codes:
+- **0:** the export is complete and identical to the API;
+- **1:** it was refused or differs;
+- **2:** the spec or config is invalid.
+
+Each run takes about 20 s. `check` prints its own summary and exits 1 on any problem
+(see "Offline check").
 
 ## Inputs and pins
 
@@ -254,13 +299,97 @@ history (median 334 bytes gzipped, largest 873). The manifest is not fetched.
 timestamps. A columnar encoding would be smaller, but it would change the response
 contract, which this export keeps.
 
+## The published replay
+
+`bart-static-replay publish` verifies the export against a freshly loaded API, as
+`verify` does, and then replaces `web/public/replay/` with:
+- a copy of the export, unchanged;
+- `index.json`, which names the export, its schema version, its replay time and the
+  manifest's SHA-256.
+
+The copy passes the offline check before it replaces the earlier one, through the same
+build, check and rename steps as an export.
+
+The website reads `index.json` first and refuses any schema version other than
+`static-replay-1` ([website_architecture.md](website_architecture.md#static-replay-client-github-pages)).
+
+| | Published replay |
+|---|---|
+| Export | `v1-20261020T170000Z` (layout v1, `schemaVersion` `static-replay-1`) |
+| Replay time / source snapshot | 2026-10-20T17:00:00Z / 2026-10-20T16:59:23Z |
+| Model / bundle | `0.2.0+886fcd260732` / `db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087` |
+| Warehouse | `bart_checkpoint_2026-10-20.duckdb`, SHA-256 `19dd5cfc686bed4f223adbfe5c5d26ef8385e5d1a152da5aa2be7af9378e55cc` |
+| Manifest SHA-256 | `737f7bf404cd180ff798ec6e5d2cd8b46b9f40ffb398d9223e7b523bbf8fbe90` (188,535 bytes) |
+| `index.json` SHA-256 | `07eb740f64c68e95a46a255028659c4a21f1053702fffc63ebd7274fa46252fe` (212 bytes) |
+| Tracked files | 1,157: 1,155 answers, the manifest and the index |
+| Tracked bytes | 5,938,839 (535,238 gzipped) |
+| Tree hash | `5202c3fb6b093930642571bd1999e03e36084bb81e248115d1692abca5afb0ba`, the SHA-256 of the sorted `<sha256>  <path>` lines of every file |
+
+The published export is byte-identical to the reviewed export in `data/static_replay/`.
+
+### Offline check
+
+```bash
+.venv/bin/bart-static-replay check   # web/public/replay by default; about half a second
+```
+
+It needs neither the warehouse nor the bundle, and imports only pydantic. CI runs it, and
+so does the Pages workflow before it builds. A replay that fails is never deployed. It
+checks:
+- **Index and manifest:**
+  - exact keys and values in `index.json`, including a supported schema version and a
+    safe export name;
+  - only `index.json` and that export in `web/public/replay/`;
+  - the manifest's SHA-256 against the index;
+  - the manifest itself, as `verify` does: shape, safe relative paths, every file's size
+    and SHA-256, and no unlisted or symlinked file.
+- **Schemas:**
+  - every file holds exactly the kept fields, strictly typed as in `api/schemas.py`, in
+    the API's order, in the exporter's compact form.
+- **Consistency:**
+  - the website decoder's rules: forecast numbers only on `ok` trains, probabilities from
+    0 to 1, valid ranges, non-negative ETAs, and no duplicate stations, groups,
+    predictions or snapshots;
+  - health is `ok`;
+  - each board's model block equals `model.json`;
+  - every history point's `publishedEtaSeconds` equals its two timestamps' difference.
+- **Cross-references:**
+  - every boarding group in `stations.json` has its board, and every board is a listed
+    group;
+  - every train has its history file, and no history belongs to no train.
+- **Counts:** every manifest count and per-file record count, recomputed from the files.
+- **No future data:**
+  - no observed time is after the replay time;
+  - every board and the health answer are from the source snapshot, and no history point
+    is after it.
+
+### Updating the public replay
+
+1. **Collect.** Collect, transform and build a new checkpoint warehouse, offline. If a new
+   model is wanted, train and package it under its own milestone.
+2. **Configure.** Point `config/local_api.toml` at it, with an `as_of` after every outcome
+   the model used. Health must report no problems there.
+3. **Pin.** Set the new pins in `config/static_replay.toml`: replay time, source snapshot,
+   model version, bundle ID and warehouse SHA-256.
+4. **Export.** Run `bart-static-replay export` and review the export and its size.
+5. **Publish.** Run `bart-static-replay publish`. It verifies the export against the API,
+   replaces `web/public/replay/` and runs the offline check.
+6. **Re-run checks.** Run all checks, including `bart-static-replay check` and the web
+   tests. The web tests pin the October 20 counts, so a new replay updates them on
+   purpose.
+7. **Merge.** Commit `web/public/replay/` with the code and docs, and merge to `main`. The
+   Pages workflow checks the replay again, builds and deploys.
+
 ## Limitations
 
 - **One fixed moment.** It is not live, and nothing ticks or updates.
 - **Only exported requests.** Any other station, boarding group or prediction is not in
   the export.
-- **Local inputs.** Regenerating or verifying needs the ignored local warehouse and
-  bundle, so CI cannot rebuild the export.
+- **Local inputs.** Regenerating or verifying against the API needs the ignored local
+  warehouse and bundle, so CI cannot rebuild the export. CI checks the published copy
+  offline instead.
+- **Repository size.** The published replay adds about 6 MB and 1,157 files to the
+  repository. Each update replaces them, and Git keeps the old copies in its history.
 - **API-only fields.** The omitted fields exist only in the local API.
 - **Inherited limits.** Everything in [local_api.md](local_api.md#limitations) still
   applies: horizons, the static schedule, unplaced trains, unsupported lines and the

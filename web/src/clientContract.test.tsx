@@ -472,19 +472,20 @@ describe('data provenance', () => {
 
     const opening = screen.getByRole('region', { name: 'ETA Reliability' });
     expect(within(opening).getByRole('complementary', { name: 'Historical replay of recorded BART data' })).toHaveTextContent(
-      'This page replays BART’s recorded feeds as they stood at Thu, Oct 15, 2026, 10:00 AM Pacific.',
+      'This page replays BART’s recorded feeds as they stood on Thursday, October 15, 2026 at 10:00 AM Pacific. ' +
+        'The data is fixed at that moment: it is not live, and nothing on the page updates or counts down.',
     );
     expect(within(opening).getByRole('link', { name: 'Try a historical replay' })).toBeInTheDocument();
     // One concise reminder beside the result.
     expect(screen.getByTestId('replay-notice')).toHaveTextContent(
-      'Historical replay—not live. BART data as of Thu, Oct 15, 2026, 10:00 AM Pacific.',
+      'Historical replay—fixed, not live. BART data as of Thursday, October 15, 2026 at 10:00 AM Pacific.',
     );
     // The full provenance is in one labelled, expandable section.
     const details = screen.getByTestId('data-details');
     expect(details.tagName).toBe('DETAILS');
     expect(details).toHaveTextContent(
-      'Historical replay of recorded BART data as of Thu, Oct 15, 2026, 10:00 AM Pacific. The forecast uses only what ' +
-        'was known at that moment. Nothing here is live.',
+      'Historical replay of recorded BART data as of Thursday, October 15, 2026 at 10:00 AM Pacific. The data is fixed ' +
+        'at that moment, and the forecast uses only what was known then. Nothing here is live.',
     );
     expect(details).toHaveTextContent('Forecast generated10:00:00 AM (the replay time)');
     expect(details).toHaveTextContent('ModelVersion 0.1.0+8d942e17429c, trained on data through Tue, Oct 13, 2026, 2:11 AM Pacific');
@@ -532,7 +533,7 @@ describe('data provenance', () => {
       fetch: (input, init) => (up ? api.fetch(input, init) : Promise.reject(new TypeError('Failed to fetch'))),
     });
     render(<App client={client} />);
-    const disclosure = await screen.findByRole('complementary', { name: 'Prediction API unavailable' });
+    const disclosure = await screen.findByRole('complementary', { name: 'Data unavailable' });
     expect(await screen.findByRole('heading', { level: 3, name: 'Prediction unavailable' })).toBeInTheDocument();
     expect(screen.queryByTestId('forecast')).not.toBeInTheDocument();
     expect(screen.queryByText('Historical replay')).not.toBeInTheDocument();

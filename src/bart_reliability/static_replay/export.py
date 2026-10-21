@@ -24,13 +24,11 @@ import statistics
 import tomllib
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import quote, urlencode
 
 from bart_reliability.api.config import LocalApiConfig
-from bart_reliability.api.replay import parse_prediction_id
-from bart_reliability.serving.schema import sha256_file
 from bart_reliability.static_replay.contract import future_times, omitted_fields, project
 
 SCHEMA_VERSION = "static-replay-1"
@@ -42,6 +40,8 @@ NOTICE = (
     "It is not live data and never changes."
 )
 _ID = re.compile(r"[A-Za-z0-9-]{1,80}")
+# service_date:trip_id:stop_sequence (api/replay.py, prediction_id).
+_PREDICTION_ID = re.compile(r"(\d{4}-\d{2}-\d{2}):(.+):(\d{1,6})")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 # Every path an export can contain, so a manifest cannot point outside its directory.
 _FILE = re.compile(
@@ -158,11 +158,22 @@ def board_file(station_id: str, boarding_group: str) -> str:
 def history_file(prediction_id: str) -> str:
     """history/<service date>_<trip id>_<stop sequence>.json: the prediction ID with its
     colons replaced, so a client can find the file from the ID alone."""
-    key = parse_prediction_id(prediction_id)
-    if key is None or prediction_id != f"{key[0]}:{key[1]}:{key[2]}":
+    match = _PREDICTION_ID.fullmatch(prediction_id)
+    try:
+        day = match and date.fromisoformat(match[1])
+    except ValueError:
+        day = None
+    if not day or prediction_id != f"{day}:{match[2]}:{int(match[3])}":
         raise ExportError(f"prediction id {prediction_id!r} is not service_date:trip:sequence")
-    day, trip_id, sequence = key
-    return f"history/{day}_{_safe(trip_id, 'trip id')}_{sequence}.json"
+    return f"history/{day}_{_safe(match[2], 'trip id')}_{int(match[3])}.json"
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 @dataclass(frozen=True)
@@ -309,10 +320,32 @@ def render(answers: list[Answer], spec: ExportSpec) -> dict[str, bytes]:
     return files
 
 
-def _records(body) -> int:
+def records(body) -> int:
+    """Trains on a board, points in a history, stations in the list, else 1."""
     if isinstance(body, list):
         return len(body)
     return len(body["trains"]) if "trains" in body else 1
+
+
+def counts(files: dict[str, bytes], bodies: dict[str, object]) -> dict:
+    """The manifest's counts, from each file's answer (full or reduced: only kept fields
+    are counted, so the published files reproduce them)."""
+    boards = [b for f, b in bodies.items() if f.startswith("boards/")]
+    trains = [t for b in boards for t in b["trains"]]
+    histories = [b for f, b in bodies.items() if f.startswith("history/")]
+    return {
+        "files": len(files),
+        "bytes": sum(len(b) for b in files.values()),
+        "stations": len(bodies["stations.json"]),
+        "boards": len(boards),
+        "emptyBoards": sum(not b["trains"] for b in boards),
+        "trains": len(trains),
+        "trainsByStatus": dict(sorted(Counter(t["predictionStatus"] for t in trains).items())),
+        "trainsWithInterval": sum(t["revisionInterval"] is not None for t in trains),
+        "alerts": len({a["alertId"] for b in boards for a in b["alerts"]}),
+        "historyFiles": len(histories),
+        "historyPoints": sum(len(h) for h in histories),
+    }
 
 
 def build_manifest(
@@ -323,10 +356,7 @@ def build_manifest(
         schedules = cur.execute(
             "SELECT archive_label, archive_sha256, feed_version FROM static_feed_load ORDER BY ALL"
         ).fetchall()
-    by_file = {a.file: a for a in answers}
-    boards = [a.body for a in answers if a.model == "PredictionResponse"]
-    trains = [t for b in boards for t in b["trains"]]
-    histories = [a.body for a in answers if a.model == "PredictionHistoryPoint"]
+    bodies = {a.file: a.body for a in answers}
     return {
         "schemaVersion": SCHEMA_VERSION,
         "dataMode": "historical_replay",
@@ -361,24 +391,12 @@ def build_manifest(
                 "web/src/data/apiDecode.ts reads"
             ),
         },
-        "counts": {
-            "files": len(files),
-            "bytes": sum(len(b) for b in files.values()),
-            "stations": len(by_file["stations.json"].body),
-            "boards": len(boards),
-            "emptyBoards": sum(not b["trains"] for b in boards),
-            "trains": len(trains),
-            "trainsByStatus": dict(sorted(Counter(t["predictionStatus"] for t in trains).items())),
-            "trainsWithInterval": sum(t["revisionInterval"] is not None for t in trains),
-            "alerts": len({a["alertId"] for b in boards for a in b["alerts"]}),
-            "historyFiles": len(histories),
-            "historyPoints": sum(len(h) for h in histories),
-        },
+        "counts": counts(files, {a.file: a.body for a in answers}),
         "files": {
             path: {
                 "bytes": len(data),
                 "sha256": hashlib.sha256(data).hexdigest(),
-                "records": _records(by_file[path].body),
+                "records": records(bodies[path]),
             }
             for path, data in sorted(files.items())
         },

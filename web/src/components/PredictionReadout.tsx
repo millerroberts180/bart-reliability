@@ -9,6 +9,7 @@ import {
   formatClockMinute,
   formatClockSince,
   formatDuration,
+  formatLongMoment,
   formatMoment,
   formatPercent,
   formatSpokenDuration,
@@ -212,7 +213,8 @@ function ReadyReadout({
 
         {replay && (
           <p className="notice notice--replay" data-testid="replay-notice">
-            <strong>Historical replay—not live.</strong> BART data as of {formatMoment(replay.asOf)} Pacific.
+            <strong>Historical replay—fixed, not live.</strong> BART data as of {formatLongMoment(replay.asOf)}{' '}
+            Pacific.
           </p>
         )}
 
@@ -263,7 +265,7 @@ function ReadyReadout({
               <dt>Data</dt>
               <dd>
                 {replay
-                  ? `Historical replay of recorded BART data as of ${formatMoment(replay.asOf)} Pacific. The forecast uses only what was known at that moment. Nothing here is live.`
+                  ? `Historical replay of recorded BART data as of ${formatLongMoment(replay.asOf)} Pacific. The data is fixed at that moment, and the forecast uses only what was known then. Nothing here is live.`
                   : 'Simulated. Every station reading, train and number is invented.'}
               </dd>
             </div>
