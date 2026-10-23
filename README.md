@@ -22,7 +22,8 @@ static GTFS ZIP + Parquet --bart-build-warehouse--> data/warehouse/bart.duckdb
 warehouse (read-only) --bart-eta-model--> data/models/eta_revision/ (features, models, metrics)
 warehouse (read-only) --bart-eta-bundle build--> data/models/eta_revision_bundle_<date>/ (inference bundle)
 warehouse + bundle --bart-serve-local--> http://127.0.0.1:8000/api/v1 (historical replay, local only)
-local API answers --bart-static-replay--> data/static_replay/v1-<as_of>/ (static replay files)
+local API answers --bart-static-replay export--> data/static_replay/v1-<as_of>/ (static replay files)
+verified export --bart-static-replay publish--> web/public/replay/ --> GitHub Pages (static site)
 ```
 
 - **Collector** (`src/bart_reliability/collector/`): polls trip updates and alerts every
@@ -75,12 +76,15 @@ local API answers --bart-static-replay--> data/static_replay/v1-<as_of>/ (static
   `direction_id`: [docs/boarding_groups.md](docs/boarding_groups.md). By default it
   replays 2026-10-20 10:00 AM Pacific with model `0.2.0+886fcd260732`. The website can
   read it locally (below): [docs/local_api.md](docs/local_api.md).
-- **Static replay export** (`src/bart_reliability/static_replay/`): the local API's
-  answers at that fixed moment, one compact JSON file per request the website can make,
-  reduced to the fields the site reads. It has a manifest of hashes and provenance, is
-  deterministic and atomic, and is verified file by file against a freshly loaded API.
-  It is a fixed historical replay, never live data. The website does not read it yet,
-  and the generated export is ignored by Git: [docs/static_replay.md](docs/static_replay.md).
+- **Static replay** (`src/bart_reliability/static_replay/`): the local API's answers at
+  that fixed moment, one compact JSON file per request the website can make, reduced to
+  the fields the site reads.
+  - **Checked:** a manifest of hashes and provenance; deterministic and atomic; verified
+    file by file against a freshly loaded API.
+  - **Published:** in `web/public/replay/`, the only replay data Git tracks. An offline
+    check runs in CI and before every Pages deploy.
+  - **Public:** the public site reads it. It is a fixed historical replay, never live
+    data: [docs/static_replay.md](docs/static_replay.md).
 
 ## Setup
 
@@ -107,8 +111,10 @@ Run from the repository root.
 .venv/bin/bart-eta-bundle build --from-run data/models/<run>   # package a frozen run, no refit
 .venv/bin/bart-eta-bundle predict --record record.json   # one prediction from the bundle
 .venv/bin/bart-serve-local --warehouse data/warehouse/<snapshot>.duckdb   # local replay API
-.venv/bin/bart-static-replay export   # static replay files (config/static_replay.toml)
-.venv/bin/bart-static-replay verify   # re-check them against a freshly loaded API
+.venv/bin/bart-static-replay export    # static replay files (config/static_replay.toml)
+.venv/bin/bart-static-replay verify    # re-check them against a freshly loaded API
+.venv/bin/bart-static-replay publish   # verify, then copy them to web/public/replay/
+.venv/bin/bart-static-replay check     # offline check of web/public/replay (no warehouse)
 ```
 
 Query the warehouse with DuckDB, e.g.
@@ -123,22 +129,40 @@ checkpoint (to 2026-10-20) in [docs/data_checkpoint_2026-10-20.md](docs/data_che
 Collector logs are JSON lines on stdout and in `logs/collector.log`. Malformed inputs
 found by the transformer are listed in `data/processed/trip_updates/_quarantine.jsonl`.
 
-## Website prototype
+## Website
 
-**Live demo (simulated data): <https://millerroberts180.github.io/bart-reliability/>**
+**Public site (historical replay): <https://millerroberts180.github.io/bart-reliability/>**
 
-The demo is the simulated build. `.github/workflows/deploy-pages.yml` builds it with
-`VITE_DATA_MODE=mock` on every push to `main` and publishes it to GitHub Pages. Every
-value it shows is simulated and nothing is live. The historical-replay API is not deployed.
+The public site is a **fixed historical replay** of recorded BART data as of Tuesday,
+October 20, 2026 at 10:00 AM Pacific, with model `0.2.0+886fcd260732`. Nothing on it is
+live.
+- **How it is built:** `.github/workflows/deploy-pages.yml` checks the published replay
+  offline, builds the site with `VITE_DATA_MODE=static` and publishes it to GitHub Pages,
+  on every push to `main`.
+- **No server:** the page reads the replay as same-origin static files. No API, server or
+  database is deployed.
+- **Credit:** the footer names BART as the source of the data, links to BART's developer
+  program and license, and says the site is not an official BART product
+  ([Data source and license](#data-source-and-license)).
 
-`web/` holds a React + TypeScript prototype of the public site, "ETA Reliability". By
-default it runs on simulated data. Stack, data contracts, the mock client and the HTTP
-client are described in [docs/website_architecture.md](docs/website_architecture.md).
+This is the zero-cost architecture in [docs/static_replay.md](docs/static_replay.md):
+the offline Python, DuckDB and model pipeline, then a deterministic static export, then
+React on GitHub Pages.
+
+`web/` holds the React + TypeScript public site, "ETA Reliability". It has three data
+modes:
+- **`mock`:** simulated data, the default for development;
+- **`static`:** the published replay, as the public site reads it;
+- **`http`:** the local API.
+
+Stack, data contracts and the three clients are described in
+[docs/website_architecture.md](docs/website_architecture.md).
 
 ```bash
 cd web
 npm install
 npm run dev      # http://localhost:5173/ (simulated data)
+VITE_DATA_MODE=static npm run dev   # the published historical replay, as on GitHub Pages
 npm run test && npm run lint && npm run build
 ```
 
@@ -166,7 +190,33 @@ as of the API's replay time. Nothing is live.
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
+## Data source and license
+
+The collector, warehouse, models and public site use BART's open data: the GTFS
+schedule and the GTFS-Realtime trip-update and alert feeds, published by the San Francisco
+Bay Area Rapid Transit District (BART) through its
+[developer program](https://www.bart.gov/about/developers) and used under the
+[BART Developer License Agreement](https://www.bart.gov/schedules/developers/developer-license-agreement).
+The agreement grants limited, revocable rights to use, reproduce and redistribute the
+data. The replay published with the site redistributes values taken from it. BART
+provides the data without warranty and may change or stop it at any time.
+
+The public site's footer credits BART as the source of the GTFS and GTFS-Realtime data
+and links to both pages.
+
+ETA Reliability is an independent project. It is not an official BART product, and it
+is not affiliated with or endorsed by BART.
+
+The agreement does not allow BART trademarks or copyrighted materials to be used with
+the data. The site therefore uses no BART logo and no official system map. Its only
+graphics are its own charts and marks. Line colours are the `route_color` values in
+BART's GTFS feed.
+
 ## Data
 
 Nothing under `data/` should be committed. Raw snapshots are never modified by later
 steps.
+
+The only replay data tracked is the public site's published replay in `web/public/replay/`.
+It holds the reduced answers alone: no raw feeds, warehouse rows, models or bundles
+([docs/static_replay.md](docs/static_replay.md#the-published-replay)).

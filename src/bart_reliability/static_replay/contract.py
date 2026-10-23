@@ -9,7 +9,11 @@ replay freshness details stay in the local API.
 
 from __future__ import annotations
 
+import typing
 from datetime import datetime
+from functools import cache
+
+from pydantic import BaseModel, ConfigDict, create_model
 
 from bart_reliability.api import schemas
 
@@ -114,6 +118,40 @@ def project(model: str, value, path: str, problems: list[str]):
     return out
 
 
+class _Strict(BaseModel):
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+
+@cache
+def static_model(model: str) -> type[BaseModel]:
+    """The published form of a response model: only its kept fields, each required and
+    strictly typed as in api/schemas.py, and no other field."""
+    by_alias = {
+        info.alias or name: info for name, info in getattr(schemas, model).model_fields.items()
+    }
+    fields = {}
+    for alias in KEEP[model]:
+        annotation = by_alias[alias].annotation
+        nested = NESTED.get((model, alias))
+        if nested:
+            annotation = _swap(annotation, getattr(schemas, nested), static_model(nested))
+        fields[alias] = (annotation, ...)
+    return create_model(f"Static{model}", __base__=_Strict, **fields)
+
+
+def _swap(annotation, old, new):
+    """`annotation` with the model `old` replaced by `new`, inside list[...] and | None."""
+    if annotation is old:
+        return new
+    args = typing.get_args(annotation)
+    if not args:
+        return annotation
+    swapped = tuple(_swap(a, old, new) for a in args)
+    if typing.get_origin(annotation) is list:
+        return list[swapped[0]]
+    return typing.Union[swapped]  # noqa: UP007 (built from a tuple of types)
+
+
 def future_times(value, as_of: datetime, path: str = "$") -> list[str]:
     """Observed times after as_of anywhere in a JSON value, and any time field that is
     neither an observed time nor a published estimate, so a new one cannot slip by."""
@@ -131,7 +169,8 @@ def future_times(value, as_of: datetime, path: str = "$") -> list[str]:
                 elif ts is not None and ts > as_of:
                     problems.append(f"{where}: {item} is after the replay time")
             elif key in ESTIMATED_TIMES:
-                pass
+                if item is not None and _timestamp(item) is None:
+                    problems.append(f"{where}: not a timestamp with a time zone")
             elif key.endswith(_TIME_SUFFIXES):
                 problems.append(f"{where}: unclassified time field")
             else:

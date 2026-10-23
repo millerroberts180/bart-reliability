@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { App } from './App';
+import { BART_DEVELOPER_URL, BART_LICENSE_URL } from './components/SiteFooter';
 import { REPOSITORY_URL } from './components/SiteHeader';
 import { MockPredictionClient } from './data/MockPredictionClient';
 
@@ -68,11 +69,36 @@ describe('App', () => {
     expect(screen.queryByRole('heading', { name: /Will this ETA hold/i })).not.toBeInTheDocument();
   });
 
-  it('states independence from BART in the footer', () => {
+  it('credits BART’s GTFS and GTFS-Realtime data in the footer, with its developer page and license', () => {
+    renderApp();
+    const footer = screen.getByRole('contentinfo');
+    expect(footer).toHaveTextContent(
+      'Source data: GTFS schedule and GTFS-Realtime feeds from BART (San Francisco Bay Area Rapid Transit District), ' +
+        'published through BART’s developer program and used under the BART Developer License Agreement.',
+    );
+    expect(within(footer).getByRole('link', { name: 'developer program' })).toHaveAttribute('href', BART_DEVELOPER_URL);
+    expect(within(footer).getByRole('link', { name: 'BART Developer License Agreement' })).toHaveAttribute(
+      'href',
+      BART_LICENSE_URL,
+    );
+    expect(BART_DEVELOPER_URL).toBe('https://www.bart.gov/about/developers');
+    expect(BART_LICENSE_URL).toBe('https://www.bart.gov/schedules/developers/developer-license-agreement');
+  });
+
+  it('states in the footer that the site is independent and not an official BART product', () => {
     renderApp();
     expect(screen.getByRole('contentinfo')).toHaveTextContent(
-      'Independent project using BART open data. Not affiliated with or endorsed by BART.',
+      'ETA Reliability is an independent project. It is not an official BART product, and it is not affiliated with or endorsed by BART.',
     );
+  });
+
+  it('shows no images: no BART logo or system map', async () => {
+    renderApp();
+    await screen.findByTestId('forecast');
+    await screen.findByRole('figure');
+    expect(document.querySelector('img, picture, object, embed, iframe, image')).toBeNull();
+    // The only drawings are the page's own (the ETA chart and stability marks), never a map.
+    expect(screen.queryByRole('img', { name: /logo|map/i })).not.toBeInTheDocument();
   });
 
   it('uses the site name in the header', () => {

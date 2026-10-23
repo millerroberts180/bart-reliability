@@ -179,6 +179,19 @@ export function formatMoment(iso: string): string {
   return `${dateFormat.format(new Date(iso))}, ${formatClockMinute(iso)}`;
 }
 
+const longDateFormat = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Los_Angeles',
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+/** "Tuesday, October 20, 2026 at 10:00 AM" (Pacific): a replay's moment, written out in full. */
+export function formatLongMoment(iso: string): string {
+  return `${longDateFormat.format(new Date(iso))} at ${formatClockMinute(iso)}`;
+}
+
 const dayFormat = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric' });
 
 /**

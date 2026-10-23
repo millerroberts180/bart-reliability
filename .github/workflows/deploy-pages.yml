@@ -1,7 +1,8 @@
 name: Deploy website
 
-# Publishes the simulated-data build of web/ to GitHub Pages. The historical-replay API
-# is never deployed, and a mock build carries no API address.
+# Publishes the static historical-replay build of web/ to GitHub Pages: the page reads the
+# replay tracked under web/public/replay/ as same-origin static files (docs/static_replay.md).
+# No API is deployed, and the build carries no API address. It deploys only after a push to main.
 on:
   push:
     branches: [main]
@@ -28,6 +29,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Offline: no warehouse, model bundle or API. Refuses a damaged or inconsistent replay.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Check the published replay
+        working-directory: .
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --no-deps -e .
+          python -m pip install 'pydantic>=2.6'
+          bart-static-replay check web/public/replay
+
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
@@ -37,10 +51,10 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Build (simulated data)
+      - name: Build (static historical replay)
         run: npm run build
         env:
-          VITE_DATA_MODE: mock
+          VITE_DATA_MODE: static
           VITE_BASE_PATH: /bart-reliability/
 
       - uses: actions/configure-pages@v6
@@ -52,6 +66,9 @@ jobs:
   deploy:
     name: Deploy
     needs: build
+    # Only a push to main deploys. A manual run, from any branch including main, checks and
+    # builds but never deploys.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

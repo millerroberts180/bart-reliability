@@ -13,8 +13,9 @@ import type {
 export interface PredictionClient {
   /**
    * Where this client's data comes from, known before any request: "simulated"
-   * fixtures, or the prediction "api". Each API response also states its own mode
-   * (for example historical replay), and the page labels results from that.
+   * fixtures, or the prediction "api", served by the local API or exported from it as
+   * the static replay. Each API response also states its own mode (for example
+   * historical replay), and the page labels results from that.
    */
   readonly source: 'simulated' | 'api';
   /** GET /api/v1/stations */
