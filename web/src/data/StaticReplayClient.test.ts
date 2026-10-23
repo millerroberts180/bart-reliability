@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { hasForecast, type PredictionResponse, type TrainPrediction } from '../domain/types';
 import { createPublishedReplayHost, PUBLISHED_ROOT, publishedFiles } from '../test/publishedReplay';
 import { createPredictionClient, resolveDataMode } from './createPredictionClient';
@@ -249,9 +249,23 @@ describe('StaticReplayClient', () => {
 
     // A file request passes its signal on, so the host's fetch sees the cancellation.
     const late = new AbortController();
+    let seen: AbortSignal | undefined;
+    host.respond(`${EXPORT}/boards/MONT/to-EMBR.json`, (init) => {
+      seen = init?.signal ?? undefined;
+      return new Promise<Response>((_, reject) =>
+        seen?.addEventListener('abort', () => reject(new DOMException('The operation was aborted.', 'AbortError'))),
+      );
+    });
+    const board = client.getPredictions('MONT', 'to-EMBR', late.signal);
+    await vi.waitFor(() => expect(seen).toBe(late.signal));
     late.abort();
+    expect(((await rejection(board)) as DOMException).name).toBe('AbortError');
+
+    // A request already cancelled is refused without asking for the file.
+    const before = host.requests.length;
     expect(((await rejection(client.getPredictions('MONT', 'to-EMBR', late.signal))) as DOMException).name).toBe(
       'AbortError',
     );
+    expect(host.requests.length).toBe(before);
   });
 });

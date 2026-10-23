@@ -470,8 +470,9 @@ describe('data provenance', () => {
     await OPEN_FORECAST.http(user);
     await screen.findByTestId('forecast');
 
+    // The disclosure follows /health, a request separate from the board's.
     const opening = screen.getByRole('region', { name: 'ETA Reliability' });
-    expect(within(opening).getByRole('complementary', { name: 'Historical replay of recorded BART data' })).toHaveTextContent(
+    expect(await within(opening).findByRole('complementary', { name: 'Historical replay of recorded BART data' })).toHaveTextContent(
       'This page replays BART’s recorded feeds as they stood on Thursday, October 15, 2026 at 10:00 AM Pacific. ' +
         'The data is fixed at that moment: it is not live, and nothing on the page updates or counts down.',
     );

@@ -3,7 +3,7 @@
 
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { App } from './App';
 import { StaticReplayClient } from './data/StaticReplayClient';
 import { createPublishedReplayHost, PUBLISHED_ROOT, type PublishedReplayHost } from './test/publishedReplay';
@@ -18,8 +18,6 @@ function open(search = '', host: PublishedReplayHost = createPublishedReplayHost
   return host;
 }
 
-afterEach(() => window.history.replaceState(null, '', '/'));
-
 const readout = () => screen.getByRole('region', { name: /·|Prediction|No upcoming|Loading/ });
 const historyRegion = () => screen.getByRole('region', { name: 'How this ETA has changed' });
 const trainGroup = () => screen.getByRole('group', { name: 'Upcoming trains' });
@@ -33,10 +31,11 @@ const trainRadio = (find: (radio: HTMLInputElement, i: number) => boolean) => {
 describe('the static historical replay', () => {
   it('says plainly that it is a fixed historical replay of October 20, not live data', async () => {
     open();
-    await screen.findByTestId('forecast');
-
+    // The disclosure comes from health.json and the forecast from the board: separate
+    // files that can answer in either order, so each is waited for.
     const opening = screen.getByRole('region', { name: 'ETA Reliability' });
-    const disclosure = within(opening).getByRole('complementary', { name: 'Historical replay of recorded BART data' });
+    const disclosure = await within(opening).findByRole('complementary', { name: 'Historical replay of recorded BART data' });
+    await screen.findByTestId('forecast');
     expect(disclosure).toHaveTextContent(`This page replays BART’s recorded feeds as they stood on ${LONG_MOMENT}.`);
     expect(disclosure).toHaveTextContent(
       'The data is fixed at that moment: it is not live, and nothing on the page updates or counts down.',
