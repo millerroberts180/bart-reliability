@@ -2,7 +2,7 @@ name: Deploy website
 
 # Publishes the static historical-replay build of web/ to GitHub Pages: the page reads the
 # replay tracked under web/public/replay/ as same-origin static files (docs/static_replay.md).
-# No API is deployed, and the build carries no API address. It deploys only from main.
+# No API is deployed, and the build carries no API address. It deploys only after a push to main.
 on:
   push:
     branches: [main]
@@ -66,8 +66,9 @@ jobs:
   deploy:
     name: Deploy
     needs: build
-    # A manual run from another branch builds but never deploys.
-    if: github.ref == 'refs/heads/main'
+    # Only a push to main deploys. A manual run, from any branch including main, checks and
+    # builds but never deploys.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

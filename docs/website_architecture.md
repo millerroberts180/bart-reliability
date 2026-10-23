@@ -643,8 +643,10 @@ through Vite's asset pipeline, and any future static asset should use
 - **Check first.** Before building, it runs `bart-static-replay check web/public/replay`,
   the offline check of the published replay. It installs only the package and pydantic,
   and needs no warehouse, model or API.
-- **Main only.** It deploys on a push to `main`. A manual run from any other branch builds
-  but does not deploy.
+- **Push to main only.** It deploys only after a push to `main`, such as a merged pull
+  request. A manual run from any branch, `main` included, checks and builds but does not
+  deploy. The repository's `github-pages` environment also accepts deployments only from
+  `main`.
 - **No API.** Nothing beyond static files is deployed.
 - **CI.** It runs the same check and also builds the static Pages build, the simulated
   build and the HTTP build.
