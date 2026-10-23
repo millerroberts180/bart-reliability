@@ -323,7 +323,7 @@ The website reads `index.json` first and refuses any schema version other than
 | `index.json` SHA-256 | `07eb740f64c68e95a46a255028659c4a21f1053702fffc63ebd7274fa46252fe` (212 bytes) |
 | Tracked files | 1,157: 1,155 answers, the manifest and the index |
 | Tracked bytes | 5,938,839 (535,238 gzipped) |
-| Tree hash | `5202c3fb6b093930642571bd1999e03e36084bb81e248115d1692abca5afb0ba`, the SHA-256 of the sorted `<sha256>  <path>` lines of every file |
+| Tree hash | `5202c3fb6b093930642571bd1999e03e36084bb81e248115d1692abca5afb0ba`, the SHA-256 of one `<sha256>  <path>\n` line per file, ordered by path, with paths relative to `web/public/replay/` |
 
 The published export is byte-identical to the reviewed export in `data/static_replay/`.
 
