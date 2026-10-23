@@ -665,6 +665,35 @@ Not done yet for the deployed site:
 - design a social image and add `og:image`, `og:image:alt`, `twitter:image` and
   `twitter:card` "summary_large_image".
 
+## Data credit and independence
+
+The footer (`SiteFooter.tsx`) is the same in every data mode. It states where the data
+comes from and who publishes the site:
+
+> Source data: GTFS schedule and GTFS-Realtime feeds from BART (San Francisco Bay Area
+> Rapid Transit District), published through BART's developer program and used under
+> the BART Developer License Agreement.
+>
+> ETA Reliability is an independent project. It is not an official BART product, and it
+> is not affiliated with or endorsed by BART.
+
+The two links:
+- "developer program" goes to <https://www.bart.gov/about/developers>;
+- "BART Developer License Agreement" goes to
+  <https://www.bart.gov/schedules/developers/developer-license-agreement>.
+
+The agreement does not allow BART trademarks or copyrighted materials to be used with
+the data. The site therefore has no BART logo and no official system map. Its only
+graphics are its own:
+- the ETA history chart;
+- the stability marks;
+- the line-colour cues, from GTFS `route_color`;
+- the favicon.
+
+The historical-replay disclosures in the opening and beside the forecast are separate
+from the footer, and the footer does not replace them. `App.test.tsx` checks the
+footer's wording and links.
+
 ## Design principles
 
 These were chosen after studying one public editorial data story (for principles, not
@@ -721,9 +750,8 @@ Recorded during the correction pass and deliberately not implemented:
 ## Deferred to later milestones
 
 - System findings, the exploration dashboard and filters
-- Methodology section and a fuller footer. The current footer holds only the
-  independence notice: "Independent project using BART open data. Not affiliated with or
-  endorsed by BART."
+- Methodology section and a fuller footer. The current footer holds the data credit and
+  the independence notice ([Data credit and independence](#data-credit-and-independence)).
 - A live (not replayed) API, and hosting the API anywhere but the developer's machine
 - Dark color scheme
 - "Use my location" in the station picker (no geolocation is requested today)

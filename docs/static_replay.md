@@ -327,6 +327,12 @@ The website reads `index.json` first and refuses any schema version other than
 
 The published export is byte-identical to the reviewed export in `data/static_replay/`.
 
+The published files hold values from BART's GTFS and GTFS-Realtime data. They are
+redistributed under the
+[BART Developer License Agreement](https://www.bart.gov/schedules/developers/developer-license-agreement),
+and the site's footer credits BART as the source
+([README](../README.md#data-source-and-license)).
+
 ### Offline check
 
 ```bash

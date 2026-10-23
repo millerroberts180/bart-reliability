@@ -141,6 +141,9 @@ live.
   on every push to `main`.
 - **No server:** the page reads the replay as same-origin static files. No API, server or
   database is deployed.
+- **Credit:** the footer names BART as the source of the data, links to BART's developer
+  program and license, and says the site is not an official BART product
+  ([Data source and license](#data-source-and-license)).
 
 This is the zero-cost architecture in [docs/static_replay.md](docs/static_replay.md):
 the offline Python, DuckDB and model pipeline, then a deterministic static export, then
@@ -186,6 +189,28 @@ as of the API's replay time. Nothing is live.
 .venv/bin/pytest
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
+
+## Data source and license
+
+The collector, warehouse, models and public site use BART's open data: the GTFS
+schedule and the GTFS-Realtime trip-update and alert feeds, published by the San Francisco
+Bay Area Rapid Transit District (BART) through its
+[developer program](https://www.bart.gov/about/developers) and used under the
+[BART Developer License Agreement](https://www.bart.gov/schedules/developers/developer-license-agreement).
+The agreement grants limited, revocable rights to use, reproduce and redistribute the
+data. The replay published with the site redistributes values taken from it. BART
+provides the data without warranty and may change or stop it at any time.
+
+The public site's footer credits BART as the source of the GTFS and GTFS-Realtime data
+and links to both pages.
+
+ETA Reliability is an independent project. It is not an official BART product, and it
+is not affiliated with or endorsed by BART.
+
+The agreement does not allow BART trademarks or copyrighted materials to be used with
+the data. The site therefore uses no BART logo and no official system map. Its only
+graphics are its own charts and marks. Line colours are the `route_color` values in
+BART's GTFS feed.
 
 ## Data
 
