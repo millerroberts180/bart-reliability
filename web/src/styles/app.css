@@ -1708,6 +1708,8 @@ fieldset:disabled .timetable__row {
 /* ---------- Footer ---------- */
 
 .site-footer {
+  display: grid;
+  gap: var(--space-2);
   max-width: var(--page-max);
   margin: 0 auto;
   padding: var(--space-5) var(--gutter) var(--space-7);

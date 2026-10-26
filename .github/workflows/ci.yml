@@ -28,6 +28,10 @@ jobs:
       - name: Test
         run: pytest
 
+      # The replay the Pages build publishes, checked offline as the Pages workflow does.
+      - name: Check the published replay
+        run: bart-static-replay check web/public/replay
+
       - name: Lint
         run: ruff check .
 
@@ -68,3 +72,10 @@ jobs:
         env:
           VITE_DATA_MODE: http
           VITE_API_BASE_URL: http://127.0.0.1:8000
+
+      # The build the Pages workflow deploys.
+      - name: Build (static historical replay)
+        run: npm run build
+        env:
+          VITE_DATA_MODE: static
+          VITE_BASE_PATH: /bart-reliability/

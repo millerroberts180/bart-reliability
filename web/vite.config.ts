@@ -7,8 +7,9 @@ import { defineConfig, loadEnv } from 'vite';
 // deployment). Components never hard-code this: use import.meta.env.BASE_URL.
 const DEFAULT_PRODUCTION_BASE = '/bart-reliability/';
 
-// index.html describes the historical-replay site. A simulated build shows no BART data,
-// so its description (and the social copies of it) says so instead.
+// index.html describes the historical-replay site (the static replay on GitHub Pages, or the
+// local API). A simulated build shows no BART data, so its description (and the social
+// copies of it) says so instead.
 const REPLAY_DESCRIPTION =
   'A historical replay of recorded BART data, with a model of how BART revises a train’s published arrival estimate before it arrives. Not live, and not a prediction of physical arrival.';
 const SIMULATED_DESCRIPTION =
@@ -18,10 +19,14 @@ export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const base = command === 'build' ? env.VITE_BASE_PATH || DEFAULT_PRODUCTION_BASE : '/';
 
-  const simulated = (env.VITE_DATA_MODE ?? 'mock') !== 'http';
+  const dataMode = env.VITE_DATA_MODE ?? 'mock';
+  const simulated = dataMode !== 'http' && dataMode !== 'static';
 
   return {
     base,
+    // public/ holds only the published replay (public/replay/), which only static mode reads;
+    // the simulated and HTTP builds do not ship it.
+    publicDir: dataMode === 'static' ? 'public' : false,
     plugins: [
       react(),
       {

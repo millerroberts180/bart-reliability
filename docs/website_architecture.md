@@ -1,10 +1,17 @@
 # Website architecture (prototype)
 
 **Status:** Milestone 1 (frontend foundation and one prediction), Milestone 2 (ETA
-history chart) and the local API integration. By default everything the site displays is
-simulated. Started with `VITE_DATA_MODE=http`, it reads the local historical-replay API
-(`docs/local_api.md`) instead and labels every value as a historical replay of recorded
-BART data. Nothing is live, and the site is not deployed with the API.
+history chart), the local API integration and the static historical replay. The site has
+three data modes, and nothing in any of them is live:
+- **`static`:** the public GitHub Pages build. It reads the fixed historical replay of
+  2026-10-20 at 10:00 AM Pacific, published with the site as static files
+  ([static_replay.md](static_replay.md)), and labels every value as a historical replay.
+- **`http`:** for development. It reads the local historical-replay API
+  ([local_api.md](local_api.md)) and labels the same way.
+- **`mock`:** the default for the dev server and every test. Everything it displays is
+  simulated.
+
+No API is deployed.
 
 The site, **ETA Reliability**, is the public explainer for the ETA-revision project ("How
 stable are BART's published arrival estimates?"). Its first slice lets a visitor pick a
@@ -78,6 +85,7 @@ support.
 ```text
 web/
 ├── index.html                 page shell, metadata, inline favicon
+├── public/replay/             the published static replay (static mode only; tracked)
 ├── vite.config.ts             base path, data-mode description, Vitest config
 ├── eslint.config.js
 ├── .env.example               documented VITE_* variables (no secrets)
@@ -91,6 +99,7 @@ web/
     │   ├── PredictionClient.ts        interface + PredictionClientError
     │   ├── MockPredictionClient.ts    deterministic simulated client (+ tests)
     │   ├── HttpPredictionClient.ts    client for the local API (+ tests)
+    │   ├── StaticReplayClient.ts      client for the published static replay (+ tests)
     │   ├── apiDecode.ts               runtime validation of the API's JSON
     │   ├── createPredictionClient.ts  VITE_DATA_MODE → client
     │   ├── PredictionClientContext.tsx  provider + hook (client and clock)
@@ -112,9 +121,11 @@ web/
     │                          useRecentStations, useUrlSelection (URL, back and forward)
     ├── dev/                   development-only state selector (excluded from builds)
     ├── styles/                tokens.css, base.css, app.css
-    ├── clientContract.test.tsx  the page's states with both clients
+    ├── clientContract.test.tsx  the page's states with the mock and HTTP clients
+    ├── staticReplay.test.tsx  the page on the published static replay
     ├── metadata.test.ts       index.html description, Open Graph and Twitter tags
-    └── test/                  setup.ts, fakeApi.ts (fetch over the recorded responses)
+    └── test/                  setup.ts, fakeApi.ts (fetch over the recorded responses),
+                               publishedReplay.ts (fetch over web/public/replay)
 ```
 
 ## Data contracts
@@ -470,10 +481,13 @@ historical-replay API (`docs/local_api.md`), one endpoint per method:
 - **Provenance.** Each response says where its data came from, and a replay is explained in
   exactly three places, not repeated elsewhere:
   - one banner, the opening's disclosure: "Historical replay of recorded BART data", with
-    its as-of time, once `/health` confirms the replay mode ("Connecting to the prediction
-    API" until then, "Prediction API unavailable" if it does not answer);
-  - one concise reminder beside the result: "Historical replay—not live. BART data as of
-    Thu, Oct 15, 2026, 10:00 AM Pacific.";
+    its as-of time written out ("Tuesday, October 20, 2026 at 10:00 AM Pacific") and the
+    statement that the data is fixed at that moment, is not live, and that nothing on
+    the page updates or counts down. It appears once health confirms the replay mode.
+    Until then the banner reads "Loading the data", and "Data unavailable" if health
+    does not answer. These two labels suit both the local API and the static replay;
+  - one concise reminder beside the result: "Historical replay—fixed, not live. BART data
+    as of Tuesday, October 20, 2026 at 10:00 AM Pacific.";
   - the full provenance under "Data and model details".
 
   The words "simulated" and "live" are never used for replayed data, except to say it is
@@ -510,19 +524,76 @@ They also check that changing the station, boarding group and train requests the
 data, that the forecast and the history always describe the same train, and that Hayward's
 two groups never mix Berryessa trains with Daly City or Richmond trains.
 
+## Static replay client (GitHub Pages)
+
+`StaticReplayClient` implements the same `PredictionClient` interface over the static
+historical replay in `web/public/replay/` ([static_replay.md](static_replay.md)). It
+declares the same `source` as the HTTP client, so no component knows which of the two it
+is talking to. Each method reads one file:
+
+| Method | File, under `<base path>replay/<export>/` |
+|---|---|
+| `listStations()` | `stations.json` |
+| `getPredictions(stationId, boardingGroupId)` | `boards/<station>/<boarding group>.json` |
+| `getPredictionHistory(predictionId)` | `history/<service date>_<trip>_<stop sequence>.json` |
+| `getModelMetadata()` | `model.json` |
+| `getHealth()` | `health.json` |
+
+- **Index first.** It first reads `<base path>replay/index.json`, which names the export
+  directory, its schema version (`static-replay-1`; any other is refused) and its replay
+  time.
+  - The index is requested once and shared, without any one caller's signal, so a
+    cancelled request cannot fail it for the others.
+  - A failed index is forgotten, so "Try again" asks for it again.
+- **Lazy loading.** The page asks for the station list and health first, then only the
+  board on screen and the selected train's history. A first visit fetches five data files
+  of about 41 KB (3.8 KB gzipped). The other 1,050 histories and 94 boards are fetched
+  only when chosen.
+- **Same origin, under the base path.** URLs are built from `import.meta.env.BASE_URL`
+  (`/bart-reliability/` in the Pages build, `/` in development). They are paths on the
+  page's own origin, with no host, API address or external service.
+- **Safe IDs.** A station, boarding-group or prediction ID that the exporter would never
+  write as a file name (anything but letters, digits and `-`, or a malformed prediction
+  ID) answers `not_found` without a request.
+- **Validation.** Every file passes the same `apiDecode.ts` decoders as the HTTP client.
+  The client also refuses a board for a different station or group, and a board or health
+  answer from a different replay time than the index names.
+- **Errors.** The client maps failures onto the existing `PredictionClientError`
+  interface:
+  - a missing file (404) is `not_found`;
+  - invalid JSON, an unexpected shape, an unsupported schema version, another HTTP
+    error or a failed request is `unavailable`.
+
+  The page shows the same error states, with "Try again", as in the other modes.
+- **Cancellation and stale responses.** The page's `AbortSignal` is passed to every file
+  request, and `useRequest` discards any result for an older key. A slow board or
+  history can therefore never replace a newer choice.
+
+`web/src/data/StaticReplayClient.test.ts` reads every published station, board and
+history through the client. `web/src/staticReplay.test.tsx` renders the page on the
+published files and checks:
+- the wording;
+- that a first visit requests exactly the index, health, stations, one board and one
+  history;
+- deep links, a fallback train and an empty board;
+- recovery from a missing or corrupted file and from an unsupported schema.
+
 ### Selecting the client
 
 ```bash
-VITE_DATA_MODE=mock   # default; simulated fixtures (the dev server and every test)
-VITE_DATA_MODE=http   # the local API at VITE_API_BASE_URL
+VITE_DATA_MODE=mock     # default; simulated fixtures (the dev server and every test)
+VITE_DATA_MODE=http     # the local API at VITE_API_BASE_URL
+VITE_DATA_MODE=static   # the published static replay in web/public/replay (GitHub Pages)
 VITE_API_BASE_URL=http://127.0.0.1:8000   # in web/.env.local (ignored by git)
 ```
 
-The dev server stays on simulated data unless `VITE_DATA_MODE=http` is given for that run,
+The dev server stays on simulated data unless another mode is given for that run,
 so design work and the dev panel are unaffected by `.env.local`. Tests pin
 `VITE_DATA_MODE=mock` in `vite.config.ts` and inject any HTTP client they need, so they
 never depend on a developer's local settings or a running API. The API address is read
-only in HTTP mode, so a simulated build does not contain it. `VITE_*` values are compiled
+only in HTTP mode, so a simulated or static build does not contain it. `public/` is
+copied into the static build only, so the simulated and HTTP builds do not ship the
+replay files. `VITE_*` values are compiled
 into the public bundle, so they must never hold secrets, and no server or production
 address is committed.
 
@@ -548,7 +619,14 @@ cd web && VITE_DATA_MODE=http npm run dev       # site on http://localhost:5173/
 
 The API answers as of its default replay time, 2026-10-20T17:00:00Z (10:00 AM Pacific),
 with model `0.2.0+886fcd260732` (see `docs/local_api.md`). The page shows that time in
-its replay banner. The GitHub Pages build is the simulated one and never calls this API.
+its replay banner. The GitHub Pages build never calls this API.
+
+To run the site on the published static replay, as GitHub Pages serves it, with no API
+running:
+
+```bash
+cd web && VITE_DATA_MODE=static npm run dev     # site on http://localhost:5173/
+```
 
 ## GitHub Pages base path
 
@@ -559,9 +637,19 @@ domain). Components do not hard-code paths: in-page links are fragments, fonts a
 through Vite's asset pipeline, and any future static asset should use
 `import.meta.env.BASE_URL`.
 
-`.github/workflows/deploy-pages.yml` publishes the simulated build (`VITE_DATA_MODE=mock`,
-`VITE_BASE_PATH=/bart-reliability/`) to <https://millerroberts180.github.io/bart-reliability/>
-on every push to `main`, or when run by hand. The API is not deployed.
+`.github/workflows/deploy-pages.yml` publishes the static historical-replay build
+(`VITE_DATA_MODE=static`, `VITE_BASE_PATH=/bart-reliability/`) to
+<https://millerroberts180.github.io/bart-reliability/>.
+- **Check first.** Before building, it runs `bart-static-replay check web/public/replay`,
+  the offline check of the published replay. It installs only the package and pydantic,
+  and needs no warehouse, model or API.
+- **Push to main only.** It deploys only after a push to `main`, such as a merged pull
+  request. A manual run from any branch, `main` included, checks and builds but does not
+  deploy. The repository's `github-pages` environment also accepts deployments only from
+  `main`.
+- **No API.** Nothing beyond static files is deployed.
+- **CI.** It runs the same check and also builds the static Pages build, the simulated
+  build and the HTTP build.
 
 ## Page metadata
 
@@ -571,14 +659,42 @@ arrives. Not live, and not a prediction of physical arrival." The same title and
 description are given as Open Graph (`og:type`, `og:site_name`, `og:title`,
 `og:description`) and Twitter (`twitter:card` "summary", `twitter:title`,
 `twitter:description`) tags. A simulated build shows no BART data, so `vite.config.ts`
-swaps all three descriptions for a simulated-data one in mock mode; the HTTP build keeps
-the replay text. `metadata.test.ts` checks the tags.
+swaps all three descriptions for a simulated-data one in mock mode. The static (deployed)
+and HTTP builds keep the replay text. `metadata.test.ts` checks the tags.
 
-The deployed build is the simulated one, so it carries the simulated description. Not done
-yet for the deployed site:
+Not done yet for the deployed site:
 - add `<link rel="canonical">` and `og:url` with its address;
 - design a social image and add `og:image`, `og:image:alt`, `twitter:image` and
   `twitter:card` "summary_large_image".
+
+## Data credit and independence
+
+The footer (`SiteFooter.tsx`) is the same in every data mode. It states where the data
+comes from and who publishes the site:
+
+> Source data: GTFS schedule and GTFS-Realtime feeds from BART (San Francisco Bay Area
+> Rapid Transit District), published through BART's developer program and used under
+> the BART Developer License Agreement.
+>
+> ETA Reliability is an independent project. It is not an official BART product, and it
+> is not affiliated with or endorsed by BART.
+
+The two links:
+- "developer program" goes to <https://www.bart.gov/about/developers>;
+- "BART Developer License Agreement" goes to
+  <https://www.bart.gov/schedules/developers/developer-license-agreement>.
+
+The agreement does not allow BART trademarks or copyrighted materials to be used with
+the data. The site therefore has no BART logo and no official system map. Its only
+graphics are its own:
+- the ETA history chart;
+- the stability marks;
+- the line-colour cues, from GTFS `route_color`;
+- the favicon.
+
+The historical-replay disclosures in the opening and beside the forecast are separate
+from the footer, and the footer does not replace them. `App.test.tsx` checks the
+footer's wording and links.
 
 ## Design principles
 
@@ -593,9 +709,10 @@ requirements.
    away" sits directly under it, then the summary, then detail that steps down in size and
    contrast, with the arithmetic and technical details one press away. A clock time and its
    AM/PM never wrap apart.
-2. **Disclose before claiming.** "Prototype using simulated data" (or, with the local
-   API, "Historical replay of recorded BART data" and its as-of time) sits beside the
-   title, above the fold on desktop and mobile. It comes before any number is shown.
+2. **Disclose before claiming.** "Historical replay of recorded BART data", with its
+   as-of time and a fixed-not-live statement (in the static and HTTP builds), or
+   "Prototype using simulated data" (mock), sits beside the title, above the fold on
+   desktop and mobile. It comes before any number is shown.
 3. **Three typographic voices, each with one job.** Schibsted Grotesk for headings and
    controls, Source Serif 4 for prose, and JetBrains Mono for measurements, timestamps and
    labels. Mono is never decoration.
@@ -635,18 +752,19 @@ Recorded during the correction pass and deliberately not implemented:
 ## Deferred to later milestones
 
 - System findings, the exploration dashboard and filters
-- Methodology section and a fuller footer. The current footer holds only the
-  independence notice: "Independent project using BART open data. Not affiliated with or
-  endorsed by BART."
+- Methodology section and a fuller footer. The current footer holds the data credit and
+  the independence notice ([Data credit and independence](#data-credit-and-independence)).
 - A live (not replayed) API, and hosting the API anywhere but the developer's machine
 - Dark color scheme
 - "Use my location" in the station picker (no geolocation is requested today)
 
 ## Known limitations
 
-- In the default mode all values are simulated. Line and destination pairings follow
-  BART's public network but are not checked against a specific timetable.
-- With the local API, most trains show BART's ETA only: the model serves only published-time
+- In mock mode all values are simulated. Line and destination pairings follow BART's
+  public network but are not checked against a specific timetable.
+- The public site is one fixed moment, 2026-10-20 at 10:00 AM Pacific. It cannot show any
+  other time, and a station, group or train outside the export is not found.
+- With the static replay or the local API, most trains show BART's ETA only: the model serves only published-time
   horizons of 5, 10 and 15 minutes (±60 s), so at a given moment only a few trains per
   board have a forecast (for example 1 of 3 at Castro Valley toward Daly City at the
   tested replay time). 5 of 95 boards are empty at the tested replay time, for the
@@ -655,7 +773,8 @@ Recorded during the correction pass and deliberately not implemented:
   except that a train listed at a platform its schedule does not use there shows no
   platform number.
 - Stability cutoffs (0.25 / 0.5) and the 120 s freshness limit are provisional.
-- Freshness is re-evaluated every 15 s; the countdown does not tick every second.
+- With simulated data, freshness is re-evaluated every 15 s and the countdown does not
+  tick every second. A replay is judged at its replay time and never counts down.
 - Clock times are formatted in Pacific time regardless of the viewer's time zone.
 - The history scripts are hand-written. Real BART histories will have more jitter, longer
   feeds and irregular gaps, and the 30 s revision threshold and 90 s gap rule have not been
