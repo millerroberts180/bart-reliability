@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { hasForecast, type PredictionResponse, type TrainPrediction } from '../domain/types';
 import { createPublishedReplayHost, PUBLISHED_ROOT, publishedFiles } from '../test/publishedReplay';
-import { createPredictionClient, resolveDataMode } from './createPredictionClient';
 import { PredictionClientError } from './PredictionClient';
 import { historyFile, STATIC_REPLAY_SCHEMA, StaticReplayClient } from './StaticReplayClient';
 
@@ -29,15 +28,11 @@ async function expectClientError(promise: Promise<unknown>, code: PredictionClie
 }
 
 describe('StaticReplayClient', () => {
-  it('is selected by VITE_DATA_MODE=static, at the replay under the base path', () => {
-    expect(resolveDataMode('static')).toBe('static');
-    expect(resolveDataMode('http')).toBe('http');
-    expect(resolveDataMode(undefined)).toBe('mock');
-    expect(resolveDataMode('live')).toBe('mock');
-    const client = createPredictionClient({ mode: 'static', staticReplayRoot: '/bart-reliability/replay/' });
-    expect(client).toBeInstanceOf(StaticReplayClient);
-    expect((client as StaticReplayClient).root).toBe('/bart-reliability/replay/');
-    expect(client.source).toBe('api');
+  it('reads the replay under the base path, and answers as the API does', () => {
+    // src/modes/static.tsx builds it at `${BASE_URL}replay/`; a root without the slash is the same.
+    expect(new StaticReplayClient('/bart-reliability/replay/').root).toBe('/bart-reliability/replay/');
+    expect(new StaticReplayClient('/bart-reliability/replay').root).toBe('/bart-reliability/replay/');
+    expect(new StaticReplayClient('/bart-reliability/replay/').source).toBe('api');
   });
 
   it('reads the index once, then one same-origin file per request, under the base path', async () => {

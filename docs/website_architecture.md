@@ -86,12 +86,17 @@ support.
 web/
 ├── index.html                 page shell, metadata, inline favicon
 ├── public/replay/             the published static replay (static mode only; tracked)
-├── vite.config.ts             base path, data-mode description, Vitest config
+├── vite.config.ts             base path, data mode ('@data-mode' alias), description, Vitest config
+├── vitest.build.config.ts     config for the build-artifact tests
+├── build-tests/               isolation.test.ts: builds all three modes and checks each holds only
+│                              its own client and data; buildMode.ts makes one build for it
 ├── eslint.config.js
 ├── .env.example               documented VITE_* variables (no secrets)
 └── src/
-    ├── main.tsx               fonts, global CSS, React root
-    ├── App.tsx                chooses the PredictionClient, composes the page
+    ├── main.tsx               fonts, global CSS, React root; renders '@data-mode'
+    ├── App.tsx                composes the page for the PredictionClient it is given
+    ├── modes/                 mock.tsx, http.tsx, static.tsx: one per data mode, each rendering
+    │                          App with its own client; vite.config.ts picks one per build (+ tests)
     ├── components/            SiteHeader, Opening, ExampleLink, PredictionExample,
     │                          StationPicker, TrainTimetable, PredictionReadout, StabilityMark,
     │                          EtaHistory, HistoryChart, ObservationTable, ProjectQuestion (+ tests)
@@ -101,7 +106,6 @@ web/
     │   ├── HttpPredictionClient.ts    client for the local API (+ tests)
     │   ├── StaticReplayClient.ts      client for the published static replay (+ tests)
     │   ├── apiDecode.ts               runtime validation of the API's JSON
-    │   ├── createPredictionClient.ts  VITE_DATA_MODE → client
     │   ├── PredictionClientContext.tsx  provider + hook (client and clock)
     │   ├── clientKey.ts               per-client request keys
     │   └── fixtures/
@@ -587,26 +591,61 @@ VITE_DATA_MODE=static   # the published static replay in web/public/replay (GitH
 VITE_API_BASE_URL=http://127.0.0.1:8000   # in web/.env.local (ignored by git)
 ```
 
+The mode is chosen when the site is built or served, not when the page runs, so each build
+contains only its own client and that client's data:
+- **One module per mode.** `src/modes/mock.tsx`, `http.tsx` and `static.tsx` each export
+  `Site`, which renders `App` with that mode's client. `App` takes the client as a prop and
+  imports no client.
+- **One alias.** `src/main.tsx` imports `Site` from `'@data-mode'`. `vite.config.ts` resolves
+  that name to `src/modes/<VITE_DATA_MODE>.tsx` alone, so no other mode's module is ever
+  part of the build. `vite-env.d.ts` declares the module, and `src/modes/modes.test.tsx`
+  checks at compile time that all three modules match the declaration.
+- **Explicit selection.**
+  - An unset `VITE_DATA_MODE` means `mock`.
+  - Any value other than `mock`, `http` or `static` stops the dev server or build with an
+    error, so a typo can never quietly build the simulated site.
+  - The dev server and each build print the mode they use.
+  - `npm run dev:http` and `npm run dev:static` select the other two modes for one run.
+- **What each build holds.**
+
+  | Build | Client | Data |
+  |---|---|---|
+  | Static (GitHub Pages) | `StaticReplayClient` and the API decoders | `public/replay/` |
+  | HTTP | `HttpPredictionClient`, the API decoders and the API address | none |
+  | Mock | `MockPredictionClient` | its simulated fixtures, with the 50-station network as a separate chunk |
+
+  The development state selector is in no production build.
+- **Checked.** `npm run test:build` (`build-tests/isolation.test.ts`, also run in CI) makes
+  the three production builds into temporary directories. It fails if a build contains:
+  - another mode's source modules, chunks or distinctive strings, such as a fixture's
+    made-up alert, the API's paths or the replay's schema name;
+  - an API address, unless it is the HTTP build;
+  - any data file, unless it is the static build, which must ship `public/replay/` byte
+    for byte.
+
+  The shared page code still holds the wording for every kind of data source (for example
+  the simulated-data disclosure). It is part of `App`, not of a client.
+
 The dev server stays on simulated data unless another mode is given for that run,
 so design work and the dev panel are unaffected by `.env.local`. Tests pin
-`VITE_DATA_MODE=mock` in `vite.config.ts` and inject any HTTP client they need, so they
-never depend on a developer's local settings or a running API. The API address is read
-only in HTTP mode, so a simulated or static build does not contain it. `public/` is
-copied into the static build only, so the simulated and HTTP builds do not ship the
-replay files. `VITE_*` values are compiled
-into the public bundle, so they must never hold secrets, and no server or production
-address is committed.
+`VITE_DATA_MODE=mock` in `vite.config.ts` and inject any client they need, so they never
+depend on a developer's local settings or a running API. `public/` is copied into the
+static build only. `VITE_*` values are compiled into the public bundle, so they must never
+hold secrets, and no server or production address is committed.
 
 ## Local development
 
 ```bash
 cd web
 npm install
-npm run dev      # prints http://localhost:5173/ (simulated data)
-npm run test     # Vitest, once
-npm run lint     # ESLint + tsc -b
-npm run build    # type-check + production build into web/dist/
-npm run preview  # serve the production build
+npm run dev         # prints http://localhost:5173/ (simulated data)
+npm run dev:static  # the same, on the published static replay
+npm run dev:http    # the same, on the local API at VITE_API_BASE_URL
+npm run test        # Vitest unit tests, once
+npm run test:build  # build-artifact tests: each mode's build holds only its own client and data
+npm run lint        # ESLint + tsc -b
+npm run build       # type-check + production build into web/dist/
+npm run preview     # serve the production build
 ```
 
 To run the site against the local historical-replay API, start two processes from the
@@ -614,7 +653,7 @@ repository root, each in its own terminal:
 
 ```bash
 .venv/bin/bart-serve-local                     # API on http://127.0.0.1:8000
-cd web && VITE_DATA_MODE=http npm run dev       # site on http://localhost:5173/
+cd web && npm run dev:http                      # site on http://localhost:5173/
 ```
 
 The API answers as of its default replay time, 2026-10-20T17:00:00Z (10:00 AM Pacific),
@@ -625,7 +664,7 @@ To run the site on the published static replay, as GitHub Pages serves it, with 
 running:
 
 ```bash
-cd web && VITE_DATA_MODE=static npm run dev     # site on http://localhost:5173/
+cd web && npm run dev:static                    # site on http://localhost:5173/
 ```
 
 ## GitHub Pages base path
