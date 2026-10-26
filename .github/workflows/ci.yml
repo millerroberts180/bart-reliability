@@ -79,3 +79,8 @@ jobs:
         env:
           VITE_DATA_MODE: static
           VITE_BASE_PATH: /bart-reliability/
+
+      # Builds all three modes again and fails if one contains another mode's client,
+      # fixtures, chunks, strings or data, or (except HTTP) an API address.
+      - name: Build-artifact isolation
+        run: npm run test:build

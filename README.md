@@ -161,9 +161,10 @@ Stack, data contracts and the three clients are described in
 ```bash
 cd web
 npm install
-npm run dev      # http://localhost:5173/ (simulated data)
-VITE_DATA_MODE=static npm run dev   # the published historical replay, as on GitHub Pages
+npm run dev          # http://localhost:5173/ (simulated data)
+npm run dev:static   # the published historical replay, as on GitHub Pages
 npm run test && npm run lint && npm run build
+npm run test:build   # each mode's production build holds only its own client and data
 ```
 
 To run it against the local historical-replay API, set the API address once in the
@@ -177,7 +178,7 @@ then start two processes from the repository root, each in its own terminal:
 
 ```bash
 .venv/bin/bart-serve-local                     # API: http://127.0.0.1:8000 (config/local_api.toml)
-cd web && VITE_DATA_MODE=http npm run dev       # site: http://localhost:5173/
+cd web && npm run dev:http                      # site: http://localhost:5173/
 ```
 
 Every value the site then shows is labelled as a historical replay of recorded BART data
