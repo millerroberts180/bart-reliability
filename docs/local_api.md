@@ -327,9 +327,9 @@ built:
 ## Runtime profile (informational)
 
 These measurements come from a local run on the development machine, which has more
-memory and CPU than the 1 vCPU / 1 GB Droplet, so the Droplet would be slower. They used
-the 2026-10-15 snapshot warehouse, with `as_of` 2026-10-15T17:00:00Z and a 6 h history
-window. Nothing was optimized for them.
+memory and CPU than the 1 vCPU / 1 GB collector Droplet (since retired), so the Droplet
+would have been slower. They used the 2026-10-15 snapshot warehouse, with `as_of`
+2026-10-15T17:00:00Z and a 6 h history window. Nothing was optimized for them.
 
 | Measure | Result |
 |---|---|
@@ -345,8 +345,8 @@ window. Nothing was optimized for them.
 
 Building the replay copy runs the enriched view over the whole warehouse. DuckDB keeps
 much of that working memory afterwards, and its default limit is 80% of RAM. So resident
-memory is several times the size of the replay data. **As built, the API would not fit
-the 1 GB Droplet.** A public version would need a smaller footprint; nothing has been
+memory is several times the size of the replay data. **As built, the API would not have
+fit the 1 GB Droplet.** A public version would need a smaller footprint; nothing has been
 changed for it yet. Possible approaches:
 
 - precomputed replay or live tables;

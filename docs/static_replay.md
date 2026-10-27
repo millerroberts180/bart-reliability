@@ -21,7 +21,7 @@ as a replay through each answer's `dataMode: "historical_replay"` and `asOf`.
 ## Zero-cost architecture
 
 ```text
-collector (Droplet) --> raw GTFS-RT --> Parquet --> DuckDB warehouse    offline, on this machine
+collector (retired) --> raw GTFS-RT --> Parquet --> DuckDB warehouse    offline, on this machine
                                                          |
                        model bundle --> local FastAPI replay (bart-serve-local, 127.0.0.1)
                                                          |
@@ -39,7 +39,9 @@ machine:
 - **Machine:** the pipeline, the DuckDB warehouse, the model bundle and the FastAPI service.
 - **Public:** only the reduced answers are published, as static files beside the site.
 - **Cost:** GitHub Pages serves them with the site, so there is no API host, server or
-  database to pay for. The Droplet only collects.
+  database to pay for. The Droplet only collected, and it has since been retired
+  ([deployment.md](deployment.md#status-retired)). The public replay has no server
+  dependency.
 
 | | Local FastAPI service (`bart-serve-local`) | Public static replay (`web/public/replay/`) |
 |---|---|---|
@@ -58,7 +60,8 @@ machine:
 - **It costs nothing to host.** Static files can be served from GitHub Pages, which
   already hosts the site.
   - There is no server, port or process to run, scale or secure.
-  - The Droplet is not resized and keeps running only the collector.
+  - No server was added. The Droplet ran only the collector, and it was retired after
+    the final backup.
 - **Nothing sensitive is published.** The warehouse, the model bundle (pickled models)
   and every database stay on this machine. Only the answers are published, reduced to
   the fields the website reads.
@@ -371,8 +374,9 @@ checks:
 
 ### Updating the public replay
 
-1. **Collect.** Collect, transform and build a new checkpoint warehouse, offline. If a new
-   model is wanted, train and package it under its own milestone.
+1. **Collect.** Collection has ended, so a new replay needs a new collection first
+   ([deployment.md](deployment.md)). Then transform and build a new checkpoint warehouse,
+   offline. If a new model is wanted, train and package it under its own milestone.
 2. **Configure.** Point `config/local_api.toml` at it, with an `as_of` after every outcome
    the model used. Health must report no problems there.
 3. **Pin.** Set the new pins in `config/static_replay.toml`: replay time, source snapshot,
