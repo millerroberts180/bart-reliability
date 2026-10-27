@@ -13,6 +13,12 @@ BART's own final stable published estimate, a circular reference
 and unmodified, the local copy matches the server's SHA-256 for every file, and every
 warehouse quality check passes. The collector was not stopped, restarted or modified.
 
+**This was the final backup.** Collection ended intentionally after this verified
+export, and the Droplet was then retired
+([deployment.md](deployment.md#status-retired)). The export cutoff, 2026-10-20 19:40:00
+UTC, is the end of the project's data. Server details below describe the server as
+audited.
+
 The earlier 24-hour production test is a separate, narrower report:
 [collection_validation.md](collection_validation.md).
 
@@ -109,7 +115,8 @@ file is 76 bytes. Empty alert feeds are valid and count as successful polls.
 | Earlier exports | the 5,092 files of the 2026-10-12 export and 15,858 of the 2026-10-15 export are identical to the server's |
 | Server afterwards | all 30,180 files re-hashed unchanged; the server copy was not removed |
 
-Files collected after the cutoff stay on the server and are not part of this checkpoint.
+Files collected after the cutoff were never exported. They are not part of this
+checkpoint or of any project data.
 
 ## Processing and warehouse
 
@@ -267,12 +274,13 @@ processed directory.
   The checkpoint adds days, not an independent arrival source.
 - **10.5 days of one season.** No daylight-saving change and one holiday (10-12). There
   are weekday, Saturday and Sunday schedules, but each appears on only a few days.
-- **One collector.** No outage longer than 65 s happened, so gap handling is untested on
-  real data. A server outage would cost intervals; there is no second collector.
+- **One collector, now ended.** No outage longer than 65 s happened, so gap handling is
+  untested on real data. There was no second collector, and the project's data ends at
+  the cutoff, 2026-10-20 19:40 UTC.
 - **Alert categories lag the review.** All 27 versions are now reviewed, but this
   warehouse predates the review of 21 of them and shows them as `unclassified`. This
   affects only descriptive alert context; the model features do not use alerts.
 - **Static archive.** Every day joins to the 2026-10-08 static GTFS. The Antioch extension
   and BART-added trips stay unmatched.
-- **Pending reboot.** The kernel updates take effect only after a deliberate reboot. The
-  collector restarts with the server; the reboot test cost no interval.
+- **Pending reboot at the audit.** Two kernel updates were waiting for a reboot. They
+  cannot affect this export, which ends at the cutoff.

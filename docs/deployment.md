@@ -4,6 +4,29 @@ Runs `bart-collect` as a systemd service on a small Ubuntu 24.04 server. Only th
 collector runs there: no web server, database server, or open application port.
 Collected snapshots stay on the server under the repository's git-ignored `data/`.
 
+## Status: retired
+
+Collection ended intentionally after a verified final backup, and the production server
+(a DigitalOcean Droplet) was then retired. The steps below record how the collector was
+deployed, so it can be deployed again for a new collection.
+
+| Final backup | From its manifest, `data/raw/server_exports/2026-10-20/audit/export_manifest.json` |
+|---|---|
+| Export cutoff | 2026-10-20 19:40:00 UTC (12:40:00 PDT): every completed snapshot collected before it |
+| Snapshots | 30,180 files (15,090 per feed), 385,325,199 bytes |
+| Collected | 2026-10-10 08:11:07 UTC to 2026-10-20 19:39:23 UTC |
+| Server inventory | 2026-10-20 19:43:43 to 19:44:06 UTC, read-only |
+| Verified | The local copy's file count, sizes and SHA-256 match the manifest for all 30,180 files, and every file passes the project's validator |
+
+- **Snapshots after the cutoff:** the inventory saw 8 more snapshots, 4 per feed,
+  collected from 19:40:23 to 19:43:23 UTC. Like anything collected later, they were not
+  exported and are not part of the project's data.
+- **What depends on the server:** nothing now.
+  - **The public site:** a static historical replay on GitHub Pages
+    ([static_replay.md](static_replay.md)), with no server dependency.
+  - **Processing, models and the local API:** all run from the local backup
+    ([data_checkpoint_2026-10-20.md](data_checkpoint_2026-10-20.md)).
+
 Replace `<server>` with your server's address. Run the server commands as root.
 
 ## Layout

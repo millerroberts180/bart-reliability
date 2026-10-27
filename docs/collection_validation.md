@@ -9,7 +9,9 @@ achieved.
 This report covers only the original 24-hour window, audited on 2026-10-12. The later
 audit of the first 10.5 days (to 2026-10-20) is a separate checkpoint:
 [data_checkpoint_2026-10-20.md](data_checkpoint_2026-10-20.md). It found 15,088 of 15,088
-intervals completed, and 27 temporary fetch failures all recovered on retry.
+intervals completed, and 27 temporary fetch failures all recovered on retry. That export
+was the final backup: collection then ended and the server was retired
+([deployment.md](deployment.md#status-retired)).
 
 ## Test interval
 
