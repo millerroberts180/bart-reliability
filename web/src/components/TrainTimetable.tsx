@@ -1,11 +1,12 @@
 import { Fragment, useId, useState } from 'react';
 import { addSeconds, formatClockMinute, formatDuration, STABILITY_LABELS } from '../domain/eta';
-import { hasForecast, type TrainPrediction } from '../domain/types';
+import type { ForecastTrain } from '../domain/types';
 import { StabilityMark } from './StabilityMark';
 
 interface TrainTimetableProps {
   state: 'loading' | 'error' | 'empty' | 'ready';
-  trains: TrainPrediction[];
+  /** Trains with a supported model forecast: the explorer lists no others. */
+  trains: ForecastTrain[];
   selectedId: string | null;
   /** The boarding group's one platform; when null, each train shows its own. */
   groupPlatform: string | null;
@@ -19,8 +20,8 @@ export const INITIAL_TRAIN_LIMIT = 4;
 
 /**
  * Upcoming trains set like a printed timetable; each row is a radio choice. Each row
- * leads with BART's ETA as a clock time, with the time away beneath it, and a train
- * with a model forecast also shows its likely final published ETA. Only the next four
+ * leads with BART's ETA as a clock time, with the time away beneath it, then the
+ * model-adjusted ETA and its stability. Only the next four
  * are listed at first, in time order. Collapsing never hides the selected train: if it
  * is later in the list, it stays listed after the first four.
  */
@@ -66,23 +67,18 @@ export function TrainTimetable({ state, trains, selectedId, groupPlatform, onSel
                     {t.lineName}
                     {!groupPlatform && t.platform && ` · Platform ${t.platform}`}
                   </span>{' '}
-                  {hasForecast(t) ? (
-                    <span className={`timetable__forecast tone-${t.stability}`}>
-                      <span className="timetable__final">
-                        Likely final{' '}
-                        <span className="nowrap">
-                          {formatClockMinute(addSeconds(t.currentEtaAt, t.predictedRevisionSeconds))}
-                        </span>
-                      </span>{' '}
-                      <span className="timetable__stability">
-                        <StabilityMark stability={t.stability} />
-                        {STABILITY_LABELS[t.stability]}
+                  <span className={`timetable__forecast tone-${t.stability}`}>
+                    <span className="timetable__final">
+                      Model-adjusted{' '}
+                      <span className="nowrap">
+                        {formatClockMinute(addSeconds(t.currentEtaAt, t.predictedRevisionSeconds))}
                       </span>
+                    </span>{' '}
+                    <span className="timetable__stability">
+                      <StabilityMark stability={t.stability} />
+                      {STABILITY_LABELS[t.stability]}
                     </span>
-                  ) : (
-                    // No model forecast: say so in words rather than leave the slot empty.
-                    <span className="timetable__stability tone-eta-only">BART ETA only</span>
-                  )}
+                  </span>
                 </span>
               </label>
             </Fragment>
@@ -114,7 +110,9 @@ export function TrainTimetable({ state, trains, selectedId, groupPlatform, onSel
       )}
 
       {/* The result explains an empty list in full; the list itself stays terse. */}
-      {state === 'empty' && <p className="timetable__message timetable__message--empty">None listed</p>}
+      {state === 'empty' && (
+        <p className="timetable__message timetable__message--empty">No model-eligible trains this way</p>
+      )}
       {state === 'error' && <p className="timetable__message">Train list unavailable.</p>}
     </fieldset>
   );

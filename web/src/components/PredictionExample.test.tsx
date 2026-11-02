@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MockPredictionClient, type MockScenario } from '../data/MockPredictionClient';
@@ -50,40 +50,39 @@ describe('PredictionExample', () => {
     expect(within(trains).getAllByRole('radio')).toHaveLength(4);
   });
 
-  it('leads with the likely final published ETA, then a summary, then the calculation on request', async () => {
+  it('leads with BART’s published ETA, then the revision, the model-adjusted ETA and its uncertainty', async () => {
     renderExample();
     const heading = await readoutHeading('Embarcadero · Antioch train');
     // Snapshot 9:59:26 AM; BART's ETA is 130 s later, the model expects 12 s later.
-    expect(forecast()).toHaveTextContent(
-      'Likely final published ETA10:01 AMAbout 2 min away80% likely range: 2 min to 2 min 45 sec away' +
-        'Model forecast of BART’s last published ETA, not an observed arrival.',
+    expect(forecast()).toHaveTextContent('BART published ETA in this snapshot10:01 AMAbout 2 min away');
+    const step = (id: string) => screen.getByTestId(`step-${id}`);
+    expect(step('revision')).toHaveTextContent('Model’s expected ETA revisionExpected to move about 12 seconds later');
+    expect(step('adjusted')).toHaveTextContent(
+      'Model-adjusted ETA10:01:48 AM · about 2 min awayBART’s ETA plus the expected revision. It is not an observed arrival time.',
     );
+    expect(step('uncertainty')).toHaveTextContent(
+      'UncertaintyLikely to hold · 8% chance BART changes this ETA by more than 60 seconds' +
+        '80% likely range of the revision: 10 seconds earlier to 35 seconds later',
+    );
+    // Simulated data has no retrospective outcome, so none is shown.
+    expect(screen.queryByTestId('step-final')).not.toBeInTheDocument();
     expect(calc('now')).toHaveTextContent('BART currently says10:01:36 AM · 2 min 10 sec away');
-    expect(calc('adjust')).toHaveTextContent('Expected adjustmentAbout 12 seconds later');
-    expect(calc('final')).toHaveTextContent('Likely final published ETA10:01:48 AM · about 2 min 22 sec away');
+    expect(calc('adjust')).toHaveTextContent('Expected ETA revisionAbout 12 seconds later');
+    expect(calc('final')).toHaveTextContent('Model-adjusted ETA10:01:48 AM · about 2 min 22 sec away');
 
-    // Visible at a glance: BART's ETA, the adjustment and stability, rounded like the forecast.
-    expect(screen.getByTestId('summary-said')).toHaveTextContent('BART currently says10:01 AM · about 2 min away');
-    expect(screen.getByTestId('summary-adjust')).toHaveTextContent('Expected adjustmentAbout 12 seconds later');
-    expect(screen.getByTestId('summary-stability')).toHaveTextContent(
-      'ETA stabilityLikely to hold · 8% chance BART changes this estimate by more than 60 seconds',
-    );
     // The exact arithmetic is one press away, in a clearly labelled section.
     const calculation = screen.getByTestId('calculation');
     expect(calculation.tagName).toBe('DETAILS');
     expect(calculation).not.toHaveAttribute('open');
     expect(within(calculation).getByText('How the forecast is calculated').tagName).toBe('SUMMARY');
-    expect(calculation).toContainElement(calc('now'));
 
-    // Reading order: compact identity, forecast, summary, then the calculation.
+    // Reading order: identity, BART's ETA, the revision, the adjusted ETA, uncertainty, then the calculation.
     expect(follows(heading, forecast())).toBe(true);
-    expect(follows(forecast(), screen.getByTestId('summary-said'))).toBe(true);
-    expect(follows(screen.getByTestId('summary-stability'), calc('now'))).toBe(true);
-    expect(follows(calc('now'), calc('adjust'))).toBe(true);
-    expect(follows(calc('adjust'), calc('final'))).toBe(true);
+    expect(follows(forecast(), step('revision'))).toBe(true);
+    expect(follows(step('revision'), step('adjusted'))).toBe(true);
+    expect(follows(step('adjusted'), step('uncertainty'))).toBe(true);
+    expect(follows(step('uncertainty'), calc('now'))).toBe(true);
     const panel = readout('Embarcadero · Antioch train');
-
-    expect(within(panel).getByText(/It is not an observed arrival time/)).toBeInTheDocument();
     expect(within(panel).getByText('Simulated')).toBeInTheDocument();
     expect(within(panel).getByText(/Adjustment range \(80%\)/).parentElement).toHaveTextContent(
       '10 seconds earlier to 35 seconds later',
@@ -98,33 +97,33 @@ describe('PredictionExample', () => {
     expect((tag.closest('.result-block') as HTMLElement).style.getPropertyValue('--route')).toBe('#ffff33');
   });
 
-  it('keeps the glance at minute precision and the exact seconds in the calculation (same minute)', async () => {
+  it('keeps BART’s ETA at minute precision, and shows seconds where a minute would hide the revision', async () => {
     renderExample();
     await readoutHeading('Embarcadero · Antioch train');
-    // 12 seconds later, within one minute: the glance reads 10:01 AM; the calculation keeps the seconds.
+    // 12 seconds later, within one minute: BART's ETA reads 10:01 AM; the adjusted ETA keeps its seconds.
     expect(forecast().querySelector('.clock')?.textContent).toBe('10:01 AM');
     expect(forecast()).toHaveTextContent('About 2 min away');
     expect(forecast()).not.toHaveTextContent('10:01:48');
+    expect(screen.getByTestId('step-adjusted')).toHaveTextContent('10:01:48 AM');
     expect(calc('now')).toHaveTextContent('BART currently says10:01:36 AM · 2 min 10 sec away');
-    expect(calc('adjust')).toHaveTextContent('Expected adjustmentAbout 12 seconds later');
-    expect(calc('final')).toHaveTextContent('Likely final published ETA10:01:48 AM · about 2 min 22 sec away');
-    // Screen readers hear the glance first, then the exact calculation, with no conflicting values.
+    expect(calc('final')).toHaveTextContent('Model-adjusted ETA10:01:48 AM · about 2 min 22 sec away');
+    // Screen readers hear the same values, in the same order.
     expect(readout('Embarcadero · Antioch train')).toHaveTextContent(
-      'Embarcadero, Antioch train. Likely final published ETA: 10:01 AM, about 2 min away. ' +
-        'Exact calculation: BART currently says 10:01:36 AM, 2 min 10 sec away; expected adjustment about 12 seconds later; ' +
-        'likely final published ETA 10:01:48 AM, about 2 min 22 sec away.',
+      'Embarcadero, Antioch train. BART currently says: 10:01:36 AM, 2 min 10 sec away. ' +
+        'Expected to move about 12 seconds later. Model-adjusted ETA: 10:01:48 AM, about 2 min 22 sec away.',
     );
   });
 
-  it('uses minutes in the calculation when the adjustment crosses into another minute (later)', async () => {
+  it('uses minutes when the adjustment crosses into another minute (later)', async () => {
     const user = userEvent.setup();
     renderExample();
     await readoutHeading('Embarcadero · Antioch train');
     await user.click(within(screen.getByRole('group', { name: 'Upcoming trains' })).getByRole('radio', { name: /Richmond/ }));
     await readoutHeading('Embarcadero · Richmond train');
-    // 6 min 10 sec + 1 min 25 sec later = 7 min 35 sec, which rounds to 8 min for the glance.
-    expect(forecast().querySelector('.clock')?.textContent).toBe('10:07 AM');
-    expect(forecast()).toHaveTextContent('About 8 min away');
+    // BART: 6 min 10 sec away; + 1 min 25 sec = 7 min 35 sec, which rounds to 8 min.
+    expect(forecast().querySelector('.clock')?.textContent).toBe('10:05 AM');
+    expect(forecast()).toHaveTextContent('About 6 min away');
+    expect(screen.getByTestId('step-adjusted')).toHaveTextContent('Model-adjusted ETA10:07 AM · about 8 min away');
     expect(calc('now')).toHaveTextContent('10:05 AM · 6 min 10 sec away');
     expect(calc('adjust')).toHaveTextContent('About 1 min 25 sec later');
     expect(calc('final')).toHaveTextContent('10:07 AM · about 7 min 35 sec away');
@@ -185,13 +184,13 @@ describe('PredictionExample', () => {
     const trains = screen.getByRole('group', { name: 'Upcoming trains' });
     await user.click(within(trains).getByRole('radio', { name: /Richmond/ }));
     expect(await readoutHeading('Embarcadero · Richmond train')).toBeInTheDocument();
-    // 6 min 10 s + 1 min 25 s; the 80% range +20 s … +2 min 30 s carries through the same sum.
-    expect(forecast()).toHaveTextContent('10:07 AMAbout 8 min away80% likely range: 6 min 30 sec to 8 min 40 sec away');
-    expect(calc('adjust')).toHaveTextContent('About 1 min 25 sec later');
+    expect(screen.getByTestId('step-revision')).toHaveTextContent('Expected to move about 1 min 25 sec later');
+    expect(screen.getByTestId('step-uncertainty')).toHaveTextContent(
+      'May be revised · 41% chance BART changes this ETA by more than 60 seconds' +
+        '80% likely range of the revision: 20 seconds to 2 min 30 sec later',
+    );
     const panel = readout('Embarcadero · Richmond train');
     expect(within(panel).getByText(/Adjustment range/).parentElement).toHaveTextContent('20 seconds to 2 min 30 sec later');
-    expect(within(panel).getByText('May be revised')).toBeInTheDocument();
-    expect(screen.getByTestId('summary-stability')).toHaveTextContent('May be revised · 41% chance');
     expect(within(panel).getByText('Red line')).toBeInTheDocument();
   });
 
@@ -202,8 +201,10 @@ describe('PredictionExample', () => {
     await user.click(screen.getByRole('radio', { name: /Dublin\/Pleasanton/ }));
     await readoutHeading('Embarcadero · Dublin/Pleasanton train');
     expect(calc('adjust')).toHaveTextContent('About 40 seconds earlier');
-    // 15 min 5 sec − 40 sec = 14 min 25 sec, which rounds to 14 min for the glance.
-    expect(forecast()).toHaveTextContent('10:13 AMAbout 14 min away');
+    expect(screen.getByTestId('step-revision')).toHaveTextContent('Expected to move about 40 seconds earlier');
+    // 15 min 5 sec − 40 sec = 14 min 25 sec, which rounds to 14 min.
+    expect(forecast()).toHaveTextContent('10:14 AMAbout 15 min away');
+    expect(screen.getByTestId('step-adjusted')).toHaveTextContent('10:13 AM · about 14 min away');
     expect(calc('now')).toHaveTextContent('10:14 AM · 15 min 5 sec away');
     expect(calc('final')).toHaveTextContent('10:13 AM · about 14 min 25 sec away');
     expect(within(readout('Embarcadero · Dublin/Pleasanton train')).getByText(/Adjustment range/).parentElement).toHaveTextContent(
@@ -256,15 +257,12 @@ describe('PredictionExample', () => {
     expect(await readoutHeading('Embarcadero · Antioch train')).toBeInTheDocument();
   });
 
-  it('explains when no trains are listed', async () => {
+  it('explains when no model-eligible trains are listed', async () => {
     renderExample(scenario('empty'));
-    expect(await readoutHeading('No upcoming trains')).toBeInTheDocument();
-    expect(screen.getByText(/lists no trains toward the East Bay from Embarcadero/)).toBeInTheDocument();
+    expect(await readoutHeading('No model-eligible trains')).toBeInTheDocument();
+    expect(screen.getByText(/lists no train toward the East Bay from Embarcadero in the model’s 5-, 10- and 15-minute/)).toBeInTheDocument();
     // One detailed explanation; the list itself stays terse.
-    expect(within(screen.getByRole('group', { name: 'Upcoming trains' })).getByText('None listed')).toBeInTheDocument();
-    // On screen, only the heading and its explanation say so (the other is the spoken announcement).
-    const visible = screen.getAllByText(/no (upcoming )?trains/i).filter((el) => !el.closest('.visually-hidden'));
-    expect(visible.map((el) => el.tagName)).toEqual(['H3', 'P']);
+    expect(within(screen.getByRole('group', { name: 'Upcoming trains' })).getByText('No model-eligible trains this way')).toBeInTheDocument();
   });
 
   it('keeps the model details in a labelled section, with version and training date', async () => {
@@ -283,47 +281,21 @@ describe('PredictionExample', () => {
   });
 });
 
-describe('a train without a model forecast', () => {
-  const horizon = () => scenario('model-horizon');
-  const trainRadios = () => within(screen.getByRole('group', { name: 'Upcoming trains' })).getAllByRole('radio');
-
-  it('keeps the earliest train selected and offers the next model forecast explicitly', async () => {
-    const user = userEvent.setup();
-    renderExample(horizon());
-    await readoutHeading('Embarcadero · Antioch train');
-    // Never moved to a later train for the visitor.
-    expect(trainRadios()[0]).toBeChecked();
-    expect(screen.getByTestId('forecast')).toHaveTextContent(/^BART’s published ETA/);
-
-    const view = screen.getByRole('button', { name: 'View the next model forecast' });
-    expect(view).toHaveAccessibleDescription('Berryessa/North San José train, BART ETA 10:09 AM');
-    await user.click(view);
-    const heading = await readoutHeading('Embarcadero · Berryessa/North San José train');
-    expect(trainRadios()[2]).toBeChecked();
-    expect(screen.getByTestId('forecast')).toHaveTextContent(/^Likely final published ETA/);
-    expect(screen.queryByRole('button', { name: /model forecast/ })).not.toBeInTheDocument();
-    // The button is gone, so focus moves to the result it opened.
-    await waitFor(() => expect(heading).toHaveFocus());
+describe('trains without a model forecast', () => {
+  it('are not listed, so the earliest train with a forecast is selected', async () => {
+    renderExample(scenario('model-horizon'));
+    // 130 s and 370 s away are outside the 5-, 10- and 15-minute windows.
+    expect(await readoutHeading(/^Embarcadero · /)).toBeInTheDocument();
+    const radios = within(screen.getByRole('group', { name: 'Upcoming trains' })).getAllByRole('radio');
+    expect(radios).toHaveLength(2);
+    expect(radios[0]).toBeChecked();
+    expect(screen.getByTestId('step-adjusted')).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/BART ETA only|No model forecast|View the next model forecast/);
   });
 
-  it('offers an earlier forecast when none comes later', async () => {
-    const user = userEvent.setup();
-    renderExample(horizon());
-    await chooseStation(user, 'Balboa Park');
-    await readoutHeading(/^Balboa Park · /);
-    await user.click(screen.getByRole('radio', { name: 'Toward the East Bay, Platform 2' }));
-    await readoutHeading('Balboa Park · Berryessa/North San José train');
-    await user.click(trainRadios()[2] as HTMLElement); // 820 s: no forecast, and none after it
-    await readoutHeading('Balboa Park · Antioch train');
-    await user.click(screen.getByRole('button', { name: 'View an earlier model forecast' }));
-    expect(await readoutHeading('Balboa Park · Berryessa/North San José train')).toBeInTheDocument();
-    expect(trainRadios()[0]).toBeChecked();
-  });
-
-  it('offers nothing when no train has a forecast', async () => {
+  it('leave a board with none of them saying so', async () => {
     renderExample(scenario('eta-only'));
-    await readoutHeading('Embarcadero · Antioch train');
-    expect(screen.getByTestId('no-forecast')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /model forecast/ })).not.toBeInTheDocument();
+    expect(await readoutHeading('No model-eligible trains')).toBeInTheDocument();
+    expect(screen.queryByTestId('forecast')).not.toBeInTheDocument();
   });
 });

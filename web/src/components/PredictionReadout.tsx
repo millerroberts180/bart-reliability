@@ -1,4 +1,4 @@
-import { useId, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import {
   addSeconds,
   describeAwayGlance,
@@ -19,29 +19,22 @@ import {
   STABILITY_LABELS,
   STALE_AFTER_SECONDS,
 } from '../domain/eta';
-import { routeColor } from '../domain/routeColors';
 import {
-  hasForecast,
-  type AlertContext,
-  type BoardingGroup,
-  type EtaOnlyTrain,
-  type ForecastTrain,
-  type PredictionResponse,
-  type TrainPrediction,
-} from '../domain/types';
+  describeDirectionMatch,
+  describeExpected,
+  describeModelError,
+  describeMoved,
+  RETROSPECTIVE_NOTE,
+} from '../domain/revisionText';
+import { routeColor } from '../domain/routeColors';
+import type { RetrospectiveRecord } from '../domain/showcase';
+import type { AlertContext, BoardingGroup, ForecastTrain, PredictionResponse } from '../domain/types';
 import { useFreshness } from '../hooks/useFreshness';
 import type { ReceivedPredictions } from './PredictionExample';
 import { StabilityMark } from './StabilityMark';
 
-/** The readout's heading; focus moves here when the visitor asks for another train's forecast. */
+/** The readout's heading. */
 export const READOUT_TITLE_ID = 'readout-title';
-
-/** A train with a model forecast that the visitor can choose instead of the current one. */
-export interface NextForecast {
-  train: ForecastTrain;
-  /** After the current train in time order, or else the earliest one. */
-  later: boolean;
-}
 
 export type ReadoutState =
   | { kind: 'loading' }
@@ -53,20 +46,26 @@ export type ReadoutState =
       /** Trains listed at the station whose trips end here. */
       terminatingTrainCount: number;
     }
-  | { kind: 'ready'; received: ReceivedPredictions; train: TrainPrediction; nextForecast: NextForecast | null };
+  | {
+      kind: 'ready';
+      received: ReceivedPredictions;
+      /** The explorer lists only trains with a supported model forecast. */
+      train: ForecastTrain;
+      /** What BART later published for this train, when the curated showcase has it. */
+      retrospective: RetrospectiveRecord | null;
+    };
 
 interface PredictionReadoutProps {
   state: ReadoutState;
   stationName: string;
   group: BoardingGroup | undefined;
-  onViewForecast: (train: ForecastTrain) => void;
 }
 
-export function PredictionReadout({ state, stationName, group, onViewForecast }: PredictionReadoutProps) {
+export function PredictionReadout({ state, stationName, group }: PredictionReadoutProps) {
   const announcement = {
     loading: 'Loading prediction.',
     error: 'Prediction unavailable.',
-    empty: 'No upcoming trains.',
+    empty: 'No model-eligible trains.',
     ready: state.kind === 'ready' ? describePrediction(state.train, stationName, saidLabel(state.received.response)) : '',
   }[state.kind];
 
@@ -94,15 +93,16 @@ export function PredictionReadout({ state, stationName, group, onViewForecast }:
       )}
       {state.kind === 'empty' && (
         <div className="readout__message">
-          <h3 id={READOUT_TITLE_ID}>No upcoming trains</h3>
+          <h3 id={READOUT_TITLE_ID}>No model-eligible trains</h3>
           <p>
-            The latest snapshot lists no trains {group ? lowerFirst(group.label) : ''} from {stationName}.{' '}
+            The latest snapshot lists no train {group ? lowerFirst(group.label) : ''} from {stationName} in the
+            model’s 5-, 10- and 15-minute forecast windows.{' '}
             {emptyReason(state.unplacedTrainCount, state.terminatingTrainCount, stationName)}
           </p>
         </div>
       )}
       {state.kind === 'ready' && (
-        <ReadyReadout {...state} stationName={stationName} group={group} onViewForecast={onViewForecast} />
+        <ReadyReadout {...state} stationName={stationName} group={group} />
       )}
     </section>
   );
@@ -131,7 +131,7 @@ function emptyReason(unplaced: number, terminating: number, stationName: string)
   }
   if (reasons.length === 0) {
     reasons.push(
-      'Service may have ended for the night, trains may not be running this way at the snapshot time, or BART’s feed may not include them.',
+      'No train may be 5, 10 or 15 minutes away at the snapshot time, service may have ended for the night, or BART’s feed may not include the trains.',
     );
   }
   return reasons.join(' ');
@@ -154,12 +154,12 @@ function LoadingReadout() {
         <span className="readout__meta placeholder placeholder--short" />
       </div>
       <div className="forecast" aria-hidden="true">
-        <p className="forecast__label">Likely final published ETA</p>
+        <p className="forecast__label">BART published ETA at the replay moment</p>
         <span className="placeholder placeholder--clock" />
         <span className="placeholder placeholder--short" />
       </div>
       <div className="summary" aria-hidden="true">
-        {['BART’s ETA', 'Expected adjustment', 'ETA stability'].map((label) => (
+        {['Model’s expected ETA revision', 'Model-adjusted ETA', 'Uncertainty'].map((label) => (
           <div key={label} className="summary__row">
             <span className="summary__label">{label}</span>
             <span className="placeholder placeholder--short" />
@@ -173,17 +173,15 @@ function LoadingReadout() {
 function ReadyReadout({
   received,
   train,
-  nextForecast,
+  retrospective,
   stationName,
   group,
-  onViewForecast,
 }: {
   received: ReceivedPredictions;
-  train: TrainPrediction;
-  nextForecast: NextForecast | null;
+  train: ForecastTrain;
+  retrospective: RetrospectiveRecord | null;
   stationName: string;
   group: BoardingGroup | undefined;
-  onViewForecast: (train: ForecastTrain) => void;
 }) {
   const { response, receivedAt } = received;
   const { replay } = response;
@@ -227,27 +225,21 @@ function ReadyReadout({
           </p>
         )}
 
-        {hasForecast(train) ? (
-          <ForecastResult train={train} said={said} threshold={response.model.revisionThresholdSeconds} />
-        ) : (
-          <EtaOnlyResult train={train} said={said} nextForecast={nextForecast} onViewForecast={onViewForecast} />
-        )}
+        <ForecastResult
+          train={train}
+          threshold={response.model.revisionThresholdSeconds}
+          retrospective={retrospective}
+          moment={replay ? 'at the replay moment' : 'in this snapshot'}
+        />
       </div>
 
       <div className="details">
-        {hasForecast(train) ? (
-          <Calculation
-            train={train}
-            said={said}
-            threshold={response.model.revisionThresholdSeconds}
-            stationName={stationName}
-          />
-        ) : (
-          <p className="readout__caveat">
-            BART may revise this estimate. Without a model forecast, the page shows BART’s published ETA exactly as
-            BART published it.
-          </p>
-        )}
+        <Calculation
+          train={train}
+          said={said}
+          threshold={response.model.revisionThresholdSeconds}
+          stationName={stationName}
+        />
 
         <dl className="facts facts--alerts">
           <div className="facts__row">
@@ -304,50 +296,58 @@ function ReadyReadout({
   );
 }
 
-function ForecastResult({ train, said, threshold }: { train: ForecastTrain; said: string; threshold: number }) {
+/**
+ * The forecast in reading order: BART's published ETA at the replay moment, the model's
+ * expected revision, the model-adjusted ETA, its uncertainty, and then, set apart as
+ * retrospective, what BART later published.
+ */
+function ForecastResult({
+  train,
+  threshold,
+  retrospective,
+  moment,
+}: {
+  train: ForecastTrain;
+  threshold: number;
+  retrospective: RetrospectiveRecord | null;
+  moment: string;
+}) {
   const current = train.currentEtaSeconds;
   const revision = train.predictedRevisionSeconds;
-  const final = likelyFinalEtaSeconds(current, revision);
-  const finalAt = addSeconds(train.currentEtaAt, revision);
+  const adjusted = likelyFinalEtaSeconds(current, revision);
+  const adjustedAt = addSeconds(train.currentEtaAt, revision);
   const interval = train.revisionInterval;
+  // Clock times show seconds when a minute alone would make two of them look the same.
+  const seconds =
+    needsSeconds(train.currentEtaAt, adjustedAt) ||
+    (retrospective !== null && needsSeconds(adjustedAt, retrospective.finalPublishedEtaAt));
 
   return (
     <>
       <div className="forecast" data-testid="forecast">
-        <p className="forecast__label">Likely final published ETA</p>
+        <p className="forecast__label">BART published ETA {moment}</p>
         <p className="forecast__clock">
-          <ClockTime iso={finalAt} />
+          <ClockTime iso={train.currentEtaAt} />
         </p>
-        <p className="forecast__away">{describeAwayGlance(final)}</p>
-        {interval ? (
-          <p className="forecast__range">
-            {coverageOf(interval.level)} likely range: {formatSpokenDuration(likelyFinalEtaSeconds(current, interval.lowerSeconds))}{' '}
-            to {describeTimeAway(likelyFinalEtaSeconds(current, interval.upperSeconds))}
-          </p>
-        ) : (
-          <p className="forecast__range forecast__range--none" data-testid="no-range">
-            No likely range is shown: the model’s range isn’t supported for this data.
-          </p>
-        )}
-        <p className="forecast__basis">Model forecast of BART’s last published ETA, not an observed arrival.</p>
+        <p className="forecast__away">{describeAwayGlance(current)}</p>
       </div>
 
-      {/* Rounded to the glance's precision; the exact values are in the calculation. */}
-      <dl className="summary" aria-label="Forecast summary">
-        <div className="summary__row" data-testid="summary-said">
-          <dt className="summary__label">{said}</dt>
-          <dd>
-            <span className="nowrap">{formatClockMinute(train.currentEtaAt)}</span>{' '}
-            <span>· {lowerFirst(describeAwayGlance(current))}</span>
-          </dd>
-        </div>
-        <div className="summary__row" data-testid="summary-adjust">
-          <dt className="summary__label">Expected adjustment</dt>
-          <dd>{capitalize(describeRevision(revision))}</dd>
-        </div>
-        <div className={`summary__row tone-${train.stability}`} data-testid="summary-stability">
-          <dt className="summary__label">ETA stability</dt>
-          <dd>
+      <ol className="readout-steps" aria-label="The model’s forecast">
+        <li className="readout-step" data-testid="step-revision">
+          <p className="readout-step__label">Model’s expected ETA revision</p>
+          <p className="readout-step__value">{describeExpected(revision)}</p>
+        </li>
+        <li className="readout-step" data-testid="step-adjusted">
+          <p className="readout-step__label">Model-adjusted ETA</p>
+          <p className="readout-step__value">
+            <span className="nowrap">{formatClockFor(adjustedAt, seconds)}</span>{' '}
+            <span>· {lowerFirst(describeAwayGlance(adjusted))}</span>
+          </p>
+          <p className="readout-step__note">BART’s ETA plus the expected revision. It is not an observed arrival time.</p>
+        </li>
+        <li className={`readout-step tone-${train.stability}`} data-testid="step-uncertainty">
+          <p className="readout-step__label">Uncertainty</p>
+          <p className="readout-step__value">
             <span className="summary__stability">
               <StabilityMark stability={train.stability} />
               {STABILITY_LABELS[train.stability]}
@@ -355,75 +355,37 @@ function ForecastResult({ train, said, threshold }: { train: ForecastTrain; said
             <span className="summary__percent">
               <span aria-hidden="true">· </span>
               <span className="stability__percent">{formatPercent(train.revisionProbability)}</span> chance BART changes
-              this estimate by more than {threshold} seconds
-            </span>
-          </dd>
-        </div>
-      </dl>
-    </>
-  );
-}
-
-/** A train outside the model's support: BART's published ETA, as published, and why. */
-function EtaOnlyResult({
-  train,
-  said,
-  nextForecast,
-  onViewForecast,
-}: {
-  train: EtaOnlyTrain;
-  said: string;
-  nextForecast: NextForecast | null;
-  onViewForecast: (train: ForecastTrain) => void;
-}) {
-  const nextId = useId();
-  return (
-    <>
-      <div className="forecast forecast--eta-only" data-testid="forecast">
-        <p className="forecast__label">BART’s published ETA</p>
-        <p className="forecast__clock">
-          <ClockTime iso={train.currentEtaAt} />
-        </p>
-        <p className="forecast__away">{describeAwayGlance(train.currentEtaSeconds)}</p>
-        <p className="forecast__range forecast__range--none" data-testid="no-forecast">
-          {NO_FORECAST_REASON[train.predictionStatus]}
-        </p>
-        {nextForecast && (
-          <p className="next-forecast">
-            <button
-              type="button"
-              className="link-button"
-              aria-describedby={nextId}
-              onClick={() => onViewForecast(nextForecast.train)}
-            >
-              {nextForecast.later ? 'View the next model forecast' : 'View an earlier model forecast'}
-            </button>{' '}
-            <span id={nextId} className="next-forecast__train">
-              {nextForecast.train.headsign} train, BART ETA {formatClockMinute(nextForecast.train.currentEtaAt)}
+              this ETA by more than {threshold} seconds
             </span>
           </p>
+          {interval && (
+            <p className="readout-step__note">
+              {coverageOf(interval.level)} likely range of the revision:{' '}
+              {describeRevisionRange(interval.lowerSeconds, interval.upperSeconds)}
+            </p>
+          )}
+        </li>
+        {retrospective && (
+          <li className="readout-step readout-step--retrospective" data-testid="step-final">
+            <p className="readout-step__label">
+              BART later published <span className="retro-tag">Retrospective</span>
+            </p>
+            <p className="readout-step__value">
+              <span className="nowrap">
+                {formatClockFor(retrospective.finalPublishedEtaAt, seconds)}
+              </span>{' '}
+              <span>· {describeMoved(retrospective.realizedRevisionSeconds)}</span>
+            </p>
+            <p className="readout-step__note">
+              {RETROSPECTIVE_NOTE} {describeDirectionMatch(retrospective.directionMatch)}.{' '}
+              {describeModelError(retrospective.modelErrorSeconds)}
+            </p>
+          </li>
         )}
-      </div>
-      <dl className="calc" aria-label="BART’s published ETA">
-        <div className="calc__row" data-testid="calc-now">
-          <dt>{said}</dt>
-          <dd>
-            <span className="nowrap">{formatClock(train.currentEtaAt)}</span>{' '}
-            <span>· {describeTimeAway(train.currentEtaSeconds)}</span>
-          </dd>
-        </div>
-      </dl>
+      </ol>
     </>
   );
 }
-
-const NO_FORECAST_REASON: Record<EtaOnlyTrain['predictionStatus'], string> = {
-  outside_model_horizon:
-    'No model forecast for this train. The model only forecasts trains BART shows about 5, 10 or 15 minutes away.',
-  outside_model_population: 'No model forecast: the model was not trained on trains like this one.',
-  fallback_required: 'No model forecast: this train is outside what the model has been shown to support.',
-  features_unavailable: 'No model forecast: some model inputs were missing from this snapshot.',
-};
 
 /** The exact arithmetic behind the forecast, and how stability is classified. */
 function Calculation({
@@ -461,7 +423,7 @@ function Calculation({
             <span className="calc__op" aria-hidden="true">
               +
             </span>
-            Expected adjustment
+            Expected ETA revision
           </dt>
           <dd>{capitalize(describeRevision(revision))}</dd>
         </div>
@@ -470,7 +432,7 @@ function Calculation({
             <span className="calc__op" aria-hidden="true">
               =
             </span>
-            Likely final published ETA
+            Model-adjusted ETA
           </dt>
           <dd>
             <span className="nowrap">{formatClockFor(finalAt, seconds)}</span>{' '}
@@ -496,8 +458,8 @@ function Calculation({
       </div>
 
       <p className="readout__caveat">
-        BART may revise this estimate. The likely final published ETA is the model’s forecast of the last ETA BART will
-        publish before the train reaches {stationName}. It is not an observed arrival time.
+        BART may revise this estimate. The model-adjusted ETA is BART’s ETA plus the revision the model expects
+        before the train reaches {stationName}. It is not an observed arrival time.
       </p>
     </details>
   );
@@ -575,23 +537,15 @@ function AlertList({ alerts, feedTimestamp }: { alerts: AlertContext[]; feedTime
  * calculation. The glance values are labelled as rounded so they never conflict with
  * the exact ones. `said` introduces BART's own ETA ("BART said in this snapshot").
  */
-export function describePrediction(train: TrainPrediction, stationName: string, said: string): string {
-  if (!hasForecast(train)) {
-    return (
-      `${stationName}, ${train.headsign} train. ` +
-      `BART’s published ETA: ${formatClockMinute(train.currentEtaAt)}, ${lowerFirst(describeAwayGlance(train.currentEtaSeconds))}. ` +
-      `${NO_FORECAST_REASON[train.predictionStatus]}`
-    );
-  }
-  const final = likelyFinalEtaSeconds(train.currentEtaSeconds, train.predictedRevisionSeconds);
-  const finalAt = addSeconds(train.currentEtaAt, train.predictedRevisionSeconds);
-  const seconds = needsSeconds(train.currentEtaAt, finalAt);
+export function describePrediction(train: ForecastTrain, stationName: string, said: string): string {
+  const adjusted = likelyFinalEtaSeconds(train.currentEtaSeconds, train.predictedRevisionSeconds);
+  const adjustedAt = addSeconds(train.currentEtaAt, train.predictedRevisionSeconds);
+  const seconds = needsSeconds(train.currentEtaAt, adjustedAt);
   return (
     `${stationName}, ${train.headsign} train. ` +
-    `Likely final published ETA: ${formatClockMinute(finalAt)}, ${lowerFirst(describeAwayGlance(final))}. ` +
-    `Exact calculation: ${said} ${formatClockFor(train.currentEtaAt, seconds)}, ` +
-    `${describeTimeAway(train.currentEtaSeconds)}; expected adjustment ${describeRevision(train.predictedRevisionSeconds)}; ` +
-    `likely final published ETA ${formatClockFor(finalAt, seconds)}, ${describeAwayAbout(final)}.`
+    `${said}: ${formatClockFor(train.currentEtaAt, seconds)}, ${describeTimeAway(train.currentEtaSeconds)}. ` +
+    `${describeExpected(train.predictedRevisionSeconds)}. ` +
+    `Model-adjusted ETA: ${formatClockFor(adjustedAt, seconds)}, ${describeAwayAbout(adjusted)}.`
   );
 }
 

@@ -19,7 +19,13 @@ function renderAt(search: string, network: 'demo' | 'full' = 'demo') {
   );
 }
 
-const params = () => Object.fromEntries(new URLSearchParams(window.location.search));
+// The selected train is in the URL too (?train=…); these tests are about station and boarding.
+const params = () => {
+  const search = new URLSearchParams(window.location.search);
+  search.delete('train');
+  search.delete('view');
+  return Object.fromEntries(search);
+};
 const heading = (name: string | RegExp) => screen.findByRole('heading', { level: 3, name });
 const trainRadios = () => within(screen.getByRole('group', { name: 'Upcoming trains' })).getAllByRole('radio');
 
@@ -151,7 +157,7 @@ describe('back and forward', () => {
     await heading('Embarcadero · Antioch train');
     await user.click(within(screen.getByRole('group', { name: 'Upcoming trains' })).getByRole('radio', { name: /Richmond/ }));
     await heading('Embarcadero · Richmond train');
-    traverseTo('?station=EMBR&boarding=to-WOAK#question'); // a fragment link, same selection
+    traverseTo(`${window.location.search}#question`); // a fragment link, same selection (and train)
     expect(await heading('Embarcadero · Richmond train')).toBeInTheDocument();
   });
 });

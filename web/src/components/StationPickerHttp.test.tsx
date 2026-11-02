@@ -29,11 +29,20 @@ function apiWithHeldStations(): { api: FakeApi; release: () => void } {
 }
 
 function renderAt(search: string, api: FakeApi) {
-  window.history.replaceState(null, '', `/${search}`);
+  // The picker is in the train explorer view.
+  const params = new URLSearchParams(search);
+  params.set('view', 'explorer');
+  window.history.replaceState(null, '', `/?${params.toString()}`);
   render(<App client={new HttpPredictionClient(API_BASE, { fetch: api.fetch })} />);
 }
 
-const params = () => Object.fromEntries(new URLSearchParams(window.location.search));
+// The selected train is in the URL too (?train=…); these tests are about station and boarding.
+const params = () => {
+  const search = new URLSearchParams(window.location.search);
+  search.delete('train');
+  search.delete('view');
+  return Object.fromEntries(search);
+};
 
 describe('station picker over the HTTP client', () => {
   it('searches only the stations the API returned, not a simulated fixture', async () => {

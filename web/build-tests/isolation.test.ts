@@ -31,7 +31,7 @@ const MODULES: Record<Mode, string[]> = {
     'src/data/fixtures/networkTrains.ts',
   ],
   http: ['src/modes/http.tsx', 'src/data/HttpPredictionClient.ts'],
-  static: ['src/modes/static.tsx', 'src/data/StaticReplayClient.ts'],
+  static: ['src/modes/static.tsx', 'src/data/StaticReplayClient.ts', 'src/data/ShowcaseSource.ts'],
 };
 
 /** Text found only in one mode's client or data. Each is also required in its own build. */
@@ -44,7 +44,13 @@ const STRINGS: Record<Mode, string[]> = {
     'The full-network fixture has not loaded.',
   ],
   http: ['/api/v1', 'No API address is configured. Set VITE_API_BASE_URL.', API_ADDRESS],
-  static: ['static-replay-1', 'The historical replay could not be loaded.', `${BASE_PATH}replay/`],
+  static: [
+    'static-replay-1',
+    'The historical replay could not be loaded.',
+    `${BASE_PATH}replay/`,
+    'The showcase could not be loaded.',
+    `${BASE_PATH}showcase/`,
+  ],
 };
 
 const REPLAY_DESCRIPTION = 'A historical replay of recorded BART data, with a model';
@@ -132,13 +138,19 @@ describe.each(MODES)('the %s build', (mode) => {
     expect(addresses).toEqual(mode === 'http' ? [expect.stringMatching(/^assets\/index-[\w-]+\.js$/)] : []);
   });
 
+  it('never shows BART’s ETA alone, and carries no machine-specific path', () => {
+    const texts = textOf(builds[mode]);
+    expect(texts.filter((t) => t.text.includes('BART ETA only')).map((t) => t.name)).toEqual([]);
+    expect(texts.filter((t) => /\/Users\/|\/home\/|[A-Z]:\\Users/.test(t.text)).map((t) => t.name)).toEqual([]);
+  });
+
   it('describes its own data in index.html', () => {
     const html = builds[mode].files.get('index.html')?.toString('utf8') ?? '';
     expect(html.includes(SIMULATED_DESCRIPTION)).toBe(mode === 'mock');
     expect(html.includes(REPLAY_DESCRIPTION)).toBe(mode !== 'mock');
   });
 
-  it(mode === 'static' ? 'ships the published replay, byte for byte' : 'ships no replay or other data files', async () => {
+  it(mode === 'static' ? 'ships the curated replay and showcase, byte for byte' : 'ships no replay or other data files', async () => {
     const json = [...builds[mode].files.keys()].filter((f) => f.endsWith('.json'));
     if (mode !== 'static') {
       expect(json).toEqual([]);
@@ -148,6 +160,18 @@ describe.each(MODES)('the %s build', (mode) => {
     expect(json.sort()).toEqual([...published.keys()].sort());
     const sha = (b: Buffer) => createHash('sha256').update(b).digest('hex');
     for (const [name, body] of published) expect(sha(builds.static.files.get(name) ?? Buffer.alloc(0)), name).toBe(sha(body));
-    expect(json).toHaveLength(1157);
+    // 148 replay answers, its manifest and index, and the four showcase files: nothing else.
+    expect(json).toHaveLength(154);
+    expect(json.filter((f) => f.startsWith('showcase/')).sort()).toEqual([
+      'showcase/largest-changes.json',
+      'showcase/network-map.json',
+      'showcase/retrospective.json',
+      'showcase/showcase.json',
+    ]);
+    // Every published train has a supported forecast.
+    for (const name of json.filter((f) => f.includes('/boards/'))) {
+      const board = JSON.parse(builds.static.files.get(name)?.toString('utf8') ?? '{}') as { trains: { predictionStatus: string }[] };
+      expect(board.trains.every((tr) => tr.predictionStatus === 'ok'), name).toBe(true);
+    }
   });
 });

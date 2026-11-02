@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { correctionNote, resolveBoardingGroup, sameId } from '../domain/boardingSelection';
-import { hasForecast, type PredictionResponse, type Station, type TrainPrediction } from '../domain/types';
+import type { RetrospectiveRecord } from '../domain/showcase';
+import { hasForecast, type ForecastTrain, type PredictionResponse, type Station } from '../domain/types';
 import { usePredictionEnvironment } from '../data/PredictionClientContext';
 import { clientKey } from '../data/clientKey';
 import { useRecentStations } from '../hooks/useRecentStations';
 import { useRequest } from '../hooks/useRequest';
 import { readUrlSelection, useUrlNavigation, writeUrlSelection, type UrlSelection } from '../hooks/useUrlSelection';
-import { EXAMPLE_HEADING_ID } from './ExampleLink';
 import { EtaHistory, type HistorySubject } from './EtaHistory';
-import { PredictionReadout, READOUT_TITLE_ID, type NextForecast, type ReadoutState } from './PredictionReadout';
+import { PredictionReadout, type ReadoutState } from './PredictionReadout';
 import { StationPicker } from './StationPicker';
 import { TrainTimetable } from './TrainTimetable';
 
@@ -23,7 +23,25 @@ interface Requested extends UrlSelection {
   fromUrl: boolean;
 }
 
-export function PredictionExample() {
+/** A train to open when the address names none: the Highlights view's featured record. */
+export interface FeaturedTrain {
+  station: string;
+  boarding: string;
+  train: string;
+}
+
+/**
+ * The train explorer. It lists only trains with a supported model forecast: the curated
+ * replay contains no others, and in the development modes the rest are left out too, so no
+ * train is ever shown with BART's ETA alone.
+ */
+export function PredictionExample({
+  featured = null,
+  retrospective = null,
+}: {
+  featured?: FeaturedTrain | null;
+  retrospective?: Map<string, RetrospectiveRecord> | null;
+}) {
   const { client, now } = usePredictionEnvironment();
   const { recentIds, remember } = useRecentStations();
 
@@ -35,8 +53,14 @@ export function PredictionExample() {
   const stations = stationsState.status === 'success' ? stationsState.data : [];
 
   // The URL seeds the choice; after that the page owns it and keeps the URL in step.
-  const [requested, setRequested] = useState<Requested>(() => ({ ...readUrlSelection(), fromUrl: true }));
-  const [trainId, setTrainId] = useState<string | null>(null);
+  const [requested, setRequested] = useState<Requested>(() => {
+    const fromUrl = readUrlSelection();
+    if (fromUrl.station === null && featured) {
+      return { station: featured.station, boarding: featured.boarding, train: featured.train, legacyDirection: null, fromUrl: false };
+    }
+    return { ...fromUrl, fromUrl: true };
+  });
+  const [trainId, setTrainId] = useState<string | null>(() => requested.train);
 
   // Fall back safely whenever a choice is unset, unknown or no longer exists: to the
   // first station the active client lists (the API's order in HTTP mode).
@@ -48,6 +72,10 @@ export function PredictionExample() {
     ? resolveBoardingGroup(station, appliesHere ? requested : { boarding: null, legacyDirection: null })
     : { group: undefined, correction: null };
   const group = resolution.group;
+  const choose = (next: Omit<Requested, 'train' | 'legacyDirection'>) => {
+    setRequested({ ...next, train: null, legacyDirection: null });
+    setTrainId(null);
+  };
 
   // Notes explain only what the address asked for, and only once stations have loaded.
   const stationNote =
@@ -58,23 +86,6 @@ export function PredictionExample() {
     requested.fromUrl && station && group && resolution.correction
       ? correctionNote(resolution.correction, station, group)
       : null;
-
-  // Keep ?station=…&boarding=… in step with what is shown, correcting invalid values.
-  const shown = useRef<{ station: string; boarding: string } | null>(null);
-  useEffect(() => {
-    if (!station || !group) return;
-    shown.current = { station: station.id, boarding: group.id };
-    writeUrlSelection(shown.current);
-  }, [station, group]);
-
-  // Back and forward restore whatever the address then says, so the page and the URL
-  // can never disagree. An address that matches what is shown changes nothing.
-  useUrlNavigation((selection) => {
-    const current = shown.current;
-    if (current && sameId(current.station, selection.station) && sameId(current.boarding, selection.boarding)) return;
-    setRequested({ ...selection, fromUrl: true });
-    setTrainId(null);
-  });
 
   const predictionsKey = station && group ? `${clientKey(client)}:${station.id}:${group.id}` : null;
   const loadPredictions = useCallback(
@@ -87,15 +98,35 @@ export function PredictionExample() {
   );
   const { state: predictionsState, retry: retryPredictions } = useRequest(predictionsKey, loadPredictions);
 
-  const trains = predictionsState.status === 'success' ? predictionsState.data.response.trains : [];
+  const trains: ForecastTrain[] =
+    predictionsState.status === 'success' ? predictionsState.data.response.trains.filter(hasForecast) : [];
   // The earliest train is chosen by default; a later one only when the visitor picks it.
   const train = trains.find((t) => t.predictionId === trainId) ?? trains[0];
 
-  const viewForecast = (target: TrainPrediction) => {
-    setTrainId(target.predictionId);
-    // The button that was pressed goes away, so focus moves to the result it opened.
-    requestAnimationFrame(() => document.getElementById(READOUT_TITLE_ID)?.focus());
-  };
+  // Keep ?station=…&boarding=…&train=… in step with what is shown, correcting invalid values.
+  const shown = useRef<{ station: string; boarding: string; train: string | null } | null>(null);
+  const shownTrain = predictionsState.status === 'success' ? (train?.predictionId ?? null) : trainId;
+  useEffect(() => {
+    if (!station || !group) return;
+    shown.current = { station: station.id, boarding: group.id, train: shownTrain };
+    writeUrlSelection(shown.current);
+  }, [station, group, shownTrain]);
+
+  // Back and forward restore whatever the address then says, so the page and the URL
+  // can never disagree. An address that matches what is shown changes nothing.
+  useUrlNavigation((selection) => {
+    const current = shown.current;
+    if (
+      current &&
+      sameId(current.station, selection.station) &&
+      sameId(current.boarding, selection.boarding) &&
+      current.train === selection.train
+    ) {
+      return;
+    }
+    setRequested({ ...selection, fromUrl: true });
+    setTrainId(selection.train);
+  });
 
   let readout: ReadoutState;
   if (stationsState.status === 'error') {
@@ -108,7 +139,12 @@ export function PredictionExample() {
     const { unplacedTrainCount, terminatingTrainCount } = predictionsState.data.response;
     readout = { kind: 'empty', unplacedTrainCount, terminatingTrainCount };
   } else {
-    readout = { kind: 'ready', received: predictionsState.data, train, nextForecast: nextForecastFor(train, trains) };
+    readout = {
+      kind: 'ready',
+      received: predictionsState.data,
+      train,
+      retrospective: retrospective?.get(train.predictionId) ?? null,
+    };
   }
 
   const history: HistorySubject =
@@ -119,14 +155,10 @@ export function PredictionExample() {
         : { kind: 'unavailable', reason: readout.kind };
 
   return (
-    <section className="example" id="example" aria-labelledby={EXAMPLE_HEADING_ID}>
-      <div className="example__intro">
-        <h2 id={EXAMPLE_HEADING_ID} className="example__title" tabIndex={-1}>
-          Try an ETA forecast
-        </h2>
-        <p>Choose where you’re boarding, which way you’re going and a train.</p>
-      </div>
-
+    <section className="example" id="example" aria-labelledby="example-title">
+      <h2 id="example-title" className="visually-hidden">
+        Choose a train and read its forecast
+      </h2>
       <div className="example__grid">
         <form className="controls" aria-label="Choose a train" onSubmit={(e) => e.preventDefault()}>
           <div className="field">
@@ -135,8 +167,7 @@ export function PredictionExample() {
               selected={station}
               recentIds={recentIds}
               onSelect={(s) => {
-                setRequested({ station: s.id, boarding: null, legacyDirection: null, fromUrl: false });
-                setTrainId(null);
+                choose({ station: s.id, boarding: null, fromUrl: false });
                 remember(s.id);
               }}
             />
@@ -159,8 +190,7 @@ export function PredictionExample() {
                     checked={g.id === group?.id}
                     onChange={() => {
                       if (!station) return;
-                      setRequested({ station: station.id, boarding: g.id, legacyDirection: null, fromUrl: false });
-                      setTrainId(null);
+                      choose({ station: station.id, boarding: g.id, fromUrl: false });
                     }}
                   />
                   <span className="choice__label">{g.label}</span>
@@ -195,23 +225,10 @@ export function PredictionExample() {
           />
         </form>
 
-        <PredictionReadout state={readout} stationName={station?.name ?? ''} group={group} onViewForecast={viewForecast} />
+        <PredictionReadout state={readout} stationName={station?.name ?? ''} group={group} />
       </div>
 
       <EtaHistory subject={history} stationName={station?.name ?? ''} />
     </section>
   );
-}
-
-/**
- * For a train without a model forecast, the next train after it that has one (or,
- * failing that, the earliest one that has). It is offered as an explicit choice, never
- * selected for the visitor.
- */
-function nextForecastFor(train: TrainPrediction, trains: TrainPrediction[]): NextForecast | null {
-  if (hasForecast(train)) return null;
-  const later = trains.slice(trains.indexOf(train) + 1).find(hasForecast);
-  if (later) return { train: later, later: true };
-  const earlier = trains.find(hasForecast);
-  return earlier ? { train: earlier, later: false } : null;
 }

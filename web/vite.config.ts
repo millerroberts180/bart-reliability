@@ -45,8 +45,8 @@ export default defineConfig(({ command, mode }) => {
       // and that client's data; build-tests/ checks the three builds.
       alias: [{ find: /^@data-mode$/, replacement: fileURLToPath(new URL(`./src/modes/${dataMode}.tsx`, import.meta.url)) }],
     },
-    // public/ holds only the published replay (public/replay/), which only static mode reads;
-    // the simulated and HTTP builds do not ship it.
+    // public/ holds only the published curated replay (public/replay/) and its showcase files
+    // (public/showcase/), which only static mode reads; the simulated and HTTP builds ship neither.
     publicDir: dataMode === 'static' ? 'public' : false,
     plugins: [
       react(),

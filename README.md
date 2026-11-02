@@ -7,8 +7,10 @@ better than simple baselines.
 
 Live demo: <https://millerroberts180.github.io/bart-reliability/>
 
-The demo is a fixed historical replay of BART data as of Tuesday, October 20, 2026 at
-10:00 AM Pacific. It is not live, and nothing on it updates. The model predicts how much
+The demo is a fixed historical replay of BART data as of Monday, October 19, 2026 at
+8:10 AM Pacific. It is not live, and nothing on it updates. It shows only the trains the
+model supports at 5, 10 and 15 minutes out, each with BART's published ETA, the
+model-adjusted ETA and the final ETA BART published later. The model predicts how much
 BART will still revise its own published ETA. It does not predict when a train
 physically arrives.
 
@@ -26,7 +28,7 @@ Results:
   interval of −1.39 to −1.12 s for the error difference. The gain is small, though: about
   1.25 s, or 6% of the baseline's error, measured on one Monday.
 
-![The demo on a desktop browser. A Pittsburg/Bay Point train at Civic Center / UN Plaza: BART's ETA is 10:10 AM, the model's likely final published ETA is 10:11 AM with an 80% range, and there is a 44% chance that BART changes the estimate by more than 60 seconds. A notice reads "Historical replay—fixed, not live."](docs/assets/site-desktop-forecast.png)
+![The demo's network map on a desktop browser: an original schematic of the BART lines with a bubble at each station, larger and redder where the model expected BART to move its ETA later. Embarcadero is selected: 6 supported trains, a largest expected revision of about 52 seconds later, and a largest revision BART later published of about 1 min 14 sec later. A notice reads "Fixed historical replay · Monday, October 19, 2026, 8:10 AM PDT · Not live."](docs/assets/site-desktop-map.png)
 
 ## How it works
 
@@ -46,9 +48,12 @@ for it. That final estimate is the reference point: a revision is how far the ET
 moved between a snapshot and the final estimate.
 
 Models are trained and evaluated offline. For the public site, a small FastAPI app that
-runs only locally answered every request the site can make as of 10:00 AM on October 20,
-and its answers were saved as JSON files. GitHub Pages serves those files with a
-React/Vite interface for exploring the replay, so the site has no server or database.
+runs only locally answered every request the site can make as of 8:10 AM on October 19,
+and its answers for the model-supported trains were saved as JSON files. That moment was
+chosen from all 1,440 snapshots of the day for how many trains the model covers, without
+reading any outcome or error. GitHub Pages serves those files with a React/Vite
+interface: highlights, an original network map and a train explorer. The site has no
+server or database ([showcase replay](docs/showcase_replay.md)).
 
 The linked documents below give the details of each step.
 
@@ -85,25 +90,27 @@ trips, because stops on the same trip are related. The model also gives an 80% r
 test day that range covered 83% of examples
 ([model serving](docs/model_serving.md#the-2026-10-20-bundle)).
 
-The site also shows how BART's ETA for the selected train changed over the hour before
-the replay time:
+The train explorer also shows how BART's ETA for the selected train changed before the
+replay moment:
 
-![The ETA history chart for the same train. BART's published ETA held near 10:08 AM, then changed eight times in the last 12 minutes before the 9:59:23 AM snapshot, ending 2 min 38 sec later. A dashed line marks the model's likely final published ETA, 10:11:06 AM, with its 80% range.](docs/assets/site-desktop-history.png)
+![The ETA history chart for a Pittsburg/Bay Point train at Rockridge. In the 91 minutes before the 8:10:22 AM snapshot, BART moved its published ETA 2 min 41 sec later across nine changes of 30 seconds or more, ending at 8:15:29 AM. A dashed line marks the model-adjusted ETA, 8:16:29 AM, with its 80% range.](docs/assets/site-desktop-history.png)
 
 ## Limitations
 
 - The project measures revisions to BART's published ETAs,
   not physical arrivals. BART publishes no independent arrival data to check against
   ([511 feed review](docs/511_arrival_feasibility.md)).
-- The public site shows one recorded moment. It is not a live service.
+- The public site shows one recorded moment. It is not a live service. Its final
+  published ETA is BART's own last stable estimate, known only afterwards, and not an
+  observed arrival.
 - The final evaluation covers one Monday. The improvement is consistent
   across resamples but modest, and a single day can't show how the model would do on
   other weekdays, weekends or disrupted days.
 - The data covers about ten days in one season. Collection has
   ended, so there is no newer data.
-- Only part of the service is modelled. At the replay moment, 79 of
-  the 1,057 trains on the site had a forecast. The rest show BART's ETA with the reason
-  there is no forecast.
+- Only part of the service is modelled. At the replay moment, 89 of the 1,067 trains on
+  BART's boards had a supported forecast. The site shows the 83 of them whose final
+  published ETA is known, and no other trains.
 
 ## Tools
 
@@ -114,10 +121,11 @@ the replay time:
 
 ## Testing
 
-The Python tests (474, with pytest) cover the collector, the Parquet conversion, the
-warehouse queries, the leakage and split rules, the models and the replay export. The
-website has 226 Vitest tests. GitHub Actions runs both on every push, along with a check
-of the published replay files. GitHub Pages deploys only from `main`.
+The Python tests (500, with pytest) cover the collector, the Parquet conversion, the
+warehouse queries, the leakage and split rules, the models, the replay export and the
+curated showcase. The website has 241 Vitest tests. GitHub Actions runs both on every
+push, along with a check of the published replay and showcase files. GitHub Pages
+deploys only from `main`.
 
 ## Running it locally
 
@@ -127,7 +135,7 @@ This needs Python 3.11 or later and Node 24.
 python3 -m venv .venv
 .venv/bin/pip install -e '.[dev,model,serve]'
 .venv/bin/pytest
-.venv/bin/bart-static-replay check    # checks the published replay files
+.venv/bin/bart-static-replay check    # checks the published replay and showcase files
 
 cd web
 npm ci
@@ -144,6 +152,8 @@ The pipeline steps need the raw data under `data/`, which is not in the reposito
 .venv/bin/bart-eta-model              # features, baselines, models and metrics
 .venv/bin/bart-serve-local            # local replay API on 127.0.0.1:8000
 .venv/bin/bart-static-replay export   # save the API's answers as JSON files
+.venv/bin/python -m bart_reliability.static_replay.showcase build    # the curated replay
+.venv/bin/python -m bart_reliability.static_replay.showcase publish  # -> web/public/
 ```
 
 More commands, and the site's other data modes, are in
@@ -164,7 +174,7 @@ src/bart_reliability/
   open511/         review of the 511 regional feed as an arrival source
 config/            settings for each step
 tests/             pytest tests
-web/               the React site; web/public/replay/ holds the published replay
+web/               the React site; web/public/ holds the published replay and showcase
 deploy/            configuration for the collection server
 docs/              design notes, audits and evaluation reports
 ```
@@ -191,7 +201,7 @@ are in [docs/release_v1.md](docs/release_v1.md).
 | Modeling plan and evaluation | [modeling_plan.md](docs/modeling_plan.md), [eta_model_evaluation_2026-10-20.md](docs/eta_model_evaluation_2026-10-20.md) |
 | Model packaging and the 80% range | [model_serving.md](docs/model_serving.md) |
 | Local API and boarding groups | [local_api.md](docs/local_api.md), [boarding_groups.md](docs/boarding_groups.md) |
-| Static replay and website | [static_replay.md](docs/static_replay.md), [website_architecture.md](docs/website_architecture.md) |
+| Static replay and website | [static_replay.md](docs/static_replay.md), [showcase_replay.md](docs/showcase_replay.md), [website_architecture.md](docs/website_architecture.md) |
 | Why the 511 feed is not an arrival source | [511_arrival_feasibility.md](docs/511_arrival_feasibility.md) |
 
 ## Data source and license
@@ -218,6 +228,8 @@ system map. Line colours are the `route_color` values in BART's GTFS feed.
 ## Data
 
 Nothing under `data/` is committed, and later steps never modify raw snapshots. The only
-data Git tracks is the published replay in `web/public/replay/`. It holds the reduced
-answers alone: no raw feeds, warehouse rows, models or bundles
-([static_replay.md](docs/static_replay.md#the-published-replay)).
+data Git tracks is the published replay in `web/public/replay/` and its four showcase
+files in `web/public/showcase/`. They hold the reduced answers and per-train summaries
+alone: no raw feeds, warehouse rows, models or bundles
+([static_replay.md](docs/static_replay.md#the-published-replay),
+[showcase_replay.md](docs/showcase_replay.md#files)).

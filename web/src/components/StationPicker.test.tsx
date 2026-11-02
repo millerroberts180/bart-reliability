@@ -125,7 +125,7 @@ describe('StationPicker', () => {
     renderExample();
     await openPicker(user);
     expect(combobox()).toHaveFocus();
-    await user.click(screen.getByText(/^Choose where you’re boarding/)); // plain text, not a control
+    await user.click(screen.getByText('Which way are you going?')); // plain text, not a control
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
     // Focus is never left on the document.
     await waitFor(() => expect(screen.getByRole('button', { name: /^Change boarding station/ })).toHaveFocus());
