@@ -4,8 +4,9 @@ import { createPublishedReplayHost, PUBLISHED_ROOT, publishedFiles } from '../te
 import { PredictionClientError } from './PredictionClient';
 import { historyFile, STATIC_REPLAY_SCHEMA, StaticReplayClient } from './StaticReplayClient';
 
-const AS_OF = '2026-10-20T17:00:00Z';
-const EXPORT = 'v1-20261020T170000Z';
+// The published replay is the curated showcase (docs/showcase_replay.md).
+const AS_OF = '2026-10-19T15:10:23Z';
+const EXPORT = 'v1-20261019T151023Z';
 
 function setup() {
   const host = createPublishedReplayHost();
@@ -45,7 +46,7 @@ describe('StaticReplayClient', () => {
     await client.getHealth();
     await client.listStations();
     await client.getPredictions('MONT', 'to-EMBR');
-    await client.getPredictionHistory('2026-10-20:1965254:11');
+    await client.getPredictionHistory('2026-10-19:1965825:7');
     await client.getModelMetadata();
 
     const base = `/bart-reliability/replay/${EXPORT}`;
@@ -54,7 +55,7 @@ describe('StaticReplayClient', () => {
       `${base}/health.json`,
       `${base}/stations.json`,
       `${base}/boards/MONT/to-EMBR.json`,
-      `${base}/history/2026-10-20_1965254_11.json`,
+      `${base}/history/2026-10-19_1965825_7.json`,
       `${base}/model.json`,
     ]);
     // Paths only: the page's own origin, with no host, port or API address.
@@ -64,7 +65,7 @@ describe('StaticReplayClient', () => {
     }
   });
 
-  it('decodes every published station, board and history, labelled as the October 20 replay', async () => {
+  it('decodes every published station, board and history, labelled as the October 19 replay', async () => {
     const { client, host } = setup();
     const health = await client.getHealth();
     expect(health).toMatchObject({ status: 'ok', dataProvenance: 'historical_replay', replay: { asOf: AS_OF } });
@@ -76,84 +77,42 @@ describe('StaticReplayClient', () => {
     });
 
     const stations = await client.listStations();
-    expect(stations).toHaveLength(50);
+    expect(stations).toHaveLength(37);
     const boards: PredictionResponse[] = [];
     for (const station of stations) {
       for (const group of station.boardingGroups) {
         boards.push(await client.getPredictions(station.id, group.id));
       }
     }
-    expect(boards).toHaveLength(95);
-    expect(boards.every((b) => b.replay?.asOf === AS_OF && b.feedTimestamp === '2026-10-20T16:59:23Z')).toBe(true);
+    expect(boards).toHaveLength(62);
+    expect(boards.every((b) => b.replay?.asOf === AS_OF && b.feedTimestamp === '2026-10-19T15:10:22Z')).toBe(true);
     expect(boards.every((b) => b.model.modelVersion === '0.2.0+886fcd260732' && !b.model.simulated)).toBe(true);
 
     const trains = boards.flatMap((b) => b.trains);
     const byStatus: Record<string, number> = {};
     for (const t of trains) byStatus[t.predictionStatus] = (byStatus[t.predictionStatus] ?? 0) + 1;
-    expect(byStatus).toEqual({ ok: 79, outside_model_horizon: 949, outside_model_population: 27, fallback_required: 2 });
+    // Only supported forecasts are published: no train would show BART's ETA alone.
+    expect(byStatus).toEqual({ ok: 83 });
     expect(trains.filter(hasForecast).every((t) => t.revisionInterval !== null)).toBe(true);
 
     let points = 0;
     for (const train of trains) points += (await client.getPredictionHistory(train.predictionId)).length;
-    expect(points).toBe(47_939);
+    expect(points).toBe(6019);
     // Every published file was read exactly once, plus the index; nothing else.
-    expect(host.requests).toHaveLength(1 + 1 + 1 + 1 + 95 + 1057);
+    expect(host.requests).toHaveLength(1 + 1 + 1 + 1 + 62 + 83);
     expect(new Set(host.requests).size).toBe(host.requests.length);
-    expect(publishedFiles()).toHaveLength(1157);
+    expect(publishedFiles()).toHaveLength(150);
   });
 
-  it('serves each kind of train the page distinguishes', async () => {
+  it('serves only supported trains, each with a forecast, an interval and a stability class', async () => {
     const { client } = setup();
-    const board = (station: string, group: string) => client.getPredictions(station, group);
-    const find = (b: PredictionResponse, id: string): TrainPrediction => {
-      const train = b.trains.find((t) => t.predictionId === id);
-      if (!train) throw new Error(`no train ${id}`);
-      return train;
-    };
-
-    const forecast = find(await board('12TH', 'to-LAKE-WOAK'), '2026-10-20:1965177:12');
-    expect(forecast.predictionStatus).toBe('ok');
-    expect(hasForecast(forecast) && forecast.revisionInterval?.level).toBe(0.8);
-
-    const horizon = find(await board('12TH', 'to-19TH'), '2026-10-20:1965678:16');
-    expect(horizon).toMatchObject({ predictionStatus: 'outside_model_horizon', predictedRevisionSeconds: null });
-    expect(horizon.statusReason).toMatch(/models serve only published-time horizons of 5, 10 and 15 minutes/);
-
-    const origin = find(await board('BERY', 'to-MLPT'), '2026-10-20:1965501:0');
-    expect(origin).toMatchObject({
-      predictionStatus: 'outside_model_population',
-      statusReason: 'trip origin: a departure, not an approach',
-    });
-
-    // The two trains at platforms the models never saw: BART's ETA only.
-    for (const [station, group, id] of [
-      ['PITT', 'to-PCTR', '2026-10-20:1965252:25'],
-      ['WDUB', 'to-DUBL', '2026-10-20:1965828:16'],
-    ] as const) {
-      expect(find(await board(station, group), id)).toMatchObject({
-        predictionStatus: 'fallback_required',
-        statusReason: 'input outside demonstrated model support',
-        predictedRevisionSeconds: null,
-        revisionInterval: null,
-        revisionProbability: null,
-        stability: null,
-      });
-    }
-
-    // Empty boards carry what the page explains them with.
-    const empty = {
-      'ANTC to-PCTR': { unplaced: 5, terminating: 0 },
-      'COLS to-OAKL': { unplaced: 0, terminating: 0 },
-      'OAKL to-COLS': { unplaced: 0, terminating: 0 },
-      'PCTR to-ANTC': { unplaced: 9, terminating: 0 },
-      'PCTR to-PITT': { unplaced: 9, terminating: 0 },
-    };
-    for (const [key, expected] of Object.entries(empty)) {
-      const [station = '', group = ''] = key.split(' ');
-      const b = await board(station, group);
-      expect(b.trains).toEqual([]);
-      expect({ unplaced: b.unplacedTrainCount, terminating: b.terminatingTrainCount }).toEqual(expected);
-    }
+    const board = await client.getPredictions('ROCK', 'to-ORIN');
+    const train = board.trains.find((t) => t.predictionId === '2026-10-19:1965313:17');
+    expect(train && hasForecast(train)).toBe(true);
+    if (!train || !hasForecast(train)) return;
+    expect(train).toMatchObject({ predictedRevisionSeconds: 60, currentEtaSeconds: 307, stability: 'may_be_revised' });
+    expect(train.revisionInterval?.level).toBe(0.8);
+    for (const t of board.trains as TrainPrediction[]) expect(t.predictionStatus).toBe('ok');
   });
 
   it('answers not_found for a missing file, and for IDs the exporter never writes without asking', async () => {
@@ -172,7 +131,7 @@ describe('StaticReplayClient', () => {
       await expectClientError(client.getPredictionHistory(id), 'not_found');
     }
     expect(host.requests.length).toBe(before);
-    expect(historyFile('2026-10-20:1965254:11')).toBe('history/2026-10-20_1965254_11.json');
+    expect(historyFile('2026-10-19:1965825:7')).toBe('history/2026-10-19_1965825_7.json');
     expect(historyFile('2026-10-20:1965254:011')).toBeNull();
   });
 
@@ -215,7 +174,7 @@ describe('StaticReplayClient', () => {
     await expectClientError(client.listStations(), 'not_found');
 
     host.respond('index.json', { body: JSON.stringify(index) });
-    expect(await client.listStations()).toHaveLength(50);
+    expect(await client.listStations()).toHaveLength(37);
     await client.getHealth();
     expect(host.requests.filter((r) => r === 'index.json')).toHaveLength(4);
   });

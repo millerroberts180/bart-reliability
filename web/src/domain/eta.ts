@@ -7,7 +7,7 @@ export const STALE_AFTER_SECONDS = 120;
 export const STABILITY_CUTOFFS = { mayBeRevised: 0.25, likelyToBeRevised: 0.5 } as const;
 
 /**
- * current published ETA + predicted revision = likely final published ETA.
+ * current published ETA + predicted revision = model-adjusted ETA.
  * The result is still a published estimate, never an observed arrival.
  */
 export function likelyFinalEtaSeconds(currentEtaSeconds: number, predictedRevisionSeconds: number): number {
@@ -153,7 +153,7 @@ export function formatClock(iso: string): string {
 /**
  * Whether two clock times need seconds to be told apart: true when they differ but
  * read the same to the minute. It controls whether the exact calculation's clocks
- * (BART's current ETA and the likely final published ETA) show seconds, so a
+ * (BART's current ETA and the model-adjusted ETA) show seconds, so a
  * sub-minute adjustment is never concealed by minute-only formatting. The large
  * glanceable forecast is always minute precision and does not use it.
  */

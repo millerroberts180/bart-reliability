@@ -27,6 +27,25 @@
   --color-revise: #a13a28; /* 5.9:1 */
   --color-watch-wash: #f3e7cf;
 
+  /* Network map: a diverging scale. A later ETA runs from amber through orange to red as
+   * the revision grows, so a larger miss in BART's estimate looks worse; an earlier one
+   * deepens in teal. The pair stays apart for the common colour-vision deficiencies.
+   * Bubbles shade along these values with the size of the revision
+   * (web/src/domain/mapScale.ts holds the same values). Each step also has a shape and a
+   * text label, and each hue has its own deeper outline, so a glyph's edge meets 3:1
+   * against the ground whatever its fill. */
+  --map-earlier-strong: #0a7f70;
+  --map-earlier: #bfe6dc;
+  --map-earlier-edge: #064a41; /* 9.0:1 */
+  --map-little: #ddd6c8;
+  --map-little-edge: #7a7163; /* 4.2:1 */
+  --map-later: #f6d37c;
+  --map-later-mid: #e8892f;
+  --map-later-strong: #b8231c;
+  --map-later-edge: #6e1a10; /* 10.2:1 */
+  --map-none: #8a8478; /* outline of a station with no supported forecast, 3.3:1 */
+  --map-track: #cfc8b9;
+
   /* Typography */
   --font-display: 'Schibsted Grotesk Variable', 'Helvetica Neue', Arial, sans-serif;
   --font-text: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
@@ -37,6 +56,7 @@
   --text-body: 1.0625rem; /* 17px reading text */
   --text-lede: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
   --text-heading: clamp(1.625rem, 1.35rem + 1.1vw, 2.125rem);
+  --text-title: clamp(2.25rem, 1.75rem + 1.6vw, 3rem); /* the home page's title, one step above a heading */
   --text-value: clamp(1.625rem, 1.4rem + 0.8vw, 2rem);
   --text-value-strong: clamp(2.25rem, 1.85rem + 1.5vw, 3rem);
   --text-display: clamp(2.75rem, 1.4rem + 5.6vw, 5.75rem);

@@ -15,9 +15,9 @@ This is the first complete version of the project:
 
 Live demo: <https://millerroberts180.github.io/bart-reliability/>
 
-The demo is a fixed replay of BART data as of Tuesday, October 20, 2026 at 10:00 AM
-Pacific, not live data. The model predicts revisions to BART's published ETA, not
-physical arrival times.
+The demo is a fixed replay of BART data as of Monday, October 19, 2026 at 8:10 AM
+Pacific, not live data. It shows only trains the model supports at 5, 10 and 15 minutes
+out. The model predicts revisions to BART's published ETA, not physical arrival times.
 
 ## Included
 
@@ -31,8 +31,10 @@ physical arrival times.
   evaluated on a date-ordered split that was written down before fitting.
 - The selected models, packaged as version `0.2.0+886fcd260732`, and a local FastAPI app
   that answers as of a past moment.
-- The local app's answers at 10:00 AM on October 20, saved as JSON files and shown by a
-  React/Vite site on GitHub Pages.
+- A curated replay: the local app's answers at 8:10 AM on October 19 for the
+  model-supported trains, with the final ETA BART published later for each, saved as
+  JSON files. A React/Vite site on GitHub Pages shows them as highlights, an original
+  network map and a train explorer ([showcase replay](showcase_replay.md)).
 
 ## Results
 
@@ -65,8 +67,9 @@ The other results:
 | Warehouse | `bart_checkpoint_2026-10-20.duckdb`, SHA-256 `19dd5cfc686bed4f223adbfe5c5d26ef8385e5d1a152da5aa2be7af9378e55cc` |
 | Evaluation run | Commit `c2d504e` |
 | Model bundle | `0.2.0+886fcd260732`, bundle ID `db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087` |
-| Published replay | `web/public/replay/`, export `v1-20261020T170000Z`, 1,157 files, 5,938,839 bytes |
-| Replay hashes | `index.json` `07eb740f64c68e95a46a255028659c4a21f1053702fffc63ebd7274fa46252fe`; manifest `737f7bf404cd180ff798ec6e5d2cd8b46b9f40ffb398d9223e7b523bbf8fbe90`; tree `5202c3fb6b093930642571bd1999e03e36084bb81e248115d1692abca5afb0ba` |
+| Published replay | `web/public/replay/`, export `v1-20261019T151023Z`, replay time 2026-10-19T15:10:23Z, 150 files, 758,230 bytes |
+| Replay hashes | `index.json` `563a705749166ecffe27cf992b5f55d3d3f0ce27bc3bcd53d7fb5e6e22c3f606`; manifest `cae7becfba2b69ec3556e4e9b0a5c4a5c0942683751827a81fd573e5c6e263e4`; tree `c9cbad518e865a9c0ca2397dedbc83026494fdd1a03974ef72b50c778fed043b` |
+| Showcase files | `web/public/showcase/`, 4 files, 126,118 bytes; `showcase.json` `989cfe66b0e7a0d5fa2a5e46281757db780807c89e94b10b1e88a42077a14b9a`, which lists the other three files' SHA-256 values |
 
 The raw data, warehouse and model files stay out of the repository, under the ignored
 `data/`. The release attaches no files beyond GitHub's source archives.
@@ -81,13 +84,15 @@ GitHub Pages and does not depend on any server ([deployment notes](deployment.md
 
 - The labels measure revisions to BART's published ETAs, not physical arrivals. BART
   publishes no independent arrival data.
-- The public site is a fixed replay of one moment.
+- The public site is a fixed replay of one moment. Its final published ETA is BART's own
+  last stable estimate, not an observed arrival.
 - The final evaluation covers one Monday. It can't show how the model does on other
   days, weekends or disrupted service.
 - The data covers about ten days in one season, and there is no data after the backup
   cutoff.
-- Only part of the service is modelled. At the replay moment, 79 of 1,057 trains have a
-  forecast. The rest show BART's ETA with the reason there is no forecast.
+- Only part of the service is modelled. At the replay moment, 89 of 1,067 trains have a
+  supported forecast. The site shows the 83 whose final published ETA is known, and no
+  other trains.
 - The earlier model's classifier had lower calibration error than the new one.
 
 ## Not in this release

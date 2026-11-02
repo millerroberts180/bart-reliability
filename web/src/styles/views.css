@@ -1,0 +1,1065 @@
+/*
+ * The three views (Highlights, Network map, Train explorer), their shared header, and the
+ * replay strip. Same system as the rest of the site: the warm ground, ink type, one signal
+ * blue for interaction, hairline rules instead of cards, 2px corners and no shadows.
+ */
+
+/* ---------- Header and navigation ---------- */
+
+.site-header {
+  border-bottom: var(--border-hair);
+}
+
+.site-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--space-6);
+  padding-block: var(--space-1);
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-6);
+}
+
+.site-nav__views {
+  display: flex;
+  gap: 0 var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav__link,
+.site-nav__source {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--color-ink-secondary);
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  text-decoration: none;
+}
+
+.site-nav__link {
+  /* The current view is marked by weight and a rule as well as colour. */
+  border-bottom: 2px solid transparent;
+}
+
+.site-nav__link[aria-current='page'] {
+  border-bottom-color: var(--color-ink);
+  color: var(--color-ink);
+  font-weight: 650;
+}
+
+.site-nav__link:hover,
+.site-nav__source:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
+.site-nav__link[aria-current='page']:hover {
+  text-decoration: none;
+}
+
+/* Phones: the three views become an even row of their own, always visible; the source link sits beside the wordmark. */
+@media (max-width: 47.99rem) {
+  .site-header__inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding-bottom: 0;
+  }
+
+  .site-nav {
+    display: contents;
+  }
+
+  .site-nav__source {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: var(--text-label);
+  }
+
+  .site-nav__views {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border-top: var(--border-hair);
+  }
+
+  .site-nav__link {
+    justify-content: center;
+    width: 100%;
+    padding-inline: var(--space-1);
+    text-align: center;
+    line-height: var(--leading-snug);
+  }
+}
+
+/* ---------- Replay strip (every view) ---------- */
+
+.replay-strip {
+  padding-block: var(--space-3);
+  border-bottom: var(--border-hair);
+}
+
+.replay-strip__text {
+  color: var(--color-ink-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  line-height: var(--leading-body);
+}
+
+.replay-strip__label {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.replay-strip__label::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: var(--space-2);
+  background: var(--color-signal);
+  vertical-align: 0.05em;
+}
+
+/* ---------- View frame ---------- */
+
+.view {
+  padding-block: var(--space-6) var(--space-8);
+}
+
+@media (min-width: 40rem) {
+  .view {
+    padding-block: var(--space-7) var(--space-9);
+  }
+}
+
+#main:focus,
+.view [tabindex='-1']:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.view-head {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--measure);
+}
+
+.view-head__title {
+  font-size: var(--text-heading);
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+.view-head__lede {
+  color: var(--color-ink-secondary);
+}
+
+.view-head__disclosure,
+.intro__disclosure {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--color-rule-strong);
+  color: var(--color-ink);
+  font-size: var(--text-small);
+}
+
+.section-title {
+  font-size: var(--text-heading);
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+
+.notice--error {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.view-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin-top: var(--space-7);
+  padding-top: var(--space-5);
+  border-top: var(--border-hair);
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+}
+
+.view-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+/* ---------- Highlights ---------- */
+
+.intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-bottom: var(--space-7);
+}
+
+/* The same voice as the other views' titles, one step larger; the question beneath it is
+   set in the heading face too, so the two read as one title block. */
+.intro__title {
+  font-size: var(--text-title);
+  font-weight: 720;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+.intro__lede {
+  max-width: 32ch;
+  margin-top: calc(var(--space-2) * -1);
+  color: var(--color-ink-secondary);
+  font-family: var(--font-display);
+  font-size: var(--text-lede);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.intro__summary {
+  max-width: var(--measure);
+  color: var(--color-ink-secondary);
+}
+
+.intro__replay {
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.intro__replay-label {
+  color: var(--color-ink-muted);
+}
+
+/* Three figures on one rule, not tiles: label above, value below. */
+.figures {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: var(--space-2) 0 0;
+  border-top: var(--border-strong);
+}
+
+.figures__item {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-3);
+  border-bottom: var(--border-hair);
+}
+
+@media (min-width: 40rem) {
+  .figures {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .figures__item {
+    padding-right: var(--space-5);
+    border-bottom: none;
+  }
+}
+
+.figures dt {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.figures dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-value);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-snug);
+}
+
+.figures dd.figures__version {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+
+/* ---------- Segmented choices (horizon, map mode) ---------- */
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  margin-top: var(--space-5);
+  border: var(--border-strong);
+  border-radius: var(--radius-small);
+}
+
+.segmented__option {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-right: var(--border-strong);
+  background: transparent;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.segmented__option:last-child {
+  border-right: none;
+}
+
+.segmented__option:hover {
+  background: var(--color-ground-sunk);
+}
+
+/* Selected: filled ink. Each option leads with a radio-style circle, empty or filled, so
+   the state is carried by shape as well as colour (screen readers hear "pressed"). */
+.segmented__option[aria-pressed='true'] {
+  background: var(--color-ink);
+  color: var(--color-ground);
+}
+
+.segmented__dot {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-right: var(--space-2);
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  vertical-align: -0.05em;
+}
+
+.segmented__option[aria-pressed='true'] .segmented__dot {
+  background: currentColor;
+  box-shadow: inset 0 0 0 1.5px var(--color-ink);
+}
+
+.segmented__option:focus-visible {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Largest ETA changes ---------- */
+
+.changes {
+  padding-top: var(--space-7);
+  border-top: var(--border-strong);
+}
+
+.changes__intro {
+  max-width: var(--measure);
+  margin-top: var(--space-3);
+  color: var(--color-ink-secondary);
+}
+
+.changes__count {
+  margin-top: var(--space-4);
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+}
+
+.changes__list {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.change {
+  display: grid;
+  gap: var(--space-4);
+  padding-block: var(--space-5);
+  border-top: var(--border-hair);
+}
+
+.change:last-child {
+  border-bottom: var(--border-hair);
+}
+
+.change__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  align-items: baseline;
+}
+
+.change__rank {
+  grid-row: span 2;
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.change__title {
+  font-size: var(--text-body);
+  font-weight: 650;
+  line-height: var(--leading-snug);
+}
+
+.change__line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-ink-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+}
+
+/* Cased in ink, so a light route colour (Yellow) still reads on the ground. */
+.change__swatch {
+  width: 0.875rem;
+  height: 0.375rem;
+  border: 1px solid var(--color-ink);
+  background: var(--route, var(--color-ink-muted));
+}
+
+/* BART said -> Model expected -> BART later published: three steps on one rule. */
+.sequence {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sequence__step {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-3) 0 var(--space-3) var(--space-4);
+  border-left: 1px solid var(--color-rule-strong);
+}
+
+.sequence__step--retrospective {
+  border-left-style: dashed;
+  background: var(--color-surface);
+}
+
+@media (min-width: 48rem) {
+  .sequence {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sequence__step {
+    position: relative;
+    padding: var(--space-3) var(--space-5) var(--space-3) var(--space-4);
+  }
+
+  /* The arrow between steps reads in order; it is decoration, so it is not announced. */
+  .sequence__step + .sequence__step::before {
+    content: '→';
+    position: absolute;
+    top: var(--space-3);
+    left: calc(-1 * var(--space-5));
+    color: var(--color-ink-muted);
+    font-family: var(--font-display);
+  }
+}
+
+.sequence__label {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.sequence__value {
+  font-family: var(--font-display);
+  font-size: var(--text-value);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: var(--leading-snug);
+}
+
+.sequence__detail {
+  color: var(--color-ink-secondary);
+  font-size: var(--text-small);
+  line-height: 1.4;
+}
+
+.change__verdict {
+  font-size: var(--text-small);
+}
+
+.change__mark {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-right: var(--space-2);
+  vertical-align: -0.1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.change__verdict--match .change__mark {
+  color: var(--color-hold);
+}
+
+.change__verdict--differ .change__mark {
+  color: var(--color-revise);
+}
+
+.change__link a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.changes__context {
+  max-width: var(--measure);
+  margin-top: var(--space-5);
+  color: var(--color-ink);
+}
+
+.changes__note {
+  max-width: var(--measure);
+  margin-top: var(--space-3);
+  color: var(--color-ink-muted);
+  font-size: var(--text-small);
+}
+
+/* ---------- Network map ---------- */
+
+.map-takeaway {
+  max-width: var(--measure);
+  margin-top: var(--space-4);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.map-legend__note {
+  max-width: var(--measure);
+  margin-top: var(--space-2);
+  color: var(--color-ink-secondary);
+  font-size: var(--text-small);
+}
+
+/* Narrow: map, then the station panel (so a tap shows its result at once), then the
+   legend. Wide: the panel beside the map. */
+.map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'map'
+    'panel'
+    'legend';
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+}
+
+.map-layout > .network {
+  grid-area: map;
+}
+
+.map-layout > .station-panel {
+  grid-area: panel;
+}
+
+.map-layout > .map-legend {
+  grid-area: legend;
+}
+
+@media (min-width: 64rem) {
+  .map-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+    grid-template-areas:
+      'map panel'
+      'legend panel';
+    gap: var(--space-5) var(--space-6);
+    align-items: start;
+  }
+}
+
+.network {
+  position: relative;
+  margin: 0;
+  border-top: var(--border-strong);
+}
+
+/* Keyboard users can pass the 50 station stops in one step. Invisible until focused: the
+   page-level skip link hides by moving up, which here would land on the text above. */
+.network__skip {
+  transform: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.network__skip:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* The whole network always fits: the drawing takes the frame's width and, on a wide
+   screen, never more than the window's height (it then centres, keeping its shape). */
+.network__frame {
+  width: 100%;
+}
+
+.network__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 64rem) {
+  .network__svg {
+    max-height: calc(100svh - 8rem);
+  }
+}
+
+.network__tracks polyline,
+.network__line polyline {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.network__tracks polyline {
+  stroke: var(--map-track);
+  stroke-width: 5;
+}
+
+.network__tracks--quiet polyline {
+  stroke: var(--color-ground-sunk);
+}
+
+/* One line, picked in the filter: its own colour over an ink casing, so even yellow reads. */
+.network__line polyline {
+  stroke: var(--route, var(--color-ink));
+  stroke-width: 6;
+}
+
+.network__line .network__casing {
+  stroke: var(--color-ink);
+  stroke-width: 8;
+}
+
+.station {
+  cursor: pointer;
+  outline: none;
+}
+
+.station__hit {
+  fill: transparent;
+}
+
+.station__ring {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 3;
+}
+
+.station:focus-visible .station__ring {
+  stroke: var(--color-signal);
+}
+
+.station--selected .station__ring {
+  stroke: var(--color-ink);
+}
+
+.station:focus-visible.station--selected .station__ring {
+  stroke: var(--color-signal);
+}
+
+.mark {
+  stroke-width: 1.25;
+}
+
+.mark--later {
+  stroke: var(--map-later-edge);
+}
+
+.mark--earlier {
+  stroke: var(--map-earlier-edge);
+}
+
+.mark--little {
+  fill: var(--map-little);
+  stroke: var(--map-little-edge);
+}
+
+.mark--none {
+  fill: var(--color-ground);
+  stroke: var(--map-none);
+}
+
+.mark__chevron {
+  fill: none;
+  stroke: var(--map-later-edge);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mark-group .mark--earlier ~ .mark__chevron {
+  stroke: var(--map-earlier-edge);
+}
+
+.mark__chevron--light,
+.mark-group .mark--earlier ~ .mark__chevron--light {
+  stroke: var(--color-surface);
+}
+
+/* The other mode's value, for comparison: dashed when it is the retrospective outcome. */
+.mark__ring {
+  fill: none;
+  stroke: var(--color-ink-secondary);
+  stroke-width: 1.25;
+}
+
+.mark__ring--published {
+  stroke-dasharray: 1.5 3;
+  stroke-linecap: round;
+  stroke-width: 1.5;
+}
+
+.mark-group--dim {
+  opacity: 0.25;
+}
+
+.station--dim .station__label {
+  fill: var(--color-ink-muted);
+  opacity: 0.6;
+}
+
+.station__label {
+  fill: var(--color-ink-secondary);
+  font-family: var(--font-display);
+  paint-order: stroke;
+  stroke: var(--color-ground);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.station--none .station__label {
+  fill: var(--color-ink-muted);
+}
+
+.station--selected .station__label {
+  fill: var(--color-ink);
+  font-weight: 700;
+}
+
+.map-legend {
+  padding-top: var(--space-4);
+  border-top: var(--border-hair);
+}
+
+.map-legend__title {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* One ordered ramp, earlier to later, then no forecast: it wraps but never reorders. */
+.map-legend__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-small);
+}
+
+.map-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  line-height: var(--leading-snug);
+}
+
+.map-legend__glyph {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.map-legend__sizes {
+  flex: none;
+  width: 4.5rem;
+  height: 2.1rem;
+}
+
+.map-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3) var(--space-6);
+}
+
+/* Lines: a quiet row of choices, each named and marked with its route swatch. */
+.line-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.line-filter__label {
+  margin-right: var(--space-1);
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.line-filter__option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--color-ink-secondary);
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  cursor: pointer;
+}
+
+.line-filter__option:hover {
+  border-color: var(--color-rule-strong);
+  color: var(--color-ink);
+}
+
+.line-filter__option[aria-pressed='true'] {
+  border-color: var(--color-rule-strong);
+  color: var(--color-ink);
+  font-weight: 650;
+  border-bottom: 2px solid var(--color-ink);
+}
+
+.line-filter__swatch {
+  width: 0.875rem;
+  height: 0.375rem;
+  border: 1px solid var(--color-ink);
+  background: var(--route, transparent);
+}
+
+.line-filter__swatch--all {
+  background: var(--map-track);
+}
+
+.station-panel {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: var(--border-strong);
+}
+
+.station-panel__title {
+  font-size: var(--text-value);
+  font-weight: 700;
+  line-height: var(--leading-snug);
+}
+
+.station-panel__count,
+.station-panel__none {
+  color: var(--color-ink-secondary);
+}
+
+.station-panel__facts {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.station-panel__fact {
+  display: grid;
+  gap: var(--space-1);
+  padding-top: var(--space-3);
+  border-top: var(--border-hair);
+}
+
+.station-panel__fact dt {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.station-panel__fact dd {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.station-panel__value {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 650;
+}
+
+.station-panel__train {
+  color: var(--color-ink-secondary);
+  font-size: var(--text-small);
+}
+
+.station-panel__link a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+}
+
+.station-table {
+  margin-top: var(--space-7);
+  border-top: var(--border-hair);
+}
+
+.station-table summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--color-signal);
+  font-family: var(--font-display);
+  font-size: var(--text-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.station-table__scroll {
+  overflow-x: auto;
+}
+
+.station-table table {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-size: var(--text-small);
+}
+
+.station-table th,
+.station-table td {
+  padding: var(--space-2) var(--space-3) var(--space-2) 0;
+  border-bottom: var(--border-hair);
+  text-align: left;
+  vertical-align: top;
+}
+
+.station-table thead th {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.station-table tr[aria-current='true'] th,
+.station-table tr[aria-current='true'] td {
+  background: var(--color-signal-wash);
+}
+
+.station-table__current {
+  font-weight: 650;
+}
+
+.station-table__none {
+  color: var(--color-ink-muted);
+}
+
+/* ---------- Train explorer ---------- */
+
+.view--explorer .example {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+}
+
+/* The forecast steps, in reading order, under BART's published ETA. */
+.readout-steps {
+  display: grid;
+  gap: 0;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: var(--border-hair);
+}
+
+.readout-step {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-3);
+  border-bottom: var(--border-hair);
+}
+
+.readout-step__label {
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.readout-step__value {
+  font-family: var(--font-display);
+  font-size: var(--text-body);
+  font-weight: 650;
+}
+
+.readout-step__note {
+  color: var(--color-ink-secondary);
+  font-size: var(--text-small);
+}
+
+.readout-step--retrospective {
+  margin-top: var(--space-4);
+  padding-inline: var(--space-4);
+  border: 1px dashed var(--color-rule-strong);
+  background: var(--color-ground);
+}
+
+.retro-tag {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-ink-muted);
+  border-radius: var(--radius-small);
+  color: var(--color-ink);
+}

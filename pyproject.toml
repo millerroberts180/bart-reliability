@@ -21,6 +21,8 @@ dev = [
     "httpx>=0.27",
     # Starlette's TestClient (FastAPI's) runs on httpx2; with only httpx it warns.
     "httpx2>=2.0.0",
+    # Validates the static showcase files against docs/contracts/showcase (tests only).
+    "jsonschema>=4.23",
     "pytest>=8",
     "responses>=0.25",
     "ruff>=0.6",

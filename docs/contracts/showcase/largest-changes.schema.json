@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "largest-changes.schema.json",
+  "title": "largest-changes.json: largest ETA changes in this replay (version 1)",
+  "description": "Per prediction horizon, at most five trains with the largest absolute realized ETA revision (final published ETA minus BART published ETA), one per trip run. Revisions to BART's ETA, not train delays.",
+  "type": "object",
+  "allOf": [{ "$ref": "common.schema.json#/$defs/header" }],
+  "unevaluatedProperties": false,
+  "required": ["title", "notice", "rankedBy", "perHorizonLimit", "deduplicatedBy", "byHorizon"],
+  "properties": {
+    "schemaVersion": { "const": "showcase-largest-changes-1" },
+    "dataMode": true,
+    "asOf": true,
+    "feedTimestamp": true,
+    "serviceDate": true,
+    "modelVersion": true,
+    "title": { "const": "Largest ETA changes in this replay" },
+    "notice": { "type": "string", "minLength": 1 },
+    "rankedBy": { "type": "string", "minLength": 1 },
+    "perHorizonLimit": { "const": 5 },
+    "deduplicatedBy": { "type": "string", "minLength": 1 },
+    "byHorizon": {
+      "type": "object",
+      "additionalProperties": false,
+      "propertyNames": { "enum": ["300", "600", "900"] },
+      "patternProperties": {
+        "^(300|600|900)$": {
+          "type": "array",
+          "maxItems": 5,
+          "items": { "$ref": "#/$defs/row" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "predictionId",
+        "tripRunId",
+        "stationId",
+        "stationName",
+        "boardingGroupId",
+        "destination",
+        "lineName",
+        "routeShortName",
+        "horizonSeconds",
+        "bartPublishedEtaSeconds",
+        "bartPublishedEtaAt",
+        "predictedRevisionSeconds",
+        "modelAdjustedEtaSeconds",
+        "modelAdjustedEtaAt",
+        "finalPublishedEtaSeconds",
+        "finalPublishedEtaAt",
+        "realizedRevisionSeconds",
+        "modelErrorSeconds",
+        "directionMatch",
+        "modelVersion"
+      ],
+      "properties": {
+        "rank": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "predictionId": { "$ref": "common.schema.json#/$defs/predictionId" },
+        "tripRunId": { "$ref": "common.schema.json#/$defs/tripRunId" },
+        "stationId": { "type": "string", "minLength": 1 },
+        "stationName": { "type": ["string", "null"] },
+        "boardingGroupId": { "type": "string", "minLength": 1 },
+        "destination": { "type": "string", "minLength": 1 },
+        "lineName": { "type": "string", "minLength": 1 },
+        "routeShortName": { "type": ["string", "null"] },
+        "horizonSeconds": { "$ref": "common.schema.json#/$defs/horizon" },
+        "bartPublishedEtaSeconds": { "type": "integer" },
+        "bartPublishedEtaAt": { "$ref": "common.schema.json#/$defs/utc" },
+        "predictedRevisionSeconds": { "type": "integer" },
+        "modelAdjustedEtaSeconds": { "type": "integer" },
+        "modelAdjustedEtaAt": { "$ref": "common.schema.json#/$defs/utc" },
+        "finalPublishedEtaSeconds": { "type": "integer" },
+        "finalPublishedEtaAt": { "$ref": "common.schema.json#/$defs/utc" },
+        "realizedRevisionSeconds": { "type": "integer" },
+        "modelErrorSeconds": { "type": "integer" },
+        "directionMatch": { "type": "boolean" },
+        "modelVersion": { "$ref": "common.schema.json#/$defs/modelVersion" }
+      }
+    }
+  }
+}

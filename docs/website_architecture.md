@@ -1,69 +1,132 @@
-# Website architecture (prototype)
+# Website architecture
 
-**Status:** Milestone 1 (frontend foundation and one prediction), Milestone 2 (ETA
-history chart), the local API integration and the static historical replay. The site has
-three data modes, and nothing in any of them is live:
-- **`static`:** the public GitHub Pages build. It reads the fixed historical replay of
-  2026-10-20 at 10:00 AM Pacific, published with the site as static files
-  ([static_replay.md](static_replay.md)), and labels every value as a historical replay.
+**Status:** the curated historical showcase ([showcase_replay.md](showcase_replay.md)): three
+views over one fixed replay moment, 2026-10-19 at 8:10 AM PDT. The site is a presentation layer
+for the Python, SQL and modeling work: a static Vite and React build on GitHub Pages, with no
+public API, server or database. It has three data modes, and nothing in any of them is live:
+- **`static`:** the public build. It reads the curated replay in `web/public/replay/` and the
+  showcase files in `web/public/showcase/`, both published with the site.
 - **`http`:** for development. It reads the local historical-replay API
-  ([local_api.md](local_api.md)) and labels the same way.
-- **`mock`:** the default for the dev server and every test. Everything it displays is
-  simulated.
+  ([local_api.md](local_api.md)). It has no showcase files, so Highlights and the Network map
+  say they need the published build.
+- **`mock`:** the default for the dev server and most tests. Everything it displays is
+  simulated, and it has no showcase files either.
 
-No API is deployed.
+Each build bundles only its own mode's client and data (`build-tests/`).
 
-The site, **ETA Reliability**, is the public explainer for the ETA-revision project ("How
-stable are BART's published arrival estimates?"). Its first slice lets a visitor pick a
-station, which way they are going (a boarding group, see below) and a train, and read one
-prediction. The page opens briefly: the title, the question, one sentence saying the model
-forecasts revisions to BART's published ETA and not physical arrivals, a call to action
-and the data disclosure. The tool follows at once, and the full explanation ("The
-question") comes after it. The result is built to be read at a glance, for example on a
-platform:
+## Three views
 
-1. **Compact identity:** station · destination, then the line (with its route-colour cue),
-   platform, boarding group, car count and the "Simulated" tag, all at supporting size.
-2. **Likely final published ETA:** the largest element in the example, built for a glance.
-   It shows a very large clock time, always to the minute ("6:27 PM"). Underneath is the
-   time away rounded to whole minutes ("About 2 min away", or "Less than 1 min away"),
-   then the 80% likely range and "Model forecast of BART's last published ETA, not an
-   observed arrival."
-3. **Summary, directly beneath:** BART's own ETA, the expected adjustment and ETA
-   stability, at the glance's precision:
+| View | Address | What it is for |
+|---|---|---|
+| Highlights (default) | `?view=highlights` | What the project is, three figures, and "Largest ETA changes in this replay" by horizon (`&horizon=300\|600\|900`) |
+| Network map | `?view=map` | An original SVG schematic coloured by ETA revision (`&mode=forecast\|published`, `&station=<id>`) |
+| Train explorer | `?view=explorer` | Station, direction and train (`&station=…&boarding=…&train=…`), the forecast and the ETA history |
 
-   ```text
-   BART said in this snapshot   5:56 PM · about 10 min away
-   Expected adjustment          About 2 min 20 sec later
-   ETA stability                Likely to hold · 8% chance BART changes this estimate by more than 60 seconds
-   ```
+**Navigation.**
+- **No routing library.** The query string is the state (`web/src/hooks/useView.ts`).
+- **History.** Moving to another view pushes a history entry, so back and forward work. A
+  view's own choices (horizon, map mode, selection, train) update the address with
+  `replaceState`, so they are shareable without filling the history.
+- **Links.** Every link is a real `href` (`ViewLink`): it works in a new tab, and a plain
+  click navigates in place.
+- **Focus.** After a change of view, focus moves to the view's heading and the document
+  title names the view.
+- **Header.** The header shows the three views and "Source on GitHub" at every width. On
+  phones the views take a row of their own, with no menu icon.
 
-   In a historical replay BART's ETA is always in the past tense ("BART said in this
-   snapshot"); simulated data, which stands in for a live feed, says "BART currently says".
-4. **How the forecast is calculated** (expandable, closed by default): the exact
-   arithmetic, current published ETA + predicted revision = likely final published ETA,
-   with seconds whenever the minute alone would hide the adjustment. The `+` and `=` are
-   visual only; screen readers hear the labels. Then the adjustment range, the stability
-   cutoffs and scale, and the full caveat.
-5. **Service alerts** stay visible, because they can matter to a rider.
-6. **Data and model details** (expandable): where the data came from (the full replay
-   provenance, or "Simulated"), the feed snapshot and its freshness ("Fresh at replay
-   time" in a replay), "Forecast generated", the model version and the date its training
-   data runs to, and the trip number.
+**On every view.** A strip under the header says "Fixed historical replay", the moment,
+"Not live", and "The model predicts revisions to BART’s published ETA, not physical arrival
+times."
 
-For a train without a model forecast, the result shows BART's published ETA, why there is
-no forecast, and BART's exact ETA. If another train on the board has a forecast, a small
-"View the next model forecast" button (or "View an earlier model forecast" when only
-earlier trains have one) names that train and selects it on request. Focus then moves to
-the result's heading. The earliest train is always the default; a later train is never
-selected for the visitor.
+### Three ETAs
 
-The likely final published ETA is a forecast of BART's last published estimate before the
-train reaches the stop. It is never an observed arrival (see `PROJECT_SPEC.md`, "Why not
-arrival accuracy").
+The site keeps three values apart, and its words follow them:
+- **BART published ETA:** what BART said at the snapshot.
+- **Model-adjusted ETA:** BART's ETA plus the model's predicted revision.
+- **BART later published (final published ETA):** retrospective, labelled so wherever it
+  appears.
 
-> `PROJECT_SPEC.md` describes the presentation layer as a custom React and TypeScript
-> frontend, deployed as a static site separately from a future Python prediction API.
+It never describes any of them as an arrival, and a revision is "ETA moved later" or "ETA
+moved earlier", never anything about the train itself.
+
+### Highlights
+
+- **First screen:** the title, the question ("How might BART revise a published ETA as a
+  train approaches?"), and one sentence on what the model does and does not predict. The
+  replay moment follows, then three figures on a rule (supported forecasts, stations
+  represented, model version) and the curation disclosure.
+- **Largest ETA changes:** a horizon control (5, 10 or 15 minutes, `aria-pressed`) shows at
+  most five trains for that horizon, from `largest-changes.json`.
+  - Each entry reads "BART said → Model expected → BART later published", with the
+    predicted and realized change.
+  - It then says whether the direction matched and how far the model-adjusted ETA was from
+    what BART later published.
+  - Each entry links to that train in the explorer.
+- **Not on this page:** general test metrics, which do not describe this snapshot.
+
+### Network map
+
+- **The drawing:** an original octilinear schematic from `network-map.json`, built in
+  Python from the GTFS station order on a grid ([showcase_replay.md](showcase_replay.md)).
+  It is not BART's map artwork, and it uses no BART logo. Tracks are one neutral grey.
+- **What a station shows:** a bubble for its median ETA revision. The bubble's area grows
+  with the size of the revision, and its colour deepens from 15 s to 90 s.
+  - **Direction:** a later ETA runs from amber through orange to red as the revision
+    grows, so a larger miss in BART's estimate looks worse; an earlier one deepens in teal.
+    The pair stays apart for the common colour-vision deficiencies. The direction is also a
+    chevron inside the bubble, so it never depends on colour.
+  - **Little or no change** (under 15 s) is a small stone dot.
+  - **No supported forecast at this replay moment** is a small grey ring.
+  - **Why bubbles:** almost every revision at this moment is 15 to 90 s later. Size and
+    colour show that spread, where same-coloured symbols would not.
+- **Two modes:** "Model forecast at the time" draws the median predicted revision. A
+  dotted ring then shows what BART later published, so the gap between bubble and ring is
+  the model's miss. "What BART later published" draws the median realized revision, with a
+  thin ring for the forecast. Rings are drawn only where they differ visibly from the
+  bubble.
+- **One line at a time:** a "Line" control (All, Red, Orange, Yellow, Green, Blue,
+  `&line=`) does three things:
+  - it draws that line's track in its route colour over an ink casing;
+  - it fades the other lines;
+  - it recomputes every bubble, the station panel, the table and the takeaway from that
+    line's trains only (`network-map.json` `trains`, `web/src/domain/mapData.ts`).
+- **Summary:** a computed takeaway above the map says how many stations moved later or
+  earlier.
+- **Stations:** each is a focusable button, in reading order, with a full accessible name.
+  Enter or Space selects it. A skip link passes the 50 stops.
+- **Station panel:** the selected station's supported train count, its largest predicted
+  and realized revisions (the current mode's first) with destination and line, and a link
+  to that train in the explorer.
+- **Table fallback:** an expandable table lists every station.
+- **Fit:**
+  - The drawing always fits the window: it takes the frame's width, and on a wide screen
+    is capped at the window's height. The page never scrolls sideways.
+  - On a phone the station panel sits directly under the map. Only line ends, junctions
+    and the selected station are named, at a readable size: the ends first, and any other
+    name that would touch one already placed is left out. The table names the rest.
+  - **Label placement** (`web/src/views/mapLabels.ts`): a greedy pass tries eight sides
+    and takes the first that collides with no name or bubble.
+    - Five stations in the Oakland and downtown San Francisco core are placed by hand.
+    - "West Oakland" and "Oakland Airport" take two lines, so the core stays legible
+      whatever size its bubbles are drawn.
+    - A test checks that no two names overlap on any line, in either mode.
+
+### Train explorer
+
+- **What it keeps:** the existing station search, boarding-group choice, train list,
+  forecast readout and ETA history.
+- **What it lists:** only trains with a supported model forecast. The curated replay
+  contains no others, and the development modes leave the rest out too, so the site has no
+  "BART ETA only" state.
+- **First train:** with no train in the address, it opens the Highlights view's first entry.
+- **The readout, in order:**
+  1. BART published ETA at the replay moment (the large clock);
+  2. the model's expected ETA revision ("Expected to move about 1 min later");
+  3. the model-adjusted ETA ("not an observed arrival time");
+  4. the uncertainty (stability, the chance of a revision over 60 s, the 80% range);
+  5. "BART later published", with a Retrospective tag, a dashed outline, and whether the
+     direction matched;
+  6. then the ETA history.
 
 ## Stack
 
@@ -170,10 +233,9 @@ Derived values are computed in exactly one place, `domain/eta.ts`:
   seconds ("6:27:06 PM" and "6:27:18 PM"). A sub-minute adjustment is therefore never
   hidden. The time-away values in the calculation are always exact ("2 min 22 sec").
 - The screen-reader summary gives the glance first, then the exact calculation, labelled as
-  such: "Likely final published ETA: 6:27 PM, about 2 min away. Exact calculation: BART
-  said in this snapshot 6:27:06 PM, 2 min 10 sec away; expected adjustment about 12 seconds
-  later; likely final published ETA 6:27:18 PM, about 2 min 22 sec away." (Simulated data
-  says "BART currently says".)
+  such, in the readout's order: "BART said in this snapshot: 6:27:06 PM, 2 min 10 sec away.
+  Expected to move about 12 seconds later. Model-adjusted ETA: 6:27:18 PM, about 2 min 22
+  sec away." (Simulated data says "BART currently says".)
 - **Time remaining is counted from the feed snapshot**, not from the visitor's clock. It
   matches what BART published and does not count down while the page is open. The readout
   says so next to the snapshot time, and a stale snapshot gets a warning. Switching to the
@@ -240,9 +302,9 @@ once:
    here end their trips, so only trains leaving are listed."
 3. **Upcoming trains:** the next four, in time order, then "Show N more trains" or "Show
    fewer trains" (`TrainTimetable.tsx`, `INITIAL_TRAIN_LIMIT`). Each row leads with BART's
-   ETA as a clock time ("10:05 AM"), the time away beneath it ("5 min 42 s"). A train with
-   a forecast adds its likely final published ETA and stability ("Likely final 10:05 AM ·
-   Likely to hold"); one without says "BART ETA only". When the group has no single
+   ETA as a clock time ("10:05 AM"), the time away beneath it ("5 min 42 s"), then its
+   model-adjusted ETA and stability ("Model-adjusted 10:05 AM · Likely to hold"). Only
+   trains with a supported forecast are listed. When the group has no single
    platform, each row names its train's platform. Collapsing never hides the selected
    train: a later selection stays listed after the first four, under "Later train you
    selected". No train is filtered out. An empty board shows only "None listed": the
@@ -391,8 +453,8 @@ against real BART history yet.
   "Held at 10:05:02 AM in all 83 snapshots, from 8:37:23 AM to 9:59:23 AM.", over a
   quiet rule. "Show the full chart" (a button with `aria-expanded`) opens the same chart,
   and the observation table stays available.
-- The model's likely final published ETA is a dashed blue reference line, labelled
-  "Likely final". Its 80% range is a bracket in the right gutter, outside the time axis,
+- The model-adjusted ETA is a dashed blue reference line, labelled "Model-adjusted".
+  Its 80% range is a bracket in the right gutter, outside the time axis,
   because it is a forecast, not an observation. The legend says so.
 - The y axis always spans at least 3 minutes, so a few seconds of drift don't look like a
   large move.
@@ -502,11 +564,10 @@ historical-replay API (`docs/local_api.md`), one endpoint per method:
   "Fresh at replay time · 37 s old at the replay time"; one older than 120 s gets the
   stale warning, worded "before the replay time", which stays visible beside the result.
 - **Trains without full support.** A train with `predictionStatus` other than `ok` shows
-  BART's published ETA only, as published, with one sentence saying why (for
-  `outside_model_horizon`: "The model only forecasts trains BART shows about 5, 10 or 15
-  minutes away."). The timetable marks it "BART ETA only". A forecast whose range is not
-  supported shows the forecast and says "No likely range is shown". No value is ever
-  simulated or invented in place of a missing one.
+  not listed at all: the explorer shows only trains with a supported forecast. A board with
+  none says "No model-eligible trains", with the reason. A forecast whose range is not
+  supported shows the forecast without a range. No value is ever simulated or invented in
+  place of a missing one.
 - **Empty boards** say why when the response shows it:
   - the feed lists trains at the station whose trips end there, so they can't be boarded
     (`terminatingTrainCount`);
@@ -741,8 +802,9 @@ These were chosen after studying one public editorial data story (for principles
 appearance) and reconciling the result with this project's accuracy and accessibility
 requirements.
 
-1. **Lead with the answer.** The likely final published ETA comes first and is the largest
-   value in the section: up to 92 px, against 17 px for the station heading and 15 px for
+1. **Lead with what BART said.** BART's published ETA at the replay moment comes first and
+   is the largest value in the section; the model's revision and the model-adjusted ETA
+   follow, then what BART later published, marked retrospective: up to 92 px, against 17 px for the station heading and 15 px for
    the summary rows. Its clock is always minute precision and is sized to the card
    (`cqi`), so the full time and AM/PM always fit on one line, down to 320 px. "About …
    away" sits directly under it, then the summary, then detail that steps down in size and
@@ -799,27 +861,23 @@ Recorded during the correction pass and deliberately not implemented:
 
 ## Known limitations
 
-- In mock mode all values are simulated. Line and destination pairings follow BART's
-  public network but are not checked against a specific timetable.
-- The public site is one fixed moment, 2026-10-20 at 10:00 AM Pacific. It cannot show any
-  other time, and a station, group or train outside the export is not found.
-- With the static replay or the local API, most trains show BART's ETA only: the model serves only published-time
-  horizons of 5, 10 and 15 minutes (±60 s), so at a given moment only a few trains per
-  board have a forecast (for example 1 of 3 at Castro Valley toward Daly City at the
-  tested replay time). 5 of 95 boards are empty at the tested replay time, for the
-  reasons in `docs/local_api.md` ("Empty boards").
-- Platform numbers come from the schedule. A platform change on the day is not detected,
-  except that a train listed at a platform its schedule does not use there shows no
-  platform number.
-- Stability cutoffs (0.25 / 0.5) and the 120 s freshness limit are provisional.
-- With simulated data, freshness is re-evaluated every 15 s and the countdown does not
-  tick every second. A replay is judged at its replay time and never counts down.
-- Clock times are formatted in Pacific time regardless of the viewer's time zone.
-- The history scripts are hand-written. Real BART histories will have more jitter, longer
-  feeds and irregular gaps, and the 30 s revision threshold and 90 s gap rule have not been
-  checked against them yet.
-- Chart tick labels omit AM/PM to save space; full times appear in the inspection line and
-  the table.
-- The result describes changes to BART's published estimate only. It makes no claims about
-  skipped or changed stops, missed connections or cancellations. A visible service alert is
-  shown as context, never as a predicted change to the train.
+- **One moment.** The public site is one fixed moment, 2026-10-19 at 8:10 AM PDT. A
+  station, group or train outside the curated replay is not found; the explorer falls back
+  to the first supported train.
+- **A curated subset.** The showcase lists only the model-eligible trains (83 of the 1,067
+  board entries at that snapshot). Most trains on a board are outside the 5-, 10- and
+  15-minute windows.
+- **No physical arrivals.** "BART later published" is BART's own final stable estimate, not
+  an observed arrival.
+- **Map touch targets and labels on phones.** On a phone the whole network is scaled to the
+  screen. Station hit areas are then smaller than 44 px, and most station names are left
+  off, so the station table is the reliable way to choose and identify a station there.
+- **Map scale.** The schematic is not to geographic scale. Station positions come from a
+  grid that follows the GTFS station order.
+- **Platforms.** Platform numbers come from the schedule. A platform change on the day is
+  not detected.
+- **Provisional settings.** The stability cutoffs (0.25 and 0.5) and the 120 s freshness
+  limit are provisional.
+- **Time zone.** Clock times are in Pacific time regardless of the viewer's time zone.
+- **Development modes.** In mock mode all values are simulated, and Highlights and the map
+  have no data.

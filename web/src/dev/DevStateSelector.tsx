@@ -15,7 +15,7 @@ const LABELS: Record<MockScenario, string> = {
   stale: 'Stale data',
   empty: 'No upcoming trains',
   'no-interval': 'No likely range',
-  'eta-only': 'BART ETA only',
+  'eta-only': 'No model forecasts (empty explorer)',
   'model-horizon': 'Forecasts only near 5, 10, 15 min',
 };
 

@@ -18,6 +18,16 @@ as a replay through each answer's `dataMode: "historical_replay"` and `asOf`.
 - **Offline check:** CI and the Pages workflow check the published copy without the
   warehouse or the bundle.
 
+> **The published copy is now the curated showcase** ([showcase_replay.md](showcase_replay.md)).
+> - **What it is:** the API's answers at 2026-10-19 08:10:23 PDT, in this same
+>   `static-replay-1` layout, reduced to the trains with a supported forecast. Their
+>   stations, boarding groups and ETA histories are kept.
+> - **Showcase files:** they sit beside it in `web/public/showcase/`.
+>   `bart-static-replay check web/public/replay` checks them too.
+> - **This page:** everything below describes the exporter, and the 2026-10-20 export it
+>   was first validated on. That export is still reproducible with `export` and `verify`,
+>   but it is no longer the published copy.
+
 ## Zero-cost architecture
 
 ```text
@@ -316,17 +326,24 @@ build, check and rename steps as an export.
 The website reads `index.json` first and refuses any schema version other than
 `static-replay-1` ([website_architecture.md](website_architecture.md#static-replay-client-github-pages)).
 
-| | Published replay |
-|---|---|
-| Export | `v1-20261020T170000Z` (layout v1, `schemaVersion` `static-replay-1`) |
-| Replay time / source snapshot | 2026-10-20T17:00:00Z / 2026-10-20T16:59:23Z |
-| Model / bundle | `0.2.0+886fcd260732` / `db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087` |
-| Warehouse | `bart_checkpoint_2026-10-20.duckdb`, SHA-256 `19dd5cfc686bed4f223adbfe5c5d26ef8385e5d1a152da5aa2be7af9378e55cc` |
-| Manifest SHA-256 | `737f7bf404cd180ff798ec6e5d2cd8b46b9f40ffb398d9223e7b523bbf8fbe90` (188,535 bytes) |
-| `index.json` SHA-256 | `07eb740f64c68e95a46a255028659c4a21f1053702fffc63ebd7274fa46252fe` (212 bytes) |
-| Tracked files | 1,157: 1,155 answers, the manifest and the index |
-| Tracked bytes | 5,938,839 (535,238 gzipped) |
-| Tree hash | `5202c3fb6b093930642571bd1999e03e36084bb81e248115d1692abca5afb0ba`, the SHA-256 of one `<sha256>  <path>\n` line per file, ordered by path, with paths relative to `web/public/replay/` |
+Both exports below use layout v1 (`schemaVersion` `static-replay-1`), model
+`0.2.0+886fcd260732`, bundle `db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087`
+and warehouse `bart_checkpoint_2026-10-20.duckdb` (SHA-256
+`19dd5cfc686bed4f223adbfe5c5d26ef8385e5d1a152da5aa2be7af9378e55cc`).
+
+| | Published now: the curated showcase | Published first, since replaced |
+|---|---|---|
+| Export | `v1-20261019T151023Z` | `v1-20261020T170000Z` |
+| Replay time / source snapshot | 2026-10-19T15:10:23Z / 2026-10-19T15:10:22Z | 2026-10-20T17:00:00Z / 2026-10-20T16:59:23Z |
+| Manifest SHA-256 | `cae7becfba2b69ec3556e4e9b0a5c4a5c0942683751827a81fd573e5c6e263e4` (24,916 bytes) | `737f7bf404cd180ff798ec6e5d2cd8b46b9f40ffb398d9223e7b523bbf8fbe90` (188,535 bytes) |
+| `index.json` SHA-256 | `563a705749166ecffe27cf992b5f55d3d3f0ce27bc3bcd53d7fb5e6e22c3f606` (212 bytes) | `07eb740f64c68e95a46a255028659c4a21f1053702fffc63ebd7274fa46252fe` (212 bytes) |
+| Tracked files | 150: 148 answers, the manifest and the index | 1,157: 1,155 answers, the manifest and the index |
+| Tracked bytes | 758,230 (94,082 gzipped) | 5,938,839 (535,238 gzipped) |
+| Tree hash | `c9cbad518e865a9c0ca2397dedbc83026494fdd1a03974ef72b50c778fed043b` | `5202c3fb6b093930642571bd1999e03e36084bb81e248115d1692abca5afb0ba` |
+
+The tree hash is the SHA-256 of one `<sha256>  <path>\n` line per file, ordered by path,
+with paths relative to `web/public/replay/`. The showcase's own four files, in
+`web/public/showcase/`, are listed in [showcase_replay.md](showcase_replay.md#files).
 
 The published export is byte-identical to the reviewed export in `data/static_replay/`.
 
@@ -385,7 +402,7 @@ checks:
 5. **Publish.** Run `bart-static-replay publish`. It verifies the export against the API,
    replaces `web/public/replay/` and runs the offline check.
 6. **Re-run checks.** Run all checks, including `bart-static-replay check` and the web
-   tests. The web tests pin the October 20 counts, so a new replay updates them on
+   tests. The tests pin the published replay's counts, so a new replay updates them on
    purpose.
 7. **Merge.** Commit `web/public/replay/` with the code and docs, and merge to `main`. The
    Pages workflow checks the replay again, builds and deploys.
@@ -398,8 +415,9 @@ checks:
 - **Local inputs.** Regenerating or verifying against the API needs the ignored local
   warehouse and bundle, so CI cannot rebuild the export. CI checks the published copy
   offline instead.
-- **Repository size.** The published replay adds about 6 MB and 1,157 files to the
-  repository. Each update replaces them, and Git keeps the old copies in its history.
+- **Repository size.** The published curated replay and its showcase files add about
+  0.9 MB and 154 files to the repository (the first, full export added about 6 MB and
+  1,157 files). Each update replaces them, and Git keeps the old copies in its history.
 - **API-only fields.** The omitted fields exist only in the local API.
 - **Inherited limits.** Everything in [local_api.md](local_api.md#limitations) still
   applies: horizons, the static schedule, unplaced trains, unsupported lines and the

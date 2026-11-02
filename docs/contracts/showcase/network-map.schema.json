@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "network-map.schema.json",
+  "title": "network-map.json: stations and routes for the original network schematic (version 1)",
+  "description": "Every station served on the replay date, with schematic coordinates derived from GTFS and, where the curated replay has trains there, its predicted and realized ETA revisions. A station without a supported forecast has a count of 0 and every statistic null. Not BART's map artwork.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/header"
+    }
+  ],
+  "unevaluatedProperties": false,
+  "required": [
+    "notice",
+    "viewBox",
+    "projection",
+    "routes",
+    "stations",
+    "trains"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "showcase-network-map-1"
+    },
+    "dataMode": true,
+    "asOf": true,
+    "feedTimestamp": true,
+    "serviceDate": true,
+    "modelVersion": true,
+    "notice": {
+      "type": "string",
+      "minLength": 1
+    },
+    "viewBox": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": 0
+        },
+        {
+          "const": 0
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "items": false,
+      "minItems": 4
+    },
+    "projection": {
+      "type": "string",
+      "minLength": 1
+    },
+    "routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "routeId",
+          "routeShortName",
+          "routeLongName",
+          "color",
+          "stationIds"
+        ],
+        "properties": {
+          "routeId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "routeShortName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "routeLongName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^#[0-9A-F]{6}$"
+          },
+          "stationIds": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "stations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/station"
+      }
+    },
+    "trains": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/train"
+      }
+    }
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "predictionId",
+        "boardingGroupId",
+        "destination",
+        "lineName",
+        "routeShortName",
+        "horizonSeconds",
+        "predictedRevisionSeconds",
+        "realizedRevisionSeconds"
+      ],
+      "properties": {
+        "predictionId": {
+          "$ref": "common.schema.json#/$defs/predictionId"
+        },
+        "boardingGroupId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The train's boarding group, for a link to it in the explorer"
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "routeShortName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "horizonSeconds": {
+          "$ref": "common.schema.json#/$defs/horizon"
+        },
+        "predictedRevisionSeconds": {
+          "type": "integer"
+        },
+        "realizedRevisionSeconds": {
+          "type": "integer"
+        }
+      }
+    },
+    "station": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stationId",
+        "stationName",
+        "lat",
+        "lon",
+        "x",
+        "y",
+        "routes",
+        "supportedForecastCount",
+        "largestAbsPredictedRevisionSeconds",
+        "medianPredictedRevisionSeconds",
+        "largestAbsRealizedRevisionSeconds",
+        "medianRealizedRevisionSeconds",
+        "largestPredictedRecord",
+        "largestRealizedRecord"
+      ],
+      "properties": {
+        "stationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stationName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "lon": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "x": {
+          "type": "number",
+          "minimum": 0
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "supportedForecastCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "largestAbsPredictedRevisionSeconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "medianPredictedRevisionSeconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "largestAbsRealizedRevisionSeconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "medianRealizedRevisionSeconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "largestPredictedRecord": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/record"
+            }
+          ]
+        },
+        "largestRealizedRecord": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/record"
+            }
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "supportedForecastCount": {
+            "const": 0
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "largestAbsPredictedRevisionSeconds": {
+            "type": "null"
+          },
+          "medianPredictedRevisionSeconds": {
+            "type": "null"
+          },
+          "largestAbsRealizedRevisionSeconds": {
+            "type": "null"
+          },
+          "medianRealizedRevisionSeconds": {
+            "type": "null"
+          },
+          "largestPredictedRecord": {
+            "type": "null"
+          },
+          "largestRealizedRecord": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "largestAbsPredictedRevisionSeconds": {
+            "type": "integer"
+          },
+          "medianPredictedRevisionSeconds": {
+            "type": "number"
+          },
+          "largestAbsRealizedRevisionSeconds": {
+            "type": "integer"
+          },
+          "medianRealizedRevisionSeconds": {
+            "type": "number"
+          },
+          "largestPredictedRecord": {
+            "type": "object"
+          },
+          "largestRealizedRecord": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "train": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One kept train of the replay, for reading the map line by line",
+      "required": [
+        "predictionId",
+        "stationId",
+        "boardingGroupId",
+        "lineName",
+        "routeShortName",
+        "destination",
+        "horizonSeconds",
+        "predictedRevisionSeconds",
+        "realizedRevisionSeconds"
+      ],
+      "properties": {
+        "predictionId": {
+          "$ref": "common.schema.json#/$defs/predictionId"
+        },
+        "stationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boardingGroupId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lineName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "routeShortName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1
+        },
+        "horizonSeconds": {
+          "$ref": "common.schema.json#/$defs/horizon"
+        },
+        "predictedRevisionSeconds": {
+          "type": "integer"
+        },
+        "realizedRevisionSeconds": {
+          "type": "integer",
+          "description": "Retrospective: final published ETA minus BART published ETA"
+        }
+      }
+    }
+  }
+}

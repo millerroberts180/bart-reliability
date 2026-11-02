@@ -5,7 +5,7 @@ import { useElementWidth } from '../hooks/useElementWidth';
 import { useRootFontScale } from '../hooks/useRootFontScale';
 
 export interface FinalReference {
-  /** Likely final published ETA (clock time). */
+  /** Model-adjusted ETA (clock time): BART's ETA plus the expected revision. */
   at: string;
   /** Its likely range as clock times; null when the model has no supported range. */
   range: { lowerAt: string; upperAt: string; coverage: string } | null;
@@ -69,7 +69,7 @@ export function markerKind(analysis: HistoryAnalysis, i: number): MarkerKind | n
 /**
  * Step chart of BART's published arrival time at each feed snapshot. Up = BART
  * moved the ETA later, down = earlier, flat = it held. A break in the line is a
- * gap in the feed. The dashed line is the model's likely final published ETA, drawn
+ * gap in the feed. The dashed line is the model-adjusted ETA, drawn
  * only for a train with a model forecast. Marks appear only at revisions, either side
  * of a gap and at the latest snapshot; the snapshot being inspected gets a ring.
  *
@@ -90,7 +90,7 @@ export function HistoryChart({ analysis, final, label, describedBy }: HistoryCha
   const text = useRootFontScale();
   const compact = width < 480 * text;
   const height = (compact ? 250 : 290) + 40 * (text - 1);
-  // The right gutter holds the range bracket and the end labels ("Latest", "Likely final").
+  // The right gutter holds the range bracket and the end labels ("Latest", "Model-adjusted").
   const margin = {
     top: 30 * text,
     right: (compact ? 80 : 124) * text,
@@ -252,7 +252,7 @@ export function HistoryChart({ analysis, final, label, describedBy }: HistoryCha
           ))}
         </g>
 
-        {/* Model reference: likely final published ETA and, when supported, its range */}
+        {/* Model reference: the model-adjusted ETA and, when supported, its range */}
         <g aria-hidden="true">
           {final && finalY !== null && (
             <>
@@ -265,7 +265,7 @@ export function HistoryChart({ analysis, final, label, describedBy }: HistoryCha
                 </>
               )}
               <text className="history-chart__end-label history-chart__end-label--final" x={labelX} y={finalLabelY} dy="0.32em">
-                {compact ? 'Final' : 'Likely final'}
+                {compact ? 'Adjusted' : 'Model-adjusted'}
               </text>
             </>
           )}

@@ -155,19 +155,14 @@ function ReadyHistory({
                 later, down earlier, flat means it held.
               </span>
             </li>
-            {final ? (
+            {final && (
               <li className="legend__item">
                 <span className="legend__swatch legend__swatch--final" aria-hidden="true" />
                 <span>
-                  <span className="visually-hidden">Dashed line: </span>Model’s likely final published ETA (
-                  {formatClock(final.at)})
+                  <span className="visually-hidden">Dashed line: </span>Model-adjusted ETA ({formatClock(final.at)})
                   {final.range ? `, with its ${final.range.coverage} range at the right` : '; no likely range is available'}.
-                  A forecast, not an observation.
+                  A forecast made at the replay moment, not an observation.
                 </span>
-              </li>
-            ) : (
-              <li className="legend__item legend__item--note">
-                No model forecast for this train, so the chart shows BART’s published ETA only.
               </li>
             )}
             {analysis.gapCount > 0 && (

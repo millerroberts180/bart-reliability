@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type * as Selected from '@data-mode';
 import { API_BASE, createFakeApi } from '../test/fakeApi';
 import { createPublishedReplayHost } from '../test/publishedReplay';
+import { showcaseFetch } from '../test/publishedShowcase';
 import type * as HttpMode from './http';
 import type * as MockMode from './mock';
 import type * as StaticMode from './static';
@@ -20,29 +21,34 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-const disclosure = (name: string) =>
-  within(screen.getByRole('region', { name: 'ETA Reliability' })).findByRole('complementary', { name });
+const strip = () => screen.getByRole('region', { name: 'About this data' });
+const stripSays = (text: string) => within(strip()).findByText(text);
 
 describe('data mode modules', () => {
   it('mock: the simulated client, with the development state selector', async () => {
     const { Site } = await import('./mock');
+    window.history.replaceState(null, '', '/?view=explorer');
     render(<Site />);
-    expect(await disclosure('Prototype using simulated data')).toBeInTheDocument();
+    expect(await stripSays('Simulated data, not BART data')).toBeInTheDocument();
     expect(await screen.findByTestId('forecast')).toBeInTheDocument();
     expect(await screen.findByText('Dev · preview state')).toBeInTheDocument();
   });
 
   it('static: the published replay, read from the site’s own origin under the base path', async () => {
-    // Tests serve from "/", so the replay is at /replay/ (/bart-reliability/replay/ on Pages).
+    // Tests serve from "/", so the files are at /replay/ and /showcase/ (under /bart-reliability/ on Pages).
     const host = createPublishedReplayHost('/replay/');
-    vi.stubGlobal('fetch', host.fetch);
-    const { Site } = await import('./static');
-    render(<Site />);
-    expect(await disclosure('Historical replay of recorded BART data')).toHaveTextContent(
-      'Tuesday, October 20, 2026 at 10:00 AM Pacific',
+    const showcaseRequests: string[] = [];
+    const showcase = showcaseFetch(showcaseRequests, '/showcase/');
+    vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input).startsWith('/showcase/') ? showcase(input, init) : host.fetch(input, init),
     );
+    const { Site } = await import('./static');
+    window.history.replaceState(null, '', '/?view=explorer');
+    render(<Site />);
+    expect(await stripSays('Monday, October 19, 2026, 8:10 AM PDT')).toBeInTheDocument();
     expect(await screen.findByTestId('forecast')).toBeInTheDocument();
     expect(host.requests[0]).toBe('index.json');
+    expect(showcaseRequests).toHaveLength(4);
     expect(screen.queryByText('Dev · preview state')).not.toBeInTheDocument();
   });
 
@@ -52,9 +58,7 @@ describe('data mode modules', () => {
     vi.stubGlobal('fetch', api.fetch);
     const { Site } = await import('./http');
     render(<Site />);
-    expect(await disclosure('Historical replay of recorded BART data')).toHaveTextContent(
-      'Thursday, October 15, 2026 at 10:00 AM Pacific',
-    );
+    expect(await stripSays('Thursday, October 15, 2026 at 10:00 AM Pacific')).toBeInTheDocument();
     expect(api.requests).toContain('/api/v1/health');
     expect(screen.queryByText('Dev · preview state')).not.toBeInTheDocument();
   });
