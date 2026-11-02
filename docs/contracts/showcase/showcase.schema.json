@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "showcase.schema.json",
+  "title": "showcase.json: the curated replay's metadata (version 1)",
+  "description": "What the curated historical replay is, how its moment was chosen, what it includes and excludes, the three ETA terms, provenance, and the SHA-256 of every other showcase file.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "common.schema.json#/$defs/header"
+    }
+  ],
+  "unevaluatedProperties": false,
+  "required": [
+    "title",
+    "localTime",
+    "notLive",
+    "disclosure",
+    "modelScope",
+    "terms",
+    "selection",
+    "counts",
+    "provenance",
+    "files"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "showcase-1"
+    },
+    "dataMode": true,
+    "asOf": true,
+    "feedTimestamp": true,
+    "serviceDate": true,
+    "modelVersion": true,
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "localTime": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notLive": {
+      "type": "string",
+      "minLength": 1
+    },
+    "disclosure": {
+      "const": "This curated replay shows only trains eligible for the model’s 5-, 10- and 15-minute forecast windows."
+    },
+    "modelScope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "terms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bartPublishedEta",
+        "modelAdjustedEta",
+        "finalPublishedEta",
+        "predictedRevision",
+        "realizedRevision",
+        "modelError"
+      ],
+      "properties": {
+        "bartPublishedEta": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modelAdjustedEta": {
+          "type": "string",
+          "minLength": 1
+        },
+        "finalPublishedEta": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predictedRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "realizedRevision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modelError": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "serviceDate",
+        "candidatesConsidered",
+        "selected"
+      ],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceDate": {
+          "$ref": "common.schema.json#/$defs/date"
+        },
+        "candidatesConsidered": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "selected": {
+          "$ref": "#/$defs/candidate"
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boardEntries",
+        "supportedForecasts",
+        "includedRecords",
+        "excludedSupportedWithoutFinalEta",
+        "excludedSupportedByReason",
+        "notSupportedByStatus",
+        "stationsRepresented",
+        "stationsOnMap",
+        "tripRuns",
+        "recordsByHorizon"
+      ],
+      "properties": {
+        "boardEntries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "supportedForecasts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "includedRecords": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "excludedSupportedWithoutFinalEta": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "excludedSupportedByReason": {
+          "$ref": "#/$defs/counter"
+        },
+        "notSupportedByStatus": {
+          "$ref": "#/$defs/counter"
+        },
+        "stationsRepresented": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stationsOnMap": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "tripRuns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "recordsByHorizon": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "300",
+              "600",
+              "900"
+            ]
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modelVersion",
+        "bundleId",
+        "warehouseSha256",
+        "replayExport",
+        "replayManifestSha256"
+      ],
+      "properties": {
+        "modelVersion": {
+          "$ref": "common.schema.json#/$defs/modelVersion"
+        },
+        "bundleId": {
+          "$ref": "common.schema.json#/$defs/sha256"
+        },
+        "warehouseSha256": {
+          "$ref": "common.schema.json#/$defs/sha256"
+        },
+        "replayExport": {
+          "type": "string",
+          "pattern": "^v1-\\d{8}T\\d{6}Z$"
+        },
+        "replayManifestSha256": {
+          "$ref": "common.schema.json#/$defs/sha256"
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "retrospective.json",
+        "largest-changes.json",
+        "network-map.json"
+      ],
+      "patternProperties": {
+        "^(retrospective|largest-changes|network-map)\\.json$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bytes",
+            "sha256"
+          ],
+          "properties": {
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "sha256": {
+              "$ref": "common.schema.json#/$defs/sha256"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "counter": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collectedAt",
+        "feedTimestamp",
+        "localTime",
+        "boardEntries",
+        "supportedForecasts",
+        "stationsWithSupportedForecasts",
+        "tripRuns",
+        "medianAbsPredictedRevisionSeconds",
+        "upperBound",
+        "statusCounts"
+      ],
+      "properties": {
+        "collectedAt": {
+          "$ref": "common.schema.json#/$defs/utc"
+        },
+        "feedTimestamp": {
+          "$ref": "common.schema.json#/$defs/utc"
+        },
+        "localTime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boardEntries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "supportedForecasts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stationsWithSupportedForecasts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tripRuns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "medianAbsPredictedRevisionSeconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "upperBound": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "statusCounts": {
+          "$ref": "#/$defs/counter"
+        }
+      }
+    }
+  }
+}

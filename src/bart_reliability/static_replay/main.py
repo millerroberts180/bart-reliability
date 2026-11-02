@@ -18,6 +18,7 @@ from bart_reliability.static_replay.export import (
     size_report,
     verify_export,
 )
+from bart_reliability.static_replay.showcase_check import check_showcase
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -43,6 +44,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "check":
         try:
             summary = check_public(args.public)
+            # The curated showcase's files sit beside the replay (web/public/showcase).
+            showcase = args.public.parent / "showcase"
+            if showcase.exists():
+                summary["showcase"] = check_showcase(showcase, args.public)
         except ExportError as e:
             print(json.dumps({"ok": False, "error": str(e)}))
             return 1

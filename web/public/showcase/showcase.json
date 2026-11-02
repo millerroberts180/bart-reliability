@@ -1,0 +1,88 @@
+{
+ "schemaVersion": "showcase-1",
+ "dataMode": "historical_replay",
+ "asOf": "2026-10-19T15:10:23Z",
+ "feedTimestamp": "2026-10-19T15:10:22Z",
+ "serviceDate": "2026-10-19",
+ "modelVersion": "0.2.0+886fcd260732",
+ "title": "ETA Reliability: historical replay",
+ "localTime": "Monday, October 19, 2026, 8:10 AM PDT",
+ "notLive": "A fixed historical replay of recorded BART data. It is not live.",
+ "disclosure": "This curated replay shows only trains eligible for the model’s 5-, 10- and 15-minute forecast windows.",
+ "modelScope": "The model predicts revisions to BART’s published ETA, not physical arrival times.",
+ "terms": {
+  "bartPublishedEta": "What BART said at the replay snapshot.",
+  "modelAdjustedEta": "BART’s published ETA plus the model’s predicted revision.",
+  "finalPublishedEta": "The final stable ETA BART published later: a retrospective outcome, not a physical arrival time.",
+  "predictedRevision": "Model-adjusted ETA minus BART published ETA.",
+  "realizedRevision": "Final published ETA minus BART published ETA.",
+  "modelError": "Model-adjusted ETA minus final published ETA."
+ },
+ "selection": {
+  "rule": "Ranked by supported forecasts, then stations with supported forecasts, then trip runs, then the median absolute predicted revision (all descending), then the earliest time. Accuracy and outcomes are not read.",
+  "serviceDate": "2026-10-19",
+  "candidatesConsidered": 1440,
+  "selected": {
+   "collectedAt": "2026-10-19T15:10:23Z",
+   "feedTimestamp": "2026-10-19T15:10:22Z",
+   "localTime": "2026-10-19 08:10:23 PDT",
+   "boardEntries": 1067,
+   "supportedForecasts": 89,
+   "stationsWithSupportedForecasts": 38,
+   "tripRuns": 45,
+   "medianAbsPredictedRevisionSeconds": 34.0,
+   "upperBound": 90,
+   "statusCounts": {
+    "fallback_required": 1,
+    "ok": 89,
+    "outside_model_horizon": 952,
+    "outside_model_population": 25
+   }
+  }
+ },
+ "counts": {
+  "boardEntries": 1067,
+  "supportedForecasts": 89,
+  "includedRecords": 83,
+  "excludedSupportedWithoutFinalEta": 6,
+  "excludedSupportedByReason": {
+   "tier_B": 3,
+   "trip_left_feed": 2,
+   "unstable_final_estimate": 1
+  },
+  "notSupportedByStatus": {
+   "fallback_required": 1,
+   "outside_model_horizon": 952,
+   "outside_model_population": 25
+  },
+  "stationsRepresented": 37,
+  "stationsOnMap": 50,
+  "tripRuns": 45,
+  "recordsByHorizon": {
+   "300": 29,
+   "600": 24,
+   "900": 30
+  }
+ },
+ "provenance": {
+  "modelVersion": "0.2.0+886fcd260732",
+  "bundleId": "db2382848a9ff29a298aa6d320623daf532ac4d813475bf30a8e052e84ed6087",
+  "warehouseSha256": "19dd5cfc686bed4f223adbfe5c5d26ef8385e5d1a152da5aa2be7af9378e55cc",
+  "replayExport": "v1-20261019T151023Z",
+  "replayManifestSha256": "cae7becfba2b69ec3556e4e9b0a5c4a5c0942683751827a81fd573e5c6e263e4"
+ },
+ "files": {
+  "retrospective.json": {
+   "bytes": 34509,
+   "sha256": "2089654d304051744b70ffdca04ecaa44e3b3f5a323f2524764a5d2cf0ac780e"
+  },
+  "largest-changes.json": {
+   "bytes": 12230,
+   "sha256": "3c126bf9ead49d6ddf544519ea1d590017a17384e427bf4b74a8b005629c4b9e"
+  },
+  "network-map.json": {
+   "bytes": 76208,
+   "sha256": "6b340baf448e46850786d991d6daa72e05c6020768a3f7975e7bb35d400be312"
+  }
+ }
+}

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "retrospective.schema.json",
+  "title": "retrospective.json: what BART later published (version 1)",
+  "description": "One record per train in the curated replay: BART's final stable published ETA, which BART published after the replay moment. A retrospective outcome, stored apart from the replay files and never a model input. It is not a physical arrival time.",
+  "type": "object",
+  "allOf": [{ "$ref": "common.schema.json#/$defs/header" }],
+  "unevaluatedProperties": false,
+  "required": ["notice", "records"],
+  "properties": {
+    "schemaVersion": { "const": "showcase-retrospective-1" },
+    "dataMode": true,
+    "asOf": true,
+    "feedTimestamp": true,
+    "serviceDate": true,
+    "modelVersion": true,
+    "notice": { "type": "string", "minLength": 1 },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "predictionId",
+          "tripRunId",
+          "stationId",
+          "finalPublishedEtaAt",
+          "finalPublishedEtaSeconds",
+          "finalPublishedEtaKnownAt",
+          "realizedRevisionSeconds",
+          "modelErrorSeconds",
+          "predictedDirection",
+          "realizedDirection",
+          "directionMatch"
+        ],
+        "properties": {
+          "predictionId": { "$ref": "common.schema.json#/$defs/predictionId" },
+          "tripRunId": { "$ref": "common.schema.json#/$defs/tripRunId" },
+          "stationId": { "type": "string", "minLength": 1 },
+          "finalPublishedEtaAt": { "$ref": "common.schema.json#/$defs/utc" },
+          "finalPublishedEtaSeconds": {
+            "type": "integer",
+            "description": "Final published ETA minus the replay snapshot's feed time"
+          },
+          "finalPublishedEtaKnownAt": {
+            "$ref": "common.schema.json#/$defs/utc",
+            "description": "When the stop left BART's feed, confirming the final ETA; always after asOf"
+          },
+          "realizedRevisionSeconds": {
+            "type": "integer",
+            "description": "Final published ETA minus BART published ETA at the replay moment"
+          },
+          "modelErrorSeconds": {
+            "type": "integer",
+            "description": "Model-adjusted ETA minus final published ETA (predicted minus realized revision)"
+          },
+          "predictedDirection": { "$ref": "common.schema.json#/$defs/direction" },
+          "realizedDirection": { "$ref": "common.schema.json#/$defs/direction" },
+          "directionMatch": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

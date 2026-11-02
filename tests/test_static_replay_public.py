@@ -88,38 +88,56 @@ def with_trains(body) -> bool:
 # -- the replay in the repository ----------------------------------------------------------
 
 
+# The published replay is the curated showcase (docs/showcase_replay.md): the API's answers
+# at 2026-10-19 08:10:23 PDT, reduced to the trains the model supports.
+SHOWCASE_EXPORT = "v1-20261019T151023Z"
+
+
 def test_the_published_replay_passes_the_offline_check():
     summary = check_public(PUBLISHED)
     spec = load_export_spec()
-    assert summary["export"] == spec.name == "v1-20261020T170000Z"
-    assert summary["asOf"] == "2026-10-20T17:00:00Z"
-    assert summary["sourceFeedTimestamp"] == "2026-10-20T16:59:23Z"
-    assert summary["model"]["modelVersion"] == spec.model_version
+    assert summary["export"] == SHOWCASE_EXPORT
+    assert summary["asOf"] == "2026-10-19T15:10:23Z"
+    assert summary["sourceFeedTimestamp"] == "2026-10-19T15:10:22Z"
+    assert summary["model"]["modelVersion"] == spec.model_version == "0.2.0+886fcd260732"
     assert summary["model"]["bundleId"] == spec.bundle_id
     assert summary["warehouse"] == {
         "file": "bart_checkpoint_2026-10-20.duckdb",
         "sha256": spec.warehouse_sha256,
     }
     counts = summary["counts"]
-    assert (counts["files"], counts["stations"], counts["boards"]) == (1155, 50, 95)
-    assert (counts["trains"], counts["historyFiles"], counts["emptyBoards"]) == (1057, 1057, 5)
-    assert counts["trainsByStatus"] == {
-        "fallback_required": 2,
-        "ok": 79,
-        "outside_model_horizon": 949,
-        "outside_model_population": 27,
-    }
+    assert (counts["files"], counts["stations"], counts["boards"]) == (148, 37, 62)
+    assert (counts["trains"], counts["historyFiles"], counts["emptyBoards"]) == (83, 83, 0)
+    # Only supported forecasts are published: no train would show BART's ETA alone.
+    assert counts["trainsByStatus"] == {"ok": 83}
+    assert counts["trainsWithInterval"] == 83
     manifest = (PUBLISHED / summary["export"] / MANIFEST).read_bytes()
     assert hashlib.sha256(manifest).hexdigest() == summary["manifestSha256"]
+
+
+def test_the_published_showcase_belongs_to_the_published_replay(capsys):
+    assert cli(["check", str(PUBLISHED)]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["showcase"]["includedRecords"] == 83
+    assert summary["showcase"]["stationsRepresented"] == 37
+    assert sorted(p.name for p in (PUBLISHED.parent / "showcase").iterdir()) == [
+        "largest-changes.json",
+        "network-map.json",
+        "retrospective.json",
+        "showcase.json",
+    ]
 
 
 def test_only_the_reduced_replay_is_published():
     files = [p.relative_to(PUBLISHED).as_posix() for p in PUBLISHED.rglob("*") if p.is_file()]
     assert all(f.endswith(".json") for f in files)
-    assert len(files) == 1157  # 1,155 answers, the manifest and the index
-    for path in PUBLISHED.rglob("*.json"):
+    assert len(files) == 150  # 148 answers, the manifest and the index
+    for path in [*PUBLISHED.rglob("*.json"), *(PUBLISHED.parent / "showcase").glob("*.json")]:
         text = path.read_text()
         assert "/Users/" not in text and "/home/" not in text and "127.0.0.1" not in text
+    # No file that lists trains names an unsupported status (showcase.json only counts them).
+    for path in (PUBLISHED / SHOWCASE_EXPORT / "boards").rglob("*.json"):
+        assert "fallback_required" not in path.read_text()
 
 
 def test_the_checker_needs_no_warehouse_model_or_server():
